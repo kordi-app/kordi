@@ -2,6 +2,13 @@
   "common": {
     "appName": "Kordi"
   },
+  "instruments": {
+    "grandPiano": "Grand Piano",
+    "electricPiano": "Electric Piano",
+    "synthPad": "Synth Pad",
+    "organ": "Organ",
+    "brightSynth": "Bright Synth"
+  },
   "home": {
     "subtitle": "Piano practice web service",
     "freePlay": "Free Play",

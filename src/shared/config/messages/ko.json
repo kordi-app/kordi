@@ -2,6 +2,13 @@
   "common": {
     "appName": "Kordi"
   },
+  "instruments": {
+    "grandPiano": "그랜드 피아노",
+    "electricPiano": "일렉트릭 피아노",
+    "synthPad": "신스 패드",
+    "organ": "오르간",
+    "brightSynth": "브라이트 신스"
+  },
   "home": {
     "subtitle": "피아노 연습 웹 서비스",
     "freePlay": "자유 연주",

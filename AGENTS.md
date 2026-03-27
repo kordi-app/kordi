@@ -9,42 +9,42 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## Directory Structure
 
 ```
-app/                          # Next.js App Router (thin routing shell only)
-├── layout.tsx                # Root layout
-├── (routes)/                 # Route groups
-│   └── page.tsx              # Re-exports from src/views layer
-
 src/
-├── pages/                    # FSD: page compositors (compose widgets + features)
-├── widgets/                  # FSD: self-contained UI blocks (header, sidebar)
-├── features/                 # FSD: user interactions + Server Actions (mutations)
-│   └── {domain}/{action}/
-│       ├── ui/
-│       ├── model/
-│       ├── api/              # Server Actions with "use server" live here
-│       └── index.ts          # Public API
-├── entities/                 # FSD: business entities + data reads (queries)
+├── app/                      # Layer: Next.js App Router (routing, providers, entry)
+│   └── [locale]/(routes)/    # Thin route shells → import from views
+├── views/                    # Layer: full page compositors (compose widgets)
+├── widgets/                  # Layer: self-contained UI blocks (use-case composites)
+├── features/                 # Layer: CUD + user interactions (mutations)
 │   └── {domain}/
-│       ├── ui/
-│       ├── model/
-│       ├── api/              # Data fetching (reads) live here
+│       ├── ui/               # Segment: UI components
+│       ├── model/            # Segment: business logic
+│       ├── lib/              # Segment: hooks
+│       └── index.ts          # Public API
+├── entities/                 # Layer: interfaces + Read (queries, types)
+│   └── {domain}/
+│       ├── model/            # Segment: types, state
+│       ├── api/              # Segment: data fetching (reads)
 │       └── index.ts
-└── shared/                   # FSD: business-agnostic primitives
-    ├── ui/                   # Reusable UI components
-    ├── lib/                  # Utilities
-    ├── api/                  # API client, fetch helpers
-    └── config/               # Environment, constants
+├── shared/                   # Layer: domain-agnostic (no slices)
+│   ├── ui/                   # Segment: reusable UI components
+│   ├── lib/                  # Segment: utilities, music theory, audio
+│   └── config/               # Segment: i18n, messages, env
+│       ├── i18n/             # routing, navigation, request config
+│       └── messages/         # ko.json, en.json
+└── middleware.ts              # Next.js middleware (src root, framework requirement)
 ```
 
 ## FSD Rules
 
 1. **Unidirectional imports only**: Higher layers import from lower layers. NEVER import upward.
    - `app → views → widgets → features → entities → shared`
-2. **Public API contract**: Every slice exports through `index.ts`. Never import from slice internals.
-3. **Thin app/ routes**: `app/` route files only compose and re-export from `src/views/`. No business logic.
-4. **Server Actions → features**: Mutations (`"use server"`) belong in `features/{domain}/api/`.
-5. **Data reads → entities**: Query functions belong in `entities/{domain}/api/`.
-6. **Route Handlers → app/api/**: Only for webhooks, OAuth callbacks, external integrations.
+2. **Slices cannot reference each other**: Within the same layer, different slices (domains) CANNOT import from each other. (High cohesion, low coupling)
+3. **Public API contract**: Every slice exports through `index.ts`. Never import from slice internals.
+4. **Thin app/ routes**: `app/` route files only compose and re-export from `src/views/`. No business logic.
+5. **Features = CUD + user interaction**: Mutations (Create/Update/Delete) with user events belong in features.
+6. **Entities = interfaces + Read**: Type definitions and data fetching (Get/Read) belong in entities.
+7. **Shared has no slices**: No domain folders under shared — it's domain-agnostic.
+8. **Segments = role-based folders**: Within each slice, organize by role (ui, model, lib, api).
 
 ## Path Aliases
 
