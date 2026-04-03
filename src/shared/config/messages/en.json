@@ -1,6 +1,11 @@
 {
   "common": {
-    "appName": "Kordi"
+    "appName": "Kordi",
+    "logout": "Log out"
+  },
+  "login": {
+    "subtitle": "Start your piano practice",
+    "googleLogin": "Sign in with Google"
   },
   "instruments": {
     "grandPiano": "Grand Piano",
@@ -19,7 +24,7 @@
   "piano": {
     "title": "Piano",
     "clickToStart": "Click to Start",
-    "audioDescription": "Audio requires user interaction to begin",
+    "audioDescription": "Play with your keyboard or connect a MIDI piano",
     "loadingSamples": "Loading piano samples...",
     "noMidiDevice": "No MIDI Device",
     "instructions": "Use your keyboard (A-J, W/E/T/Y/U) or connect a MIDI device to play"
