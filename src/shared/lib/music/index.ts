@@ -44,6 +44,7 @@ export { toPitchClasses, pitchClassesEqual } from "./pitch-class";
 
 export {
   TIME_SIGNATURE_CONFIGS,
+  type TimeSignature,
   type TimeSignatureConfig,
 } from "./time-signature";
 

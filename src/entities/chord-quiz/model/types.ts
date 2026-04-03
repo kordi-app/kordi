@@ -1,7 +1,6 @@
-import type { ChordType } from "@/shared/lib/music";
+import type { ChordType, TimeSignature } from "@/shared/lib/music";
 
 export type Difficulty = "beginner" | "intermediate" | "advanced" | "custom";
-export type TimeSignature = "4/4" | "3/4" | "2/4" | "6/8";
 export type GameMode = "practice" | "timeattack";
 
 export interface QuizSettings {

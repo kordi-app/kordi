@@ -1,4 +1,4 @@
-import type { TimeSignature } from "@/entities/chord-quiz";
+export type TimeSignature = "4/4" | "3/4" | "2/4" | "6/8";
 
 export interface TimeSignatureConfig {
   beatsPerBar: number;
