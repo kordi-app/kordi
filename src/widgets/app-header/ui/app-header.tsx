@@ -1,20 +1,16 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { User } from "lucide-react";
 import { ThemeToggle } from "@/shared/ui/theme-toggle";
 import { Link } from "@/shared/config/i18n/navigation";
-import { LogoutButton } from "@/features/auth";
-import { ROUTES } from "@/shared/config/auth";
+import { ROUTES } from "@/shared/config/routes";
 
 interface AppHeaderProps {
   title?: string;
   showBack?: boolean;
-  showLogout?: boolean;
 }
 
-export function AppHeader({ title = "Kordi", showBack = false, showLogout = true }: AppHeaderProps) {
-  const t = useTranslations("common");
-
+export function AppHeader({ title = "Kordi", showBack = false }: AppHeaderProps) {
   return (
     <div className="flex w-full max-w-4xl items-center justify-between px-4 py-3">
       <div className="flex items-center gap-3">
@@ -31,7 +27,12 @@ export function AppHeader({ title = "Kordi", showBack = false, showLogout = true
         <h1 className="neon-text text-xl font-bold">{title}</h1>
       </div>
       <div className="flex items-center gap-2">
-        {showLogout && <LogoutButton label={t("logout")} />}
+        <Link
+          href={ROUTES.ME}
+          className="glass glass-hover rounded-lg p-1.5 text-muted-foreground transition-all duration-200 hover:text-foreground"
+        >
+          <User className="size-4" strokeWidth={1.5} />
+        </Link>
         <ThemeToggle />
       </div>
     </div>

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
 import { routing } from "@/shared/config/i18n/routing";
-import { AUTH_COOKIES, PUBLIC_ROUTES, ROUTES } from "@/shared/config/auth";
+import { AUTH_COOKIES, PUBLIC_ROUTES } from "@/shared/config/auth";
+import { ROUTES } from "@/shared/config/routes";
 
 const intlMiddleware = createIntlMiddleware(routing);
 
