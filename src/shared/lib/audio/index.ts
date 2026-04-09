@@ -1,5 +1,10 @@
 export { ensureAudioStarted, isAudioStarted } from "./audio-context";
 export {
+  playCorrectSound,
+  playIncorrectSound,
+  playTimeoutSound,
+} from "./feedback-sounds";
+export {
   getSampler,
   loadInstrument,
   playNoteOn,

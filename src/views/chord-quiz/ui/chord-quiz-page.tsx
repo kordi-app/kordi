@@ -8,6 +8,7 @@ import {
   useQuizGameState,
   useQuizTimer,
   useQuizChordCheck,
+  useQuizFeedback,
   saveScore,
 } from "@/features/quiz-game";
 import { quizQueries, type QuizDifficulty } from "@/entities/quiz";
@@ -17,6 +18,7 @@ import {
   DifficultySelect,
   QuizProgress,
   QuizResult,
+  QuizFeedbackOverlay,
 } from "@/widgets/quiz-game-panel";
 import { AppHeader } from "@/widgets/app-header";
 import { cn } from "@/shared/lib/utils";
@@ -25,9 +27,6 @@ export function ChordQuizPage() {
   const t = useTranslations("chordQuiz");
   const [selectedDifficulty, setSelectedDifficulty] =
     useState<QuizDifficulty | null>(null);
-  const [feedbackState, setFeedbackState] = useState<
-    "correct" | "incorrect" | null
-  >(null);
   const quizStartedRef = useRef(false);
 
   const {
@@ -50,6 +49,9 @@ export function ChordQuizPage() {
     reset,
   } = useQuizGameState();
 
+  const { feedbackState, showCorrect, showIncorrect, showTimeout } =
+    useQuizFeedback();
+
   const { data: chords, isFetching } = useQuery({
     ...quizQueries.chords(selectedDifficulty!),
     enabled: selectedDifficulty !== null,
@@ -59,7 +61,6 @@ export function ChordQuizPage() {
     mutationFn: saveScore,
   });
 
-  // Start quiz when chords loaded
   useEffect(() => {
     if (
       chords &&
@@ -73,10 +74,13 @@ export function ChordQuizPage() {
     }
   }, [chords, selectedDifficulty, state.phase, startQuiz]);
 
-  // Save score on result
   const scoreSavedRef = useRef(false);
   useEffect(() => {
-    if (state.phase === "result" && state.difficulty && !scoreSavedRef.current) {
+    if (
+      state.phase === "result" &&
+      state.difficulty &&
+      !scoreSavedRef.current
+    ) {
       scoreSavedRef.current = true;
       scoreMutation.mutate({
         difficulty: state.difficulty,
@@ -85,16 +89,22 @@ export function ChordQuizPage() {
         totalCount: state.questions.length,
       });
     }
-  }, [state.phase, state.difficulty, state.totalScore, state.answers, state.questions.length, scoreMutation]);
+  }, [
+    state.phase,
+    state.difficulty,
+    state.totalScore,
+    state.answers,
+    state.questions.length,
+    scoreMutation,
+  ]);
 
   const currentChord =
     state.phase === "playing" ? state.questions[state.currentIndex] : null;
 
   const handleTimeout = useCallback(() => {
-    setFeedbackState("incorrect");
+    showTimeout();
     answerTimeout();
-    setTimeout(() => setFeedbackState(null), 500);
-  }, [answerTimeout]);
+  }, [answerTimeout, showTimeout]);
 
   useQuizTimer({
     duration: 10000,
@@ -105,18 +115,16 @@ export function ChordQuizPage() {
 
   const handleCorrect = useCallback(
     (score: number) => {
-      setFeedbackState("correct");
+      showCorrect();
       answerCorrect(score);
-      setTimeout(() => setFeedbackState(null), 300);
     },
-    [answerCorrect],
+    [answerCorrect, showCorrect],
   );
 
   const handleIncorrect = useCallback(() => {
-    setFeedbackState("incorrect");
+    showIncorrect();
     answerIncorrect();
-    setTimeout(() => setFeedbackState(null), 500);
-  }, [answerIncorrect]);
+  }, [answerIncorrect, showIncorrect]);
 
   useQuizChordCheck({
     currentChord,
@@ -192,6 +200,8 @@ export function ChordQuizPage() {
     <div className="flex min-h-screen flex-col items-center pt-6">
       <AppHeader showBack />
 
+      <QuizFeedbackOverlay feedback={feedbackState} />
+
       <div className="mb-2 flex w-full max-w-4xl justify-end px-4">
         {midi.selectedDevice ? (
           <span className="glass flex items-center gap-1.5 rounded-full px-3 py-1 text-xs text-neon">
@@ -234,7 +244,12 @@ export function ChordQuizPage() {
 
           <div className="mb-6">
             <ChordPrompt
-              currentChord={{ name: currentChord.name, rootIndex: 0, type: "", pitchClasses: [] }}
+              currentChord={{
+                name: currentChord.name,
+                rootIndex: 0,
+                type: "",
+                pitchClasses: [],
+              }}
               nextChord={null}
               showNext={false}
               feedbackState={feedbackState}
