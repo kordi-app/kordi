@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/shared/ui/button";
 import { GOOGLE_LOGIN_URL } from "../model/constants";
 
 interface GoogleLoginButtonProps {
@@ -9,15 +8,17 @@ interface GoogleLoginButtonProps {
 
 export function GoogleLoginButton({ label }: GoogleLoginButtonProps) {
   return (
-    <Button
-      variant="outline"
-      size="lg"
-      className="glass glass-hover w-full gap-3 rounded-xl py-6 text-base"
+    <button
       onClick={() => {
         window.location.href = GOOGLE_LOGIN_URL;
       }}
+      className="group flex w-full items-center justify-center gap-3 whitespace-nowrap rounded-lg border border-black bg-white px-6 py-4 text-sm font-bold text-black transition-all hover:bg-black hover:text-white"
     >
-      <svg className="size-5" viewBox="0 0 24 24">
+      <svg
+        className="size-5 transition-all group-hover:grayscale group-hover:invert"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
         <path
           d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
           fill="#4285F4"
@@ -35,7 +36,7 @@ export function GoogleLoginButton({ label }: GoogleLoginButtonProps) {
           fill="#EA4335"
         />
       </svg>
-      {label}
-    </Button>
+      <span className="whitespace-nowrap">{label}</span>
+    </button>
   );
 }

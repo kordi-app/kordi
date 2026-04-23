@@ -1,69 +1,11 @@
-import { cookies } from "next/headers";
 import { useTranslations } from "next-intl";
-import {
-  Dumbbell,
-  HelpCircle,
-  ArrowRight,
-  CircleUserRound,
-} from "lucide-react";
+import { Dumbbell, HelpCircle, ArrowRight } from "lucide-react";
 import { Link } from "@/shared/config/i18n/navigation";
 import { ROUTES } from "@/shared/config/routes";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/shared/ui/sidebar";
-import { AppSidebar } from "@/widgets/app-sidebar";
 
-export default async function LocaleHome() {
-  const cookieStore = await cookies();
-  const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false";
-
-  return (
-    <SidebarProvider
-      defaultOpen={defaultOpen}
-      style={
-        {
-          "--sidebar": "#ffffff",
-          "--sidebar-foreground": "#000000",
-          "--sidebar-primary": "#000000",
-          "--sidebar-primary-foreground": "#ffffff",
-          "--sidebar-accent": "#f4f4f4",
-          "--sidebar-accent-foreground": "#000000",
-          "--sidebar-border": "#000000",
-          "--sidebar-ring": "#000000",
-        } as React.CSSProperties
-      }
-    >
-      <AppSidebar />
-      <SidebarInset className="bg-white text-black">
-        <HomeHeader />
-        <HomeMain />
-      </SidebarInset>
-    </SidebarProvider>
-  );
-}
-
-function HomeHeader() {
+export default function LocaleHome() {
   const t = useTranslations("home");
-  return (
-    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-black bg-white px-4 md:px-6">
-      <div className="flex items-center gap-2">
-        <SidebarTrigger className="-ml-1 text-black hover:bg-black hover:text-white" />
-      </div>
-      <Link
-        href={ROUTES.ME}
-        className="rounded-lg p-2 transition-colors hover:bg-black hover:text-white"
-        aria-label={t("nav.profile")}
-      >
-        <CircleUserRound className="size-5" strokeWidth={1.75} />
-      </Link>
-    </header>
-  );
-}
 
-function HomeMain() {
-  const t = useTranslations("home");
   return (
     <main className="flex-1 overflow-y-auto p-6 md:p-8">
       <div className="mx-auto max-w-6xl space-y-6">
@@ -89,7 +31,7 @@ function HomeMain() {
           </div>
         </section>
 
-        {/* 12-col split: 2x Quick Access + Daily Challenge / Activity */}
+        {/* 12-col split */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:col-span-8">
             <QuickAccessCard

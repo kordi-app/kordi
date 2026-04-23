@@ -16,35 +16,27 @@ export function ChordPrompt({
   showNext,
   feedbackState,
 }: ChordPromptProps) {
+  const isInvert = feedbackState === "correct";
+
   return (
     <div className="flex flex-col items-center gap-3">
       <div
         className={cn(
-          "glass flex h-28 w-48 items-center justify-center rounded-2xl transition-all duration-200",
-          feedbackState === "correct" &&
-            "border-success/40 bg-success/8 shadow-[0_0_20px_rgba(39,166,68,0.15)]",
-          feedbackState === "incorrect" &&
-            "border-error/40 bg-error/8 shadow-[0_0_20px_rgba(229,72,77,0.15)]",
-          feedbackState === "timeout" &&
-            "border-muted-foreground/30 bg-muted-foreground/5"
+          "flex h-28 w-48 items-center justify-center rounded-lg border border-black transition-all duration-200",
+          isInvert ? "bg-black text-white" : "bg-white text-black",
+          feedbackState === "incorrect" && "ring-2 ring-black ring-offset-2",
+          feedbackState === "timeout" && "opacity-60",
         )}
       >
-        <span
-          className={cn(
-            "text-5xl font-bold tracking-tight",
-            feedbackState === "correct" && "text-success",
-            feedbackState === "incorrect" && "text-error",
-            !feedbackState && "neon-text"
-          )}
-        >
+        <span className="font-heading text-5xl font-black tracking-tight tabular-nums">
           {currentChord?.name ?? "-"}
         </span>
       </div>
 
       {showNext && nextChord && (
-        <div className="text-sm text-muted-foreground">
+        <div className="text-xs font-bold uppercase tracking-widest opacity-60">
           Up next:{" "}
-          <span className="font-medium text-foreground/70">{nextChord.name}</span>
+          <span className="font-black text-black">{nextChord.name}</span>
         </div>
       )}
     </div>

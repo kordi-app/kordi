@@ -22,22 +22,24 @@ export function MyScoresPanel({ scores }: MyScoresPanelProps) {
   const best = filtered[0] ?? null;
 
   return (
-    <div className="glass rounded-2xl px-6 py-8">
+    <div className="rounded-lg border border-black bg-white px-6 py-8">
       <div className="mb-6 flex items-center gap-2">
-        <Trophy className="size-5 text-warning" strokeWidth={1.5} />
-        <h2 className="text-lg font-semibold text-foreground">{t("quizScores")}</h2>
+        <Trophy className="size-5 text-black" strokeWidth={1.75} />
+        <h2 className="font-heading text-lg font-bold uppercase text-black">
+          {t("quizScores")}
+        </h2>
       </div>
 
       {/* Difficulty Tabs */}
-      <div className="mb-6 flex gap-1.5">
+      <div className="mb-6 flex gap-2">
         {DIFFICULTIES.map((d) => (
           <button
             key={d}
             onClick={() => setSelected(d)}
-            className={`rounded-lg px-4 py-1.5 text-sm transition-colors ${
+            className={`rounded-lg border border-black px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors ${
               selected === d
-                ? "bg-primary/20 text-primary ring-1 ring-primary/30"
-                : "glass text-muted-foreground hover:text-foreground"
+                ? "bg-black text-white"
+                : "bg-white text-black hover:bg-black/5"
             }`}
           >
             {d}
@@ -47,11 +49,15 @@ export function MyScoresPanel({ scores }: MyScoresPanelProps) {
 
       {/* Best Score */}
       {best && (
-        <div className="mb-6 glass rounded-xl px-4 py-4">
-          <p className="mb-1 text-xs text-muted-foreground">{t("bestScore")}</p>
+        <div className="mb-6 rounded-lg border border-black bg-black px-4 py-4 text-white">
+          <p className="mb-1 text-[11px] font-bold uppercase tracking-widest opacity-70">
+            {t("bestScore")}
+          </p>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-primary">{best.totalScore}</span>
-            <span className="text-sm text-muted-foreground">
+            <span className="font-heading text-2xl font-black tabular-nums">
+              {best.totalScore}
+            </span>
+            <span className="text-sm opacity-70">
               {best.correctCount}/{best.totalCount}
             </span>
           </div>
@@ -60,21 +66,23 @@ export function MyScoresPanel({ scores }: MyScoresPanelProps) {
 
       {/* Score List */}
       {filtered.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("noScores")}</p>
+        <p className="text-sm opacity-60">{t("noScores")}</p>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col">
           {filtered.map((score) => (
             <div
               key={score.id}
-              className="flex items-center justify-between rounded-lg px-4 py-3 glass"
+              className="flex items-center justify-between border-b border-black py-3 last:border-b-0"
             >
               <div className="flex items-center gap-4">
-                <span className="text-sm font-medium text-foreground">{score.totalScore}</span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-sm font-bold tabular-nums text-black">
+                  {score.totalScore}
+                </span>
+                <span className="text-xs opacity-60 tabular-nums">
                   {score.correctCount}/{score.totalCount}
                 </span>
               </div>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs opacity-60">
                 {new Date(score.createdAt).toLocaleDateString()}
               </span>
             </div>

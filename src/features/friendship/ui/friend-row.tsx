@@ -22,15 +22,15 @@ export function FriendRow({
   return (
     <div
       className={cn(
-        "flex items-center gap-3 border-b border-outline-variant px-1 py-4 last:border-b-0",
+        "flex items-center gap-3 border-b border-black px-1 py-4 last:border-b-0",
         dim && "opacity-70",
       )}
     >
       <div className="shrink-0">{avatar}</div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-foreground">{title}</p>
+        <p className="truncate text-sm font-semibold text-black">{title}</p>
         {subtitle ? (
-          <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+          <p className="mt-0.5 text-xs opacity-70">{subtitle}</p>
         ) : null}
       </div>
       {actions ? (

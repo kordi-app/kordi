@@ -117,7 +117,8 @@
   },
   "login": {
     "subtitle": "피아노 연습을 시작하세요",
-    "googleLogin": "Google로 로그인"
+    "googleLogin": "Google로 로그인",
+    "tagline": "PIANO MASTER · SINCE 2024"
   },
   "instruments": {
     "grandPiano": "그랜드 피아노",

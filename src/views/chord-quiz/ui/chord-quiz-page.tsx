@@ -20,7 +20,6 @@ import {
   QuizResult,
   QuizFeedbackOverlay,
 } from "@/widgets/quiz-game-panel";
-import { AppHeader } from "@/widgets/app-header";
 import { Countdown } from "@/shared/ui/countdown";
 import { cn } from "@/shared/lib/utils";
 
@@ -175,20 +174,18 @@ export function ChordQuizPage() {
   }, [reset, scoreMutation]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center">
-      <AppHeader showBack />
-
+    <main className="flex flex-1 flex-col items-center overflow-y-auto p-6">
       <QuizFeedbackOverlay feedback={feedbackState} />
 
-      <div className="mb-2 flex w-full max-w-4xl justify-end px-4">
+      <div className="mb-2 flex w-full max-w-4xl justify-end">
         {midi.selectedDevice ? (
-          <span className="glass flex items-center gap-1.5 rounded-full px-3 py-1 text-xs text-primary">
-            <span className="size-1.5 rounded-full bg-primary" />
+          <span className="flex items-center gap-1.5 rounded-full border border-black bg-black px-3 py-1 text-xs font-bold uppercase text-white">
+            <span className="size-1.5 rounded-full bg-white" />
             {midi.selectedDevice.name}
           </span>
         ) : (
-          <span className="glass flex items-center gap-1.5 rounded-full px-3 py-1 text-xs text-muted-foreground">
-            <span className="size-1.5 rounded-full bg-muted-foreground" />
+          <span className="flex items-center gap-1.5 rounded-full border border-black bg-white px-3 py-1 text-xs font-bold uppercase text-black">
+            <span className="size-1.5 rounded-full bg-black opacity-40" />
             {t("noMidiDevice")}
           </span>
         )}
@@ -205,7 +202,7 @@ export function ChordQuizPage() {
 
       {isFetching && !showCountdown && (
         <div className="flex flex-1 items-center">
-          <p className="text-sm text-muted-foreground">{t("loading")}</p>
+          <p className="text-sm opacity-60">{t("loading")}</p>
         </div>
       )}
 
@@ -237,18 +234,17 @@ export function ChordQuizPage() {
           </div>
 
           {!isLoaded && (
-            <div className="mb-4 text-sm text-muted-foreground">
+            <div className="mb-4 text-sm opacity-60">
               {t("loadingSamples")}
             </div>
           )}
 
           <div
             className={cn(
-              "w-full max-w-4xl rounded-lg px-4 transition-shadow duration-200",
-              feedbackState === "correct" &&
-                "shadow-[0_0_20px_rgba(39,166,68,0.15)]",
+              "w-full max-w-4xl rounded-lg transition-all duration-200",
+              feedbackState === "correct" && "ring-2 ring-black",
               feedbackState === "incorrect" &&
-                "shadow-[0_0_20px_rgba(229,72,77,0.15)]",
+                "ring-2 ring-black ring-offset-2 ring-offset-white",
             )}
           >
             <PianoKeyboard
@@ -273,6 +269,6 @@ export function ChordQuizPage() {
           />
         </div>
       )}
-    </div>
+    </main>
   );
 }

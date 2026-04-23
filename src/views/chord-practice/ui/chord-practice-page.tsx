@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { Piano } from "lucide-react";
 import { DEFAULT_QUIZ_SETTINGS, type QuizSettings } from "@/entities/chord-quiz";
 import { usePianoInput } from "@/features/piano-player";
 import { useQuizGame } from "@/features/chord-quiz";
@@ -13,7 +14,6 @@ import {
   QuizControls,
   QuizSettingsPanel,
 } from "@/widgets/chord-quiz-game";
-import { AppHeader } from "@/widgets/app-header";
 import { cn } from "@/shared/lib/utils";
 
 export function ChordPracticePage() {
@@ -29,49 +29,37 @@ export function ChordPracticePage() {
 
   if (!isAudioStarted) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center">
+      <main className="flex flex-1 items-center justify-center p-6">
         <button
           onClick={startAudio}
-          className="glass glass-hover group flex flex-col items-center gap-4 rounded-2xl px-12 py-10 transition-all duration-300 hover:neon-glow"
+          className="group flex flex-col items-center gap-4 rounded-lg border border-black bg-white px-12 py-10 transition-all hover:bg-black hover:text-white"
         >
-          <div className="flex size-16 items-center justify-center rounded-full bg-primary/10">
-            <svg
-              className="size-8 text-primary transition-transform group-hover:scale-110"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1.5}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
-              />
-            </svg>
+          <div className="flex size-16 items-center justify-center rounded-lg border border-black bg-black text-white transition-all group-hover:bg-white group-hover:text-black">
+            <Piano className="size-8" strokeWidth={1.75} />
           </div>
           <div className="text-center">
-            <p className="text-lg font-semibold text-foreground">{t("clickToStart")}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{t("audioDescription")}</p>
+            <p className="font-heading text-lg font-bold uppercase tracking-wider">
+              {t("clickToStart")}
+            </p>
+            <p className="mt-1 text-sm opacity-70">{t("audioDescription")}</p>
           </div>
         </button>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center">
-      <AppHeader showBack />
-
+    <main className="flex flex-1 flex-col items-center overflow-y-auto p-6">
       {/* MIDI Status */}
-      <div className="mb-2 flex w-full max-w-4xl justify-end px-4">
+      <div className="mb-2 flex w-full max-w-4xl justify-end">
         {midi.selectedDevice ? (
-          <span className="glass flex items-center gap-1.5 rounded-full px-3 py-1 text-xs text-primary">
-            <span className="size-1.5 rounded-full bg-primary" />
+          <span className="flex items-center gap-1.5 rounded-full border border-black bg-black px-3 py-1 text-xs font-bold uppercase text-white">
+            <span className="size-1.5 rounded-full bg-white" />
             {midi.selectedDevice.name}
           </span>
         ) : (
-          <span className="glass flex items-center gap-1.5 rounded-full px-3 py-1 text-xs text-muted-foreground">
-            <span className="size-1.5 rounded-full bg-muted-foreground" />
+          <span className="flex items-center gap-1.5 rounded-full border border-black bg-white px-3 py-1 text-xs font-bold uppercase text-black">
+            <span className="size-1.5 rounded-full bg-black opacity-40" />
             {t("noMidiDevice")}
           </span>
         )}
@@ -79,7 +67,7 @@ export function ChordPracticePage() {
 
       {/* Idle: show inline settings */}
       {state.status === "idle" && (
-        <div className="mb-6 w-full max-w-md px-4">
+        <div className="mb-6 w-full max-w-md">
           <QuizSettingsPanel
             ns="chordPractice"
             settings={settings}
@@ -135,15 +123,15 @@ export function ChordPracticePage() {
 
       {/* Loading */}
       {!isLoaded && (
-        <div className="mb-4 text-sm text-muted-foreground">{t("loadingSamples")}</div>
+        <div className="mb-4 text-sm opacity-60">{t("loadingSamples")}</div>
       )}
 
-      {/* Piano Keyboard with feedback glow */}
+      {/* Piano Keyboard with feedback ring */}
       <div
         className={cn(
-          "w-full max-w-4xl rounded-lg px-4 transition-shadow duration-200",
-          feedbackState === "correct" && "shadow-[0_0_20px_rgba(39,166,68,0.15)]",
-          feedbackState === "incorrect" && "shadow-[0_0_20px_rgba(229,72,77,0.15)]"
+          "w-full max-w-4xl rounded-lg transition-all duration-200",
+          feedbackState === "correct" && "ring-2 ring-black",
+          feedbackState === "incorrect" && "ring-2 ring-black ring-offset-2 ring-offset-white"
         )}
       >
         <PianoKeyboard
@@ -165,6 +153,6 @@ export function ChordPracticePage() {
           isOpen={settingsOpen}
         />
       )}
-    </div>
+    </main>
   );
 }

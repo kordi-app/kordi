@@ -2,7 +2,6 @@
 
 import { useTranslations } from "next-intl";
 import type { QuizGameState } from "@/entities/quiz";
-import { cn } from "@/shared/lib/utils";
 
 interface QuizResultProps {
   state: QuizGameState;
@@ -23,56 +22,57 @@ export function QuizResult({
   const correctCount = state.answers.filter((a) => a === "correct").length;
 
   return (
-    <div className="flex w-full max-w-md flex-col items-center gap-6">
-      <h2 className="text-xl font-semibold text-foreground">{t("result")}</h2>
+    <div className="flex w-full max-w-md flex-col items-center gap-6 p-6">
+      <h2 className="font-heading text-2xl font-extrabold uppercase -tracking-[0.02em] text-black">
+        {t("result")}
+      </h2>
 
       {/* Total score */}
-      <div className="glass rounded-2xl px-10 py-6 text-center">
-        <div className="text-4xl font-bold text-primary">{state.totalScore}</div>
-        <div className="mt-1 text-sm text-muted-foreground">
+      <div className="rounded-lg border border-black bg-black px-10 py-6 text-center text-white">
+        <div className="font-heading text-5xl font-black tabular-nums">
+          {state.totalScore}
+        </div>
+        <div className="mt-1 text-xs font-bold uppercase tracking-widest opacity-70">
           / 1000 {t("maxScore")}
         </div>
       </div>
 
       {/* Stats */}
-      <div className="flex gap-4">
-        <div className="glass rounded-xl px-4 py-2 text-center">
-          <div className="text-lg font-bold text-success">{correctCount}</div>
-          <div className="text-xs text-muted-foreground">{t("correct")}</div>
+      <div className="flex w-full gap-4">
+        <div className="flex-1 rounded-lg border border-black bg-white px-4 py-3 text-center">
+          <div className="font-heading text-2xl font-black tabular-nums">
+            {correctCount}
+          </div>
+          <div className="text-[11px] font-bold uppercase tracking-widest opacity-70">
+            {t("correct")}
+          </div>
         </div>
-        <div className="glass rounded-xl px-4 py-2 text-center">
-          <div className="text-lg font-bold text-destructive">
+        <div className="flex-1 rounded-lg border border-black bg-white px-4 py-3 text-center">
+          <div className="font-heading text-2xl font-black tabular-nums">
             {state.questions.length - correctCount}
           </div>
-          <div className="text-xs text-muted-foreground">{t("incorrect")}</div>
+          <div className="text-[11px] font-bold uppercase tracking-widest opacity-70">
+            {t("incorrect")}
+          </div>
         </div>
       </div>
 
       {/* Per-question results */}
-      <div className="w-full space-y-2">
+      <div className="w-full overflow-hidden rounded-lg border border-black">
         {state.questions.map((q, i) => (
           <div
             key={q.id}
-            className="glass flex items-center justify-between rounded-lg px-4 py-2"
+            className="flex items-center justify-between border-b border-black px-4 py-2 last:border-b-0"
           >
             <div className="flex items-center gap-3">
-              <span className="text-xs text-muted-foreground">{i + 1}</span>
-              <span className="font-medium text-foreground">{q.name}</span>
+              <span className="text-xs tabular-nums opacity-60">{i + 1}</span>
+              <span className="font-bold text-black">{q.name}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span
-                className={cn(
-                  "text-xs",
-                  state.answers[i] === "correct"
-                    ? "text-success"
-                    : state.answers[i] === "timeout"
-                      ? "text-warning"
-                      : "text-destructive",
-                )}
-              >
+              <span className="text-[10px] font-bold uppercase tracking-widest opacity-70">
                 {t(state.answers[i] ?? "timeout")}
               </span>
-              <span className="font-medium tabular-nums text-foreground">
+              <span className="font-heading font-bold tabular-nums text-black">
                 {state.scores[i] ?? 0}
               </span>
             </div>
@@ -81,22 +81,24 @@ export function QuizResult({
       </div>
 
       {/* Save status */}
-      {isSaving && (
-        <p className="text-sm text-muted-foreground">{t("saving")}</p>
+      {isSaving && <p className="text-sm opacity-60">{t("saving")}</p>}
+      {isSaved && (
+        <p className="text-xs font-bold uppercase tracking-widest text-black">
+          {t("saved")}
+        </p>
       )}
-      {isSaved && <p className="text-sm text-success">{t("saved")}</p>}
 
       {/* Actions */}
       <div className="flex gap-3">
         <button
           onClick={onRetry}
-          className="glass glass-hover rounded-xl px-6 py-3 font-medium text-primary transition-all hover:neon-glow-sm"
+          className="rounded-lg border border-black bg-black px-6 py-3 text-xs font-bold uppercase tracking-widest text-white transition-all hover:bg-white hover:text-black"
         >
           {t("retry")}
         </button>
         <button
           onClick={onBackToSelect}
-          className="glass glass-hover rounded-xl px-6 py-3 font-medium text-muted-foreground transition-all"
+          className="rounded-lg border border-black bg-white px-6 py-3 text-xs font-bold uppercase tracking-widest text-black transition-all hover:bg-black hover:text-white"
         >
           {t("backToSelect")}
         </button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Settings } from "lucide-react";
 import type { QuizStatus } from "@/entities/chord-quiz";
 
 interface QuizControlsProps {
@@ -14,10 +15,14 @@ interface QuizControlsProps {
   onSettingsOpen: () => void;
 }
 
+const PRIMARY =
+  "rounded-lg border border-black bg-black px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-white transition-all hover:bg-white hover:text-black";
+const GHOST =
+  "rounded-lg border border-black bg-white px-5 py-2 text-xs font-bold uppercase tracking-widest text-black transition-all hover:bg-black hover:text-white";
+
 export function QuizControls({
   ns,
   status,
-  bpm,
   onStart,
   onStop,
   onPause,
@@ -29,41 +34,26 @@ export function QuizControls({
   return (
     <div className="flex items-center gap-3">
       {status === "idle" && (
-        <button
-          onClick={onStart}
-          className="rounded-xl bg-primary/15 px-6 py-2.5 text-sm font-medium text-primary transition-all duration-200 hover:bg-primary/25 hover:shadow-[0_0_15px_var(--neon-glow)]"
-        >
+        <button onClick={onStart} className={PRIMARY}>
           {t("start")}
         </button>
       )}
       {status === "playing" && (
         <>
-          <button
-            onClick={onPause}
-            className="glass glass-hover rounded-xl px-5 py-2 text-sm font-medium text-foreground transition-all duration-200"
-          >
+          <button onClick={onPause} className={GHOST}>
             {t("pause")}
           </button>
-          <button
-            onClick={onStop}
-            className="rounded-xl px-5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
+          <button onClick={onStop} className={GHOST}>
             {t("stop")}
           </button>
         </>
       )}
       {status === "paused" && (
         <>
-          <button
-            onClick={onResume}
-            className="rounded-xl bg-primary/15 px-5 py-2 text-sm font-medium text-primary transition-all duration-200 hover:bg-primary/25"
-          >
+          <button onClick={onResume} className={PRIMARY}>
             {t("resume")}
           </button>
-          <button
-            onClick={onStop}
-            className="rounded-xl px-5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
+          <button onClick={onStop} className={GHOST}>
             {t("stop")}
           </button>
         </>
@@ -72,12 +62,10 @@ export function QuizControls({
       {status === "idle" && (
         <button
           onClick={onSettingsOpen}
-          className="glass glass-hover rounded-xl p-2 text-muted-foreground transition-all duration-200 hover:text-foreground"
+          className="rounded-lg border border-black bg-white p-2 text-black transition-all hover:bg-black hover:text-white"
+          aria-label="Settings"
         >
-          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
+          <Settings className="size-4" strokeWidth={1.75} />
         </button>
       )}
     </div>

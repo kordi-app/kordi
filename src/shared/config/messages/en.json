@@ -117,7 +117,8 @@
   },
   "login": {
     "subtitle": "Start your piano practice",
-    "googleLogin": "Sign in with Google"
+    "googleLogin": "Sign in with Google",
+    "tagline": "PIANO MASTER · SINCE 2024"
   },
   "instruments": {
     "grandPiano": "Grand Piano",

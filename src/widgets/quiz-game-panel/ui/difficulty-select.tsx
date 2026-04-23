@@ -11,27 +11,10 @@ interface DifficultySelectProps {
 const DIFFICULTIES: {
   value: QuizDifficulty;
   key: string;
-  color: string;
-  bgColor: string;
 }[] = [
-  {
-    value: "EASY",
-    key: "easy",
-    color: "text-success",
-    bgColor: "bg-success/10",
-  },
-  {
-    value: "MEDIUM",
-    key: "medium",
-    color: "text-warning",
-    bgColor: "bg-warning/10",
-  },
-  {
-    value: "HARD",
-    key: "hard",
-    color: "text-destructive",
-    bgColor: "bg-destructive/10",
-  },
+  { value: "EASY", key: "easy" },
+  { value: "MEDIUM", key: "medium" },
+  { value: "HARD", key: "hard" },
 ];
 
 export function DifficultySelect({
@@ -42,33 +25,29 @@ export function DifficultySelect({
 
   return (
     <div className="flex flex-col items-center gap-6">
-      <h2 className="text-xl font-semibold text-foreground">
+      <h2 className="font-heading text-xl font-extrabold uppercase tracking-tight text-black">
         {t("selectDifficulty")}
       </h2>
       <div className="grid w-full max-w-sm gap-3">
-        {DIFFICULTIES.map(({ value, key, color, bgColor }) => (
+        {DIFFICULTIES.map(({ value, key }) => (
           <button
             key={value}
             onClick={() => onSelect(value)}
             disabled={isLoading}
-            className={`glass glass-hover flex items-center gap-4 rounded-2xl p-5 transition-all duration-300 hover:neon-glow-sm disabled:opacity-50`}
+            className="group flex items-center gap-4 rounded-lg border border-black bg-white p-5 transition-all hover:bg-black hover:text-white disabled:opacity-50"
           >
-            <div
-              className={`flex size-10 items-center justify-center rounded-xl ${bgColor}`}
-            >
-              <span className={`text-lg font-bold ${color}`}>
+            <div className="flex size-10 items-center justify-center rounded-lg border border-black bg-black text-white transition-all group-hover:bg-white group-hover:text-black">
+              <span className="font-heading text-lg font-black">
                 {key.charAt(0).toUpperCase()}
               </span>
             </div>
-            <span className="text-lg font-medium text-foreground">
+            <span className="font-heading text-lg font-bold uppercase tracking-wider">
               {t(key)}
             </span>
           </button>
         ))}
       </div>
-      {isLoading && (
-        <p className="text-sm text-muted-foreground">{t("loading")}</p>
-      )}
+      {isLoading && <p className="text-sm opacity-60">{t("loading")}</p>}
     </div>
   );
 }

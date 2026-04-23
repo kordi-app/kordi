@@ -15,22 +15,33 @@ export function QuizScore({ state }: QuizScoreProps) {
       : 0;
 
   return (
-    <div className="glass flex items-center gap-6 rounded-xl px-6 py-3 text-sm">
-      <div className="text-center">
-        <div className="neon-text text-2xl font-bold">{state.score}</div>
-        <div className="text-xs text-muted-foreground">{t("score")}</div>
+    <div className="flex items-center gap-6 rounded-lg border border-black bg-white px-6 py-3">
+      <Stat value={state.score} label={t("score")} accent />
+      <Stat value={state.streak} label={t("streak")} />
+      <Stat value={state.bestStreak} label={t("best")} />
+      <Stat value={`${accuracy}%`} label={t("accuracy")} />
+    </div>
+  );
+}
+
+function Stat({
+  value,
+  label,
+  accent,
+}: {
+  value: number | string;
+  label: string;
+  accent?: boolean;
+}) {
+  return (
+    <div className="text-center">
+      <div
+        className={`font-heading text-2xl font-black tabular-nums ${accent ? "text-black" : "text-black opacity-70"}`}
+      >
+        {value}
       </div>
-      <div className="text-center">
-        <div className="text-2xl font-bold text-primary">{state.streak}</div>
-        <div className="text-xs text-muted-foreground">{t("streak")}</div>
-      </div>
-      <div className="text-center">
-        <div className="text-2xl font-bold text-foreground/60">{state.bestStreak}</div>
-        <div className="text-xs text-muted-foreground">{t("best")}</div>
-      </div>
-      <div className="text-center">
-        <div className="text-2xl font-bold text-foreground/60">{accuracy}%</div>
-        <div className="text-xs text-muted-foreground">{t("accuracy")}</div>
+      <div className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+        {label}
       </div>
     </div>
   );

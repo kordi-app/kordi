@@ -4,7 +4,6 @@ import { useTranslations } from "next-intl";
 import { Clock } from "lucide-react";
 import type { Friendship } from "@/entities/friendship";
 import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
-import { Button } from "@/shared/ui/button";
 import { useCancelRequest } from "../lib/use-cancel-request";
 import { FriendRow } from "./friend-row";
 
@@ -20,8 +19,8 @@ export function SentRequestItem({ friendship }: SentRequestItemProps) {
     <FriendRow
       dim
       avatar={
-        <Avatar>
-          <AvatarFallback>
+        <Avatar className="ring-1 ring-black">
+          <AvatarFallback className="bg-white text-black border border-black">
             {friendship.receiverNickname.charAt(0).toUpperCase()}
           </AvatarFallback>
         </Avatar>
@@ -34,15 +33,13 @@ export function SentRequestItem({ friendship }: SentRequestItemProps) {
         </span>
       }
       actions={
-        <Button
-          size="sm"
-          variant="ghost"
+        <button
           disabled={isPending}
           onClick={() => mutate(friendship.id)}
-          className="text-muted-foreground hover:text-foreground"
+          className="rounded-lg border border-black bg-white px-3 py-1.5 text-xs font-bold uppercase text-black transition-colors hover:bg-black hover:text-white disabled:opacity-40"
         >
           {t("cancelRequest")}
-        </Button>
+        </button>
       }
     />
   );

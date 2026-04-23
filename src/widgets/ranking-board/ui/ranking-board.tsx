@@ -6,16 +6,9 @@ import { useTranslations } from "next-intl";
 import { Trophy } from "lucide-react";
 import { rankingQueries, type RankingDifficulty } from "@/entities/ranking";
 import { Avatar, AvatarImage, AvatarFallback } from "@/shared/ui/avatar";
-import { Button } from "@/shared/ui/button";
 import { cn } from "@/shared/lib/utils";
 
 const DIFFICULTIES: RankingDifficulty[] = ["EASY", "MEDIUM", "HARD"];
-
-const MEDAL_COLORS = [
-  "text-[oklch(0.8_0.12_85)]",   // gold
-  "text-[oklch(0.7_0.02_260)]",  // silver
-  "text-[oklch(0.6_0.1_55)]",    // bronze
-];
 
 export function RankingBoard() {
   const t = useTranslations("ranking");
@@ -24,89 +17,91 @@ export function RankingBoard() {
   const { data: rankings, isLoading } = useQuery(rankingQueries.list(difficulty));
 
   return (
-    <div className="w-full max-w-2xl">
+    <div className="w-full">
       {/* Difficulty Tabs */}
       <div className="mb-6 flex gap-2">
         {DIFFICULTIES.map((d) => (
-          <Button
+          <button
             key={d}
-            variant={difficulty === d ? "default" : "ghost"}
-            size="sm"
             onClick={() => setDifficulty(d)}
-            className={cn(difficulty === d && "neon-glow-sm")}
+            className={cn(
+              "rounded-lg border border-black px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors",
+              difficulty === d
+                ? "bg-black text-white"
+                : "bg-white text-black hover:bg-black/5",
+            )}
           >
             {t(d.toLowerCase())}
-          </Button>
+          </button>
         ))}
       </div>
 
       {/* Ranking List */}
-      <div className="space-y-2">
+      <div className="overflow-hidden rounded-lg border border-black bg-white">
         {isLoading && (
-          <p className="py-12 text-center text-sm text-muted-foreground">
-            {t("loading")}
-          </p>
+          <p className="py-12 text-center text-sm opacity-60">{t("loading")}</p>
         )}
 
         {rankings && rankings.length === 0 && (
-          <p className="py-12 text-center text-sm text-muted-foreground">
-            {t("empty")}
-          </p>
+          <p className="py-12 text-center text-sm opacity-60">{t("empty")}</p>
         )}
 
         {rankings?.map((entry, i) => {
-          const accuracy = entry.totalCount > 0
-            ? Math.round((entry.correctCount / entry.totalCount) * 100)
-            : 0;
+          const accuracy =
+            entry.totalCount > 0
+              ? Math.round((entry.correctCount / entry.totalCount) * 100)
+              : 0;
+          const isTopThree = i < 3;
 
           return (
             <div
               key={`${entry.nickname}-${i}`}
-              className={cn(
-                "glass flex items-center gap-4 rounded-xl px-4 py-3",
-                i < 3 && "border-primary/20",
-              )}
+              className="flex items-center gap-4 border-b border-black px-4 py-3 last:border-b-0"
             >
               {/* Rank */}
               <div className="flex w-8 shrink-0 items-center justify-center">
-                {i < 3 ? (
-                  <Trophy
-                    className={cn("size-5", MEDAL_COLORS[i])}
-                    strokeWidth={1.5}
-                  />
+                {isTopThree ? (
+                  <Trophy className="size-5 text-black" strokeWidth={1.75} />
                 ) : (
-                  <span className="text-sm font-medium text-muted-foreground">
+                  <span className="font-heading text-sm font-black tabular-nums text-black">
                     {i + 1}
                   </span>
                 )}
               </div>
 
               {/* Avatar */}
-              <Avatar size="sm">
-                <AvatarImage src={entry.profileImageUrl ?? undefined} alt={entry.nickname} />
-                <AvatarFallback className="text-xs">
+              <Avatar size="sm" className="ring-1 ring-black">
+                <AvatarImage
+                  src={entry.profileImageUrl ?? undefined}
+                  alt={entry.nickname}
+                />
+                <AvatarFallback className="bg-black text-xs font-bold text-white">
                   {entry.nickname.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
 
               {/* Name */}
-              <span className={cn(
-                "flex-1 text-sm font-medium",
-                i < 3 ? "text-foreground" : "text-muted-foreground",
-              )}>
+              <span
+                className={cn(
+                  "flex-1 text-sm",
+                  isTopThree ? "font-bold text-black" : "text-black opacity-80",
+                )}
+              >
                 {entry.nickname}
               </span>
 
               {/* Accuracy */}
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs tabular-nums opacity-60">
                 {accuracy}%
               </span>
 
               {/* Score */}
-              <span className={cn(
-                "w-16 text-right text-sm font-bold tabular-nums",
-                i === 0 ? "neon-text" : "text-foreground",
-              )}>
+              <span
+                className={cn(
+                  "w-16 text-right font-heading text-sm tabular-nums",
+                  i === 0 ? "font-black" : "font-bold",
+                )}
+              >
                 {entry.totalScore}
               </span>
             </div>

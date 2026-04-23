@@ -21,12 +21,12 @@ export function MetronomeDisplay({
         <div
           key={i}
           className={cn(
-            "size-2.5 rounded-full transition-all duration-100",
+            "size-2.5 rounded-full border border-black transition-all duration-100",
             i === currentBeat
               ? i === 0
-                ? "scale-150 bg-primary shadow-[0_0_8px_var(--neon-glow)]"
-                : "scale-125 bg-foreground/60"
-              : "bg-muted-foreground/20"
+                ? "scale-150 bg-black"
+                : "scale-125 bg-black"
+              : "bg-white",
           )}
         />
       ))}
