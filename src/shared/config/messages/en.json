@@ -13,6 +13,21 @@
     "navRanking": "Ranking",
     "navFriends": "Friends"
   },
+  "sidebar": {
+    "groups": {
+      "practice": "Practice",
+      "community": "Community",
+      "account": "Account"
+    },
+    "nav": {
+      "piano": "Virtual Piano",
+      "practice": "Chord Practice",
+      "quiz": "Chord Quiz",
+      "ranking": "Ranking",
+      "friends": "Friends",
+      "profile": "My Profile"
+    }
+  },
   "me": {
     "title": "My Profile",
     "identityDetails": "Identity Details",
@@ -46,19 +61,34 @@
   },
   "friends": {
     "title": "Friends",
+    "subtitle": "Find someone to play with",
     "add": "Add Friend",
     "addDescription": "Find a friend by nickname and send a request",
-    "searchPlaceholder": "Enter nickname",
+    "searchPlaceholder": "Search by nickname",
     "searchHint": "Type at least 2 characters",
     "searching": "Searching...",
     "noResult": "No user found with that nickname",
+    "foundUser": "Found this user",
+    "friendSince": "Friend",
+    "wantsToBeFriend": "Wants to be your friend",
     "sendRequest": "Send Request",
     "accept": "Accept",
     "reject": "Reject",
     "cancelRequest": "Cancel",
     "delete": "Remove Friend",
+    "message": "Message",
     "pending": "Pending",
     "loading": "Loading...",
+    "musicians": "musicians",
+    "statusConnected": "Connected",
+    "sections": {
+      "network": "My Network"
+    },
+    "columns": {
+      "musician": "Musician",
+      "status": "Status",
+      "actions": "Actions"
+    },
     "tabs": {
       "friends": "Friends",
       "received": "Received",
@@ -66,6 +96,7 @@
     },
     "empty": {
       "friends": "No friends yet",
+      "friendsHint": "Use the Add Friend button above to get started",
       "received": "No received requests",
       "sent": "No sent requests"
     },
@@ -105,6 +136,43 @@
     "chordQuizDesc": "Challenge yourself with timed chord quizzes",
     "ranking": "Ranking",
     "myPage": "My Page",
+    "brand": "KORDI",
+    "brandTagline": "PIANO MASTER",
+    "hero": {
+      "title": "MASTER YOUR PIANO CHORDS",
+      "subtitle": "Unlock your musical potential with structured practice and competitive quizzes. The keys are yours to command.",
+      "cta": "Start Learning"
+    },
+    "card": {
+      "practice": {
+        "title": "Practice Mode",
+        "desc": "Drill major, minor, and dominant 7th chords at your own pace.",
+        "cta": "Enter Mode"
+      },
+      "quiz": {
+        "title": "Quiz Mode",
+        "desc": "Test your recognition speed and compete on the global leaderboard.",
+        "cta": "Start Quiz"
+      }
+    },
+    "daily": {
+      "title": "Daily Challenge",
+      "subtitle": "Chord of the Day",
+      "diagram": "C MAJOR 7"
+    },
+    "activity": {
+      "title": "Recent Activity",
+      "item1": "Triad Drill",
+      "item2": "Weekly Speed Quiz"
+    },
+    "nav": {
+      "piano": "Virtual Piano",
+      "practice": "Chord Practice",
+      "quiz": "Chord Quiz",
+      "profile": "My Profile",
+      "friends": "Friends",
+      "ranking": "Ranking"
+    },
     "tips_0": "Don't know C major? ...Just kidding. It's C-E-G!",
     "tips_1": "Skip practice today and yesterday-you wins",
     "tips_2": "Am sounds sad? Not practicing is sadder",

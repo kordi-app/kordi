@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { UserPlus, Search } from "lucide-react";
+import { UserPlus, Search, UserX, Loader2, UserSearch } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -51,38 +51,46 @@ export function AddFriendDialog({ currentUserId }: AddFriendDialogProps) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{t("add")}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <UserPlus className="size-4 text-primary" strokeWidth={1.75} />
+            {t("add")}
+          </DialogTitle>
           <DialogDescription>{t("addDescription")}</DialogDescription>
         </DialogHeader>
 
         <div className="relative">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
             placeholder={t("searchPlaceholder")}
             autoFocus
-            className="pl-8"
+            className="h-10 pl-9 text-sm"
           />
         </div>
 
-        <div className="min-h-[60px]">
+        <div className="min-h-[92px]">
           {trimmed.length < 2 ? (
-            <p className="py-3 text-center text-xs text-muted-foreground">
-              {t("searchHint")}
-            </p>
+            <EmptyHint
+              icon={<UserSearch className="size-5" strokeWidth={1.5} />}
+              label={t("searchHint")}
+            />
           ) : isFetching ? (
-            <p className="py-3 text-center text-xs text-muted-foreground">
-              {t("searching")}
-            </p>
+            <EmptyHint
+              icon={<Loader2 className="size-5 animate-spin" strokeWidth={1.5} />}
+              label={t("searching")}
+            />
           ) : isError || !data ? (
-            <p className="py-3 text-center text-xs text-muted-foreground">
-              {t("noResult")}
-            </p>
+            <EmptyHint
+              icon={<UserX className="size-5" strokeWidth={1.5} />}
+              label={t("noResult")}
+            />
           ) : isSelf ? (
-            <p className="py-3 text-center text-xs text-destructive">
-              {t("error.cannotAddSelf")}
-            </p>
+            <EmptyHint
+              icon={<UserX className="size-5 text-destructive" strokeWidth={1.5} />}
+              label={t("error.cannotAddSelf")}
+              destructive
+            />
           ) : (
             <SearchResultCard
               user={data}
@@ -93,5 +101,32 @@ export function AddFriendDialog({ currentUserId }: AddFriendDialogProps) {
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function EmptyHint({
+  icon,
+  label,
+  destructive,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  destructive?: boolean;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 py-6 text-center">
+      <div className={destructive ? "text-destructive" : "text-muted-foreground"}>
+        {icon}
+      </div>
+      <p
+        className={
+          destructive
+            ? "text-xs text-destructive"
+            : "text-xs text-muted-foreground"
+        }
+      >
+        {label}
+      </p>
+    </div>
   );
 }

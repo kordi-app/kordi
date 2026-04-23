@@ -13,6 +13,21 @@
     "navRanking": "랭킹",
     "navFriends": "친구"
   },
+  "sidebar": {
+    "groups": {
+      "practice": "연습",
+      "community": "커뮤니티",
+      "account": "계정"
+    },
+    "nav": {
+      "piano": "가상 피아노",
+      "practice": "코드 연습",
+      "quiz": "코드 퀴즈",
+      "ranking": "랭킹",
+      "friends": "친구",
+      "profile": "내 프로필"
+    }
+  },
   "me": {
     "title": "내 프로필",
     "identityDetails": "계정 정보",
@@ -46,19 +61,34 @@
   },
   "friends": {
     "title": "친구",
+    "subtitle": "함께 연주할 친구를 찾아보세요",
     "add": "친구 추가",
     "addDescription": "닉네임으로 친구를 찾아 요청을 보내보세요",
-    "searchPlaceholder": "닉네임 입력",
+    "searchPlaceholder": "닉네임으로 검색",
     "searchHint": "2자 이상 입력하세요",
     "searching": "검색 중...",
     "noResult": "해당 닉네임의 사용자가 없어요",
+    "foundUser": "이 사용자를 찾았어요",
+    "friendSince": "친구",
+    "wantsToBeFriend": "친구 요청을 보냈어요",
     "sendRequest": "친구 요청",
     "accept": "수락",
     "reject": "거절",
     "cancelRequest": "취소",
     "delete": "친구 삭제",
+    "message": "메시지",
     "pending": "대기중",
     "loading": "불러오는 중...",
+    "musicians": "명",
+    "statusConnected": "친구",
+    "sections": {
+      "network": "내 네트워크"
+    },
+    "columns": {
+      "musician": "뮤지션",
+      "status": "상태",
+      "actions": "작업"
+    },
     "tabs": {
       "friends": "친구",
       "received": "받은 요청",
@@ -66,6 +96,7 @@
     },
     "empty": {
       "friends": "아직 친구가 없어요",
+      "friendsHint": "상단의 친구 추가 버튼으로 시작해보세요",
       "received": "받은 요청이 없어요",
       "sent": "보낸 요청이 없어요"
     },
@@ -105,6 +136,43 @@
     "chordQuizDesc": "난이도별 코드 퀴즈에 도전하세요",
     "ranking": "랭킹",
     "myPage": "내 정보",
+    "brand": "KORDI",
+    "brandTagline": "PIANO MASTER",
+    "hero": {
+      "title": "피아노 코드, 완벽하게 마스터하세요",
+      "subtitle": "짜임새 있는 연습과 경쟁 퀴즈로 당신의 음악적 잠재력을 끌어올리세요. 건반은 당신의 것입니다.",
+      "cta": "연습 시작하기"
+    },
+    "card": {
+      "practice": {
+        "title": "연습 모드",
+        "desc": "메이저·마이너·도미넌트 7th 코드를 자유로운 속도로 드릴하세요.",
+        "cta": "시작하기"
+      },
+      "quiz": {
+        "title": "퀴즈 모드",
+        "desc": "인식 속도를 테스트하고 글로벌 리더보드에서 경쟁하세요.",
+        "cta": "퀴즈 시작"
+      }
+    },
+    "daily": {
+      "title": "오늘의 챌린지",
+      "subtitle": "오늘의 코드",
+      "diagram": "C MAJOR 7"
+    },
+    "activity": {
+      "title": "최근 활동",
+      "item1": "트라이어드 드릴",
+      "item2": "주간 스피드 퀴즈"
+    },
+    "nav": {
+      "piano": "가상 피아노",
+      "practice": "코드 연습",
+      "quiz": "코드 퀴즈",
+      "profile": "내 프로필",
+      "friends": "친구",
+      "ranking": "랭킹"
+    },
     "tips_0": "안녕! 오늘도 피아노 치러 왔구나~ 반가워!",
     "tips_1": "도-미-솔! C 메이저예요. 같이 쳐볼까요?",
     "tips_2": "조금씩 매일 치면 어느새 잘 치고 있을 거예요~",

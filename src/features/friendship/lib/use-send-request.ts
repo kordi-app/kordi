@@ -1,22 +1,12 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
-import { toast } from "sonner";
-import { sendFriendRequest } from "../api/send-request";
-import { mapFriendshipError } from "./map-friendship-error";
+import { sendFriendRequest } from "../api/mutations";
+import { useFriendshipMutation } from "./use-friendship-mutation";
 
 export function useSendRequest() {
-  const qc = useQueryClient();
-  const t = useTranslations();
-  return useMutation({
+  return useFriendshipMutation({
     mutationFn: sendFriendRequest,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["friendship", "sent"] });
-      toast.success(t("friends.toast.requestSent"));
-    },
-    onError: async (err) => {
-      toast.error(t(await mapFriendshipError(err)));
-    },
+    invalidateKeys: [["friendship", "sent"]],
+    successKey: "friends.toast.requestSent",
   });
 }

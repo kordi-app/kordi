@@ -40,7 +40,7 @@ export default async function LocaleLayout({
       suppressHydrationWarning
     >
       <body className="relative min-h-full flex flex-col overflow-x-hidden bg-background">
-        <ThemeProvider defaultTheme="dark">
+        <ThemeProvider defaultTheme="light">
           <QueryProvider>
             <NextIntlClientProvider messages={messages}>
               <RippleBackground>

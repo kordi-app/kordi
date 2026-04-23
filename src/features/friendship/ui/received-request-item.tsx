@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
 import { Button } from "@/shared/ui/button";
 import { useAcceptRequest } from "../lib/use-accept-request";
 import { useRejectRequest } from "../lib/use-reject-request";
+import { FriendRow } from "./friend-row";
 
 interface ReceivedRequestItemProps {
   friendship: Friendship;
@@ -19,32 +20,39 @@ export function ReceivedRequestItem({ friendship }: ReceivedRequestItemProps) {
   const disabled = accept.isPending || reject.isPending;
 
   return (
-    <div className="glass flex items-center gap-3 rounded-xl px-3 py-2.5">
-      <Avatar size="sm">
-        <AvatarFallback className="text-xs">
-          {friendship.senderNickname.charAt(0).toUpperCase()}
-        </AvatarFallback>
-      </Avatar>
-      <span className="flex-1 truncate text-sm font-medium text-foreground">
-        {friendship.senderNickname}
-      </span>
-      <Button
-        size="sm"
-        disabled={disabled}
-        onClick={() => accept.mutate(friendship.id)}
-      >
-        <Check className="size-3.5" strokeWidth={2} />
-        {t("accept")}
-      </Button>
-      <Button
-        size="sm"
-        variant="outline"
-        disabled={disabled}
-        onClick={() => reject.mutate(friendship.id)}
-      >
-        <X className="size-3.5" strokeWidth={2} />
-        {t("reject")}
-      </Button>
-    </div>
+    <FriendRow
+      accent
+      avatar={
+        <Avatar className="ring-1 ring-primary/30">
+          <AvatarFallback className="bg-primary/10 text-primary">
+            {friendship.senderNickname.charAt(0).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+      }
+      title={friendship.senderNickname}
+      subtitle={t("wantsToBeFriend")}
+      actions={
+        <>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={disabled}
+            onClick={() => reject.mutate(friendship.id)}
+            className="text-muted-foreground hover:text-destructive"
+          >
+            <X className="size-3.5" strokeWidth={2} />
+            {t("reject")}
+          </Button>
+          <Button
+            size="sm"
+            disabled={disabled}
+            onClick={() => accept.mutate(friendship.id)}
+          >
+            <Check className="size-3.5" strokeWidth={2.25} />
+            {t("accept")}
+          </Button>
+        </>
+      }
+    />
   );
 }

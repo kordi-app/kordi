@@ -1,11 +1,12 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Clock } from "lucide-react";
 import type { Friendship } from "@/entities/friendship";
 import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
-import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { useCancelRequest } from "../lib/use-cancel-request";
+import { FriendRow } from "./friend-row";
 
 interface SentRequestItemProps {
   friendship: Friendship;
@@ -16,28 +17,33 @@ export function SentRequestItem({ friendship }: SentRequestItemProps) {
   const { mutate, isPending } = useCancelRequest();
 
   return (
-    <div className="glass flex items-center gap-3 rounded-xl px-3 py-2.5">
-      <Avatar size="sm">
-        <AvatarFallback className="text-xs">
-          {friendship.receiverNickname.charAt(0).toUpperCase()}
-        </AvatarFallback>
-      </Avatar>
-      <div className="flex flex-1 items-center gap-2 truncate">
-        <span className="truncate text-sm font-medium text-foreground">
-          {friendship.receiverNickname}
-        </span>
-        <Badge variant="outline" className="text-[10px]">
+    <FriendRow
+      dim
+      avatar={
+        <Avatar>
+          <AvatarFallback>
+            {friendship.receiverNickname.charAt(0).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+      }
+      title={friendship.receiverNickname}
+      subtitle={
+        <span className="inline-flex items-center gap-1">
+          <Clock className="size-3" strokeWidth={2} />
           {t("pending")}
-        </Badge>
-      </div>
-      <Button
-        size="sm"
-        variant="outline"
-        disabled={isPending}
-        onClick={() => mutate(friendship.id)}
-      >
-        {t("cancelRequest")}
-      </Button>
-    </div>
+        </span>
+      }
+      actions={
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={isPending}
+          onClick={() => mutate(friendship.id)}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          {t("cancelRequest")}
+        </Button>
+      }
+    />
   );
 }

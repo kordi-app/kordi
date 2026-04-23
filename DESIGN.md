@@ -1,367 +1,311 @@
-# Design System Inspired by Linear
+---
+name: Precision Analytical System
+colors:
+  surface: '#f7f9fb'
+  surface-dim: '#d8dadc'
+  surface-bright: '#f7f9fb'
+  surface-container-lowest: '#ffffff'
+  surface-container-low: '#f2f4f6'
+  surface-container: '#eceef0'
+  surface-container-high: '#e6e8ea'
+  surface-container-highest: '#e0e3e5'
+  on-surface: '#191c1e'
+  on-surface-variant: '#45464d'
+  inverse-surface: '#2d3133'
+  inverse-on-surface: '#eff1f3'
+  outline: '#76777d'
+  outline-variant: '#c6c6cd'
+  surface-tint: '#565e74'
+  primary: '#131b2e'
+  on-primary: '#ffffff'
+  primary-container: '#131b2e'
+  on-primary-container: '#7c839b'
+  inverse-primary: '#bec6e0'
+  secondary: '#515f74'
+  on-secondary: '#ffffff'
+  secondary-container: '#d5e3fd'
+  on-secondary-container: '#57657b'
+  tertiary: '#131b2e'
+  on-tertiary: '#ffffff'
+  error: '#e11d48'
+  on-error: '#ffffff'
+  error-container: '#ffdad6'
+  on-error-container: '#93000a'
+  success: '#10b981'
+  warning: '#f59e0b'
+  background: '#f7f9fb'
+  on-background: '#191c1e'
+  surface-variant: '#e0e3e5'
+typography:
+  headline-xl:
+    fontFamily: Inter
+    fontSize: 36px
+    fontWeight: '700'
+    lineHeight: 44px
+    letterSpacing: -0.02em
+  headline-lg:
+    fontFamily: Inter
+    fontSize: 24px
+    fontWeight: '600'
+    lineHeight: 32px
+    letterSpacing: -0.01em
+  headline-md:
+    fontFamily: Inter
+    fontSize: 18px
+    fontWeight: '600'
+    lineHeight: 28px
+  body-lg:
+    fontFamily: Inter
+    fontSize: 16px
+    fontWeight: '400'
+    lineHeight: 24px
+  body-md:
+    fontFamily: Inter
+    fontSize: 14px
+    fontWeight: '400'
+    lineHeight: 20px
+  table-cell:
+    fontFamily: Inter
+    fontSize: 13px
+    fontWeight: '400'
+    lineHeight: 18px
+  label-caps:
+    fontFamily: Inter
+    fontSize: 12px
+    fontWeight: '600'
+    lineHeight: 16px
+    letterSpacing: 0.05em
+  status-label:
+    fontFamily: Inter
+    fontSize: 11px
+    fontWeight: '700'
+    lineHeight: 12px
+rounded:
+  sm: 0.125rem
+  DEFAULT: 0.25rem
+  md: 0.375rem
+  lg: 0.5rem
+  xl: 0.75rem
+  full: 9999px
+spacing:
+  base: 4px
+  xs: 4px
+  sm: 8px
+  md: 16px
+  lg: 24px
+  xl: 40px
+  container-max: 1440px
+  gutter: 24px
+---
 
-## 1. Visual Theme & Atmosphere
+# Precision Analytical System — Kordi Design
 
-Linear's website is a masterclass in dark-mode-first product design — a near-black canvas (`#08090a`) where content emerges from darkness like starlight. The overall impression is one of extreme precision engineering: every element exists in a carefully calibrated hierarchy of luminance, from barely-visible borders (`rgba(255,255,255,0.05)`) to soft, luminous text (`#f7f8f8`). This is not a dark theme applied to a light design — it is darkness as the native medium, where information density is managed through subtle gradations of white opacity rather than color variation.
+## 1. Brand & Style
 
-The typography system is built entirely on Inter Variable with OpenType features `"cv01"` and `"ss03"` enabled globally, giving the typeface a cleaner, more geometric character. Inter is used at a remarkable range of weights — from 300 (light body) through 510 (medium, Linear's signature weight) to 590 (semibold emphasis). The 510 weight is particularly distinctive: it sits between regular and medium, creating a subtle emphasis that doesn't shout. At display sizes (72px, 64px, 48px), Inter uses aggressive negative letter-spacing (-1.584px to -1.056px), creating compressed, authoritative headlines that feel engineered rather than designed. Berkeley Mono serves as the monospace companion for code and technical labels, with fallbacks to ui-monospace, SF Mono, and Menlo.
+Kordi's visual system is engineered for a **data-dense, pro-tool** music experience. Practice sessions, chord quizzes, rankings, and social activity all produce signal — the UI's job is to surface that signal quickly and without ornamentation. The brand personality is **authoritative yet unobtrusive**: organized, predictable, exceptionally polished.
 
-The color system is almost entirely achromatic — dark backgrounds with white/gray text — punctuated by a single brand accent: Linear's signature indigo-violet (`#5e6ad2` for backgrounds, `#7170ff` for interactive accents). This accent color is used sparingly and intentionally, appearing only on CTAs, active states, and brand elements. The border system uses ultra-thin, semi-transparent white borders (`rgba(255,255,255,0.05)` to `rgba(255,255,255,0.08)`) that create structure without visual noise, like wireframes drawn in moonlight.
+The aesthetic is **Corporate / Modern** with a strong functional minimalism. It prioritizes a high ratio of data-to-ink, using tonal shifts instead of heavy ornamentation to define structure. The UI should evoke "quiet intelligence" — the feel of a musician's digital workstation, not a gamified arcade.
 
-**Key Characteristics:**
-- Dark-mode-native: `#08090a` marketing background, `#0f1011` panel background, `#191a1b` elevated surfaces
-- Inter Variable with `"cv01", "ss03"` globally — geometric alternates for a cleaner aesthetic
-- Signature weight 510 (between regular and medium) for most UI text
-- Aggressive negative letter-spacing at display sizes (-1.584px at 72px, -1.056px at 48px)
-- Brand indigo-violet: `#5e6ad2` (bg) / `#7170ff` (accent) / `#828fff` (hover) — the only chromatic color in the system
-- Semi-transparent white borders throughout: `rgba(255,255,255,0.05)` to `rgba(255,255,255,0.08)`
-- Button backgrounds at near-zero opacity: `rgba(255,255,255,0.02)` to `rgba(255,255,255,0.05)`
-- Multi-layered shadows with inset variants for depth on dark surfaces
-- Radix UI primitives as the component foundation (6 detected primitives)
-- Success green (`#27a644`, `#10b981`) used only for status indicators
+Light mode is the primary (and currently only) theme. The `.dark` CSS block is retained at light values as a placeholder for a future true-dark variant.
 
-## 2. Color Palette & Roles
+## 2. Colors
 
-### Background Surfaces
-- **Marketing Black** (`#010102` / `#08090a`): The deepest background — the canvas for hero sections and marketing pages. Near-pure black with an imperceptible blue-cool undertone.
-- **Panel Dark** (`#0f1011`): Sidebar and panel backgrounds. One step up from the marketing black.
-- **Level 3 Surface** (`#191a1b`): Elevated surface areas, card backgrounds, dropdowns.
-- **Secondary Surface** (`#28282c`): The lightest dark surface — used for hover states and slightly elevated components.
+The palette is anchored by **Deep Navy** and **Slate Grey** to establish a bedrock of professional stability.
 
-### Text & Content
-- **Primary Text** (`#f7f8f8`): Near-white with a barely-warm cast. The default text color — not pure white, preventing eye strain on dark backgrounds.
-- **Secondary Text** (`#d0d6e0`): Cool silver-gray for body text, descriptions, and secondary content.
-- **Tertiary Text** (`#8a8f98`): Muted gray for placeholders, metadata, and de-emphasized content.
-- **Quaternary Text** (`#62666d`): The most subdued text — timestamps, disabled states, subtle labels.
+### Surfaces
+- `surface` `#f7f9fb` — page background
+- `surface-container-lowest` `#ffffff` — cards, highest contrast
+- `surface-container-low` `#f2f4f6` — muted fills, sidebar
+- `surface-container` `#eceef0` — stat cards, trending groups, row hover
+- `surface-container-high` `#e6e8ea` — deeper tonal panels
+- `surface-container-highest` `#e0e3e5` — tonal max, chart backgrounds
 
-### Brand & Accent
-- **Brand Indigo** (`#5e6ad2`): Primary brand color — used for CTA button backgrounds, brand marks, and key interactive surfaces.
-- **Accent Violet** (`#7170ff`): Brighter variant for interactive elements — links, active states, selected items.
-- **Accent Hover** (`#828fff`): Lighter, more saturated variant for hover states on accent elements.
-- **Security Lavender** (`#7a7fad`): Muted indigo used specifically for security-related UI elements.
+### Primary / Structural
+- `primary` `#131b2e` — deep navy. Text, primary buttons, logo, focused borders, active nav states.
+- `brand-hover` `#3f465c` — hover tone for primary.
+- `brand-accent` `#565e74` — softer slate for secondary data labels.
+- `secondary` `#515f74`, `secondary-container` `#d5e3fd` — soft-blue tonal accent.
 
-### Status Colors
-- **Green** (`#27a644`): Primary success/active status. Used for "in progress" indicators.
-- **Emerald** (`#10b981`): Secondary success — pill badges, completion states.
+### On / Text
+- `on-surface` `#191c1e` — default text
+- `on-surface-variant` `#45464d` — secondary text, table labels
+- `on-secondary-container` `#57657b` — muted captions
 
-### Border & Divider
-- **Border Primary** (`#23252a`): Solid dark border for prominent separations.
-- **Border Secondary** (`#34343a`): Slightly lighter solid border.
-- **Border Tertiary** (`#3e3e44`): Lightest solid border variant.
-- **Border Subtle** (`rgba(255,255,255,0.05)`): Ultra-subtle semi-transparent border — the default.
-- **Border Standard** (`rgba(255,255,255,0.08)`): Standard semi-transparent border for cards, inputs, code blocks.
-- **Line Tint** (`#141516`): Nearly invisible line for the subtlest divisions.
-- **Line Tertiary** (`#18191a`): Slightly more visible divider line.
+### Borders
+- `outline` `#76777d` — primary border (rare)
+- `outline-variant` `#c6c6cd` — default border for all cards/inputs/tables
+- Sidebar border: `#e0e3e5`
 
-### Light Mode Neutrals (for light theme contexts)
-- **Light Background** (`#f7f8f8`): Page background in light mode.
-- **Light Surface** (`#f3f4f5` / `#f5f6f7`): Subtle surface tinting.
-- **Light Border** (`#d0d6e0`): Visible border in light contexts.
-- **Light Border Alt** (`#e6e6e6`): Alternative lighter border.
-- **Pure White** (`#ffffff`): Card surfaces, highlights.
+### Semantic accents (used sparingly)
+- `success` `#10b981` (Emerald) — positive growth, mastered status, upward trends, online indicators.
+- `warning` `#f59e0b` (Gold) — rankings, high-value highlights, top-3 medals.
+- `error` `#e11d48` (Rose) — destructive actions, critical alerts, recording states.
 
-### Overlay
-- **Overlay Primary** (`rgba(0,0,0,0.85)`): Modal/dialog backdrop — extremely dark for focus isolation.
+## 3. Typography
 
-## 3. Typography Rules
+**Inter** is the single typeface. It's already loaded in the project via `https://rsms.me/inter/inter.css` and referenced in the Tailwind `--font-sans` stack.
 
-### Font Family
-- **Primary**: `Inter Variable`, with fallbacks: `SF Pro Display, -apple-system, system-ui, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Open Sans, Helvetica Neue`
-- **Monospace**: `Berkeley Mono`, with fallbacks: `ui-monospace, SF Mono, Menlo`
-- **OpenType Features**: `"cv01", "ss03"` enabled globally — cv01 provides an alternate lowercase 'a' (single-story), ss03 adjusts specific letterforms for a cleaner geometric appearance.
+Use **tabular numerals** globally (`font-feature-settings: "tnum", "cv11"` is set on `body`) so BPM, scores, timers, and table data stay aligned.
 
-### Hierarchy
+### Scale (also registered as Tailwind `text-*` utilities)
 
-| Role | Font | Size | Weight | Line Height | Letter Spacing | Notes |
-|------|------|------|--------|-------------|----------------|-------|
-| Display XL | Inter Variable | 72px (4.50rem) | 510 | 1.00 (tight) | -1.584px | Hero headlines, maximum impact |
-| Display Large | Inter Variable | 64px (4.00rem) | 510 | 1.00 (tight) | -1.408px | Secondary hero text |
-| Display | Inter Variable | 48px (3.00rem) | 510 | 1.00 (tight) | -1.056px | Section headlines |
-| Heading 1 | Inter Variable | 32px (2.00rem) | 400 | 1.13 (tight) | -0.704px | Major section titles |
-| Heading 2 | Inter Variable | 24px (1.50rem) | 400 | 1.33 | -0.288px | Sub-section headings |
-| Heading 3 | Inter Variable | 20px (1.25rem) | 590 | 1.33 | -0.24px | Feature titles, card headers |
-| Body Large | Inter Variable | 18px (1.13rem) | 400 | 1.60 (relaxed) | -0.165px | Introduction text, feature descriptions |
-| Body Emphasis | Inter Variable | 17px (1.06rem) | 590 | 1.60 (relaxed) | normal | Emphasized body, sub-headings in content |
-| Body | Inter Variable | 16px (1.00rem) | 400 | 1.50 | normal | Standard reading text |
-| Body Medium | Inter Variable | 16px (1.00rem) | 510 | 1.50 | normal | Navigation, labels |
-| Body Semibold | Inter Variable | 16px (1.00rem) | 590 | 1.50 | normal | Strong emphasis |
-| Small | Inter Variable | 15px (0.94rem) | 400 | 1.60 (relaxed) | -0.165px | Secondary body text |
-| Small Medium | Inter Variable | 15px (0.94rem) | 510 | 1.60 (relaxed) | -0.165px | Emphasized small text |
-| Small Semibold | Inter Variable | 15px (0.94rem) | 590 | 1.60 (relaxed) | -0.165px | Strong small text |
-| Small Light | Inter Variable | 15px (0.94rem) | 300 | 1.47 | -0.165px | De-emphasized body |
-| Caption Large | Inter Variable | 14px (0.88rem) | 510–590 | 1.50 | -0.182px | Sub-labels, category headers |
-| Caption | Inter Variable | 13px (0.81rem) | 400–510 | 1.50 | -0.13px | Metadata, timestamps |
-| Label | Inter Variable | 12px (0.75rem) | 400–590 | 1.40 | normal | Button text, small labels |
-| Micro | Inter Variable | 11px (0.69rem) | 510 | 1.40 | normal | Tiny labels |
-| Tiny | Inter Variable | 10px (0.63rem) | 400–510 | 1.50 | -0.15px | Overline text, sometimes uppercase |
-| Link Large | Inter Variable | 16px (1.00rem) | 400 | 1.50 | normal | Standard links |
-| Link Medium | Inter Variable | 15px (0.94rem) | 510 | 2.67 | normal | Spaced navigation links |
-| Link Small | Inter Variable | 14px (0.88rem) | 510 | 1.50 | normal | Compact links |
-| Link Caption | Inter Variable | 13px (0.81rem) | 400–510 | 1.50 | -0.13px | Footer, metadata links |
-| Mono Body | Berkeley Mono | 14px (0.88rem) | 400 | 1.50 | normal | Code blocks |
-| Mono Caption | Berkeley Mono | 13px (0.81rem) | 400 | 1.50 | normal | Code labels |
-| Mono Label | Berkeley Mono | 12px (0.75rem) | 400 | 1.40 | normal | Code metadata, sometimes uppercase |
+| Role | Size / LH / Weight | Tracking | Use |
+|------|-------------------|----------|-----|
+| `text-headline-xl` | 36/44/700 | -0.02em | Page hero metric, profile name |
+| `text-headline-lg` | 24/32/600 | -0.01em | Section headers |
+| `text-headline-md` | 18/28/600 | — | Card titles, stat values |
+| `text-body-lg` | 16/24/400 | — | Intro copy, key descriptions |
+| `text-body-md` | 14/20/400 | — | Default body, row text |
+| `text-table-cell` | 13/18/400 | — | Dense table rows |
+| `text-label-caps` | 12/16/600 | 0.05em, UPPER | Column headers, category labels |
+| `text-status-label` | 11/12/700 | 0.05em, UPPER | Live indicators (RECORDING, INPUT ACTIVE) |
 
 ### Principles
-- **510 is the signature weight**: Linear uses Inter Variable's 510 weight (between regular 400 and medium 500) as its default emphasis weight. This creates a subtly bolded feel without the heaviness of traditional medium or semibold.
-- **Compression at scale**: Display sizes use progressively tighter letter-spacing — -1.584px at 72px, -1.408px at 64px, -1.056px at 48px, -0.704px at 32px. Below 24px, spacing relaxes toward normal.
-- **OpenType as identity**: `"cv01", "ss03"` aren't decorative — they transform Inter into Linear's distinctive typeface, giving it a more geometric, purposeful character.
-- **Three-tier weight system**: 400 (reading), 510 (emphasis/UI), 590 (strong emphasis). The 300 weight appears only in deliberately de-emphasized contexts.
+- Headlines are **assertive**: tight negative tracking at large sizes (-0.02em / -0.01em).
+- Labels are **expanded**: positive tracking (0.05em) and UPPERCASE for visual calm at small sizes.
+- Data numbers always `tabular-nums` so widths don't jitter on update.
+- **Three functional weights**: 400 (read), 600 (emphasize / headings / labels), 700 (status / numeric impact).
 
-## 4. Component Stylings
+## 4. Layout & Spacing
 
-### Buttons
+12-column fluid grid, 24px gutters, 4px base unit.
 
-**Ghost Button (Default)**
-- Background: `rgba(255,255,255,0.02)`
-- Text: `#e2e4e7` (near-white)
-- Padding: comfortable
-- Radius: 6px
-- Border: `1px solid rgb(36, 40, 44)`
-- Outline: none
-- Focus shadow: `rgba(0,0,0,0.1) 0px 4px 12px`
-- Use: Standard actions, secondary CTAs
+### Spacing scale (Tailwind utilities)
+- `spacing-xs` 4px · `spacing-sm` 8px · `spacing-md` 16px · `spacing-lg` 24px · `spacing-xl` 40px · `spacing-gutter` 24px
+- `max-w-container-max` → 1440px
 
-**Subtle Button**
-- Background: `rgba(255,255,255,0.04)`
-- Text: `#d0d6e0` (silver-gray)
-- Padding: 0px 6px
-- Radius: 6px
-- Use: Toolbar actions, contextual buttons
+### Layout patterns
+- **Shell**: fixed top bar (64px) + left sidebar (256px, md+) + main content + bottom nav (md-).
+- **Page margin**: 24px on desktop, 16px on mobile.
+- **Dashboard gutters**: 24px between bento widgets.
+- **Data tables**: 12–16px cell padding (sm–md) to maximize rows per screen without losing row distinction.
+- **Vertical rhythm**: 8 → 16 → 24 → 40 → 64.
 
-**Primary Brand Button (Inferred)**
-- Background: `#5e6ad2` (brand indigo)
-- Text: `#ffffff`
-- Padding: 8px 16px
-- Radius: 6px
-- Hover: `#828fff` shift
-- Use: Primary CTAs ("Start building", "Sign up")
+## 5. Elevation & Depth
 
-**Icon Button (Circle)**
-- Background: `rgba(255,255,255,0.03)` or `rgba(255,255,255,0.05)`
-- Text: `#f7f8f8` or `#ffffff`
-- Radius: 50%
-- Border: `1px solid rgba(255,255,255,0.08)`
-- Use: Close, menu toggle, icon-only actions
-
-**Pill Button**
-- Background: transparent
-- Text: `#d0d6e0`
-- Padding: 0px 10px 0px 5px
-- Radius: 9999px
-- Border: `1px solid rgb(35, 37, 42)`
-- Use: Filter chips, tags, status indicators
-
-**Small Toolbar Button**
-- Background: `rgba(255,255,255,0.05)`
-- Text: `#62666d` (muted)
-- Radius: 2px
-- Border: `1px solid rgba(255,255,255,0.05)`
-- Shadow: `rgba(0,0,0,0.03) 0px 1.2px 0px 0px`
-- Font: 12px weight 510
-- Use: Toolbar actions, quick-access controls
-
-### Cards & Containers
-- Background: `rgba(255,255,255,0.02)` to `rgba(255,255,255,0.05)` (never solid — always translucent)
-- Border: `1px solid rgba(255,255,255,0.08)` (standard) or `1px solid rgba(255,255,255,0.05)` (subtle)
-- Radius: 8px (standard), 12px (featured), 22px (large panels)
-- Shadow: `rgba(0,0,0,0.2) 0px 0px 0px 1px` or layered multi-shadow stacks
-- Hover: subtle background opacity increase
-
-### Inputs & Forms
-
-**Text Area**
-- Background: `rgba(255,255,255,0.02)`
-- Text: `#d0d6e0`
-- Border: `1px solid rgba(255,255,255,0.08)`
-- Padding: 12px 14px
-- Radius: 6px
-
-**Search Input**
-- Background: transparent
-- Text: `#f7f8f8`
-- Padding: 1px 32px (icon-aware)
-
-**Button-style Input**
-- Text: `#8a8f98`
-- Padding: 1px 6px
-- Radius: 5px
-- Focus shadow: multi-layer stack
-
-### Badges & Pills
-
-**Success Pill**
-- Background: `#10b981`
-- Text: `#f7f8f8`
-- Radius: 50% (circular)
-- Font: 10px weight 510
-- Use: Status dots, completion indicators
-
-**Neutral Pill**
-- Background: transparent
-- Text: `#d0d6e0`
-- Padding: 0px 10px 0px 5px
-- Radius: 9999px
-- Border: `1px solid rgb(35, 37, 42)`
-- Font: 12px weight 510
-- Use: Tags, filter chips, category labels
-
-**Subtle Badge**
-- Background: `rgba(255,255,255,0.05)`
-- Text: `#f7f8f8`
-- Padding: 0px 8px 0px 2px
-- Radius: 2px
-- Border: `1px solid rgba(255,255,255,0.05)`
-- Font: 10px weight 510
-- Use: Inline labels, version tags
-
-### Navigation
-- Dark sticky header on near-black background
-- Linear logomark left-aligned (SVG icon)
-- Links: Inter Variable 13–14px weight 510, `#d0d6e0` text
-- Active/hover: text lightens to `#f7f8f8`
-- CTA: Brand indigo button or ghost button
-- Mobile: hamburger collapse
-- Search: command palette trigger (`/` or `Cmd+K`)
-
-### Image Treatment
-- Product screenshots on dark backgrounds with subtle border (`rgba(255,255,255,0.08)`)
-- Top-rounded images: `12px 12px 0px 0px` radius
-- Dashboard/issue previews dominate feature sections
-- Subtle shadow beneath screenshots: `rgba(0,0,0,0.4) 0px 2px 4px`
-
-## 5. Layout Principles
-
-### Spacing System
-- Base unit: 8px
-- Scale: 1px, 4px, 7px, 8px, 11px, 12px, 16px, 19px, 20px, 22px, 24px, 28px, 32px, 35px
-- The 7px and 11px values suggest micro-adjustments for optical alignment
-- Primary rhythm: 8px, 16px, 24px, 32px (standard 8px grid)
-
-### Grid & Container
-- Max content width: approximately 1200px
-- Hero: centered single-column with generous vertical padding
-- Feature sections: 2–3 column grids for feature cards
-- Full-width dark sections with internal max-width constraints
-- Changelog: single-column timeline layout
-
-### Whitespace Philosophy
-- **Darkness as space**: On Linear's dark canvas, empty space isn't white — it's absence. The near-black background IS the whitespace, and content emerges from it.
-- **Compressed headlines, expanded surroundings**: Display text at 72px with -1.584px tracking is dense and compressed, but sits within vast dark padding. The contrast between typographic density and spatial generosity creates tension.
-- **Section isolation**: Each feature section is separated by generous vertical padding (80px+) with no visible dividers — the dark background provides natural separation.
-
-### Border Radius Scale
-- Micro (2px): Inline badges, toolbar buttons, subtle tags
-- Standard (4px): Small containers, list items
-- Comfortable (6px): Buttons, inputs, functional elements
-- Card (8px): Cards, dropdowns, popovers
-- Panel (12px): Panels, featured cards, section containers
-- Large (22px): Large panel elements
-- Full Pill (9999px): Chips, filter pills, status tags
-- Circle (50%): Icon buttons, avatars, status dots
-
-## 6. Depth & Elevation
+Hierarchy via **tonal layers** and **low-contrast outlines**, not aggressive shadows.
 
 | Level | Treatment | Use |
 |-------|-----------|-----|
-| Flat (Level 0) | No shadow, `#010102` bg | Page background, deepest canvas |
-| Subtle (Level 1) | `rgba(0,0,0,0.03) 0px 1.2px 0px` | Toolbar buttons, micro-elevation |
-| Surface (Level 2) | `rgba(255,255,255,0.05)` bg + `1px solid rgba(255,255,255,0.08)` border | Cards, input fields, containers |
-| Inset (Level 2b) | `rgba(0,0,0,0.2) 0px 0px 12px 0px inset` | Recessed panels, inner shadows |
-| Ring (Level 3) | `rgba(0,0,0,0.2) 0px 0px 0px 1px` | Border-as-shadow technique |
-| Elevated (Level 4) | `rgba(0,0,0,0.4) 0px 2px 4px` | Floating elements, dropdowns |
-| Dialog (Level 5) | Multi-layer stack: `rgba(0,0,0,0) 0px 8px 2px, rgba(0,0,0,0.01) 0px 5px 2px, rgba(0,0,0,0.04) 0px 3px 2px, rgba(0,0,0,0.07) 0px 1px 1px, rgba(0,0,0,0.08) 0px 0px 1px` | Popovers, command palette, modals |
-| Focus | `rgba(0,0,0,0.1) 0px 4px 12px` + additional layers | Keyboard focus on interactive elements |
+| Base | `bg-background` (#f7f9fb) | Page canvas |
+| Surface | `bg-card` (#fff) + `border-outline-variant` | Cards, tables, inputs |
+| Muted | `bg-muted` (#f2f4f6) | Table headers, hover baseline, sidebar |
+| Container | `bg-secondary` (#eceef0) | Stat cards, row hover, quiet panels |
+| Elevated | `card-elevated` (`shadow 0 4px 20px rgba(19,27,46,0.06)`) | Dropdowns, modals, toasts |
+| Focus | `ring-1 ring-primary/20` | Input focus, active selection |
 
-**Shadow Philosophy**: On dark surfaces, traditional shadows (dark on dark) are nearly invisible. Linear solves this by using semi-transparent white borders as the primary depth indicator. Elevation isn't communicated through shadow darkness but through background luminance steps — each level slightly increases the white opacity of the surface background (`0.02` → `0.04` → `0.05`), creating a subtle stacking effect. The inset shadow technique (`rgba(0,0,0,0.2) 0px 0px 12px 0px inset`) creates a unique "sunken" effect for recessed panels, adding dimensional depth that traditional dark themes lack.
+Shadows are **ambient**: very diffused (20px blur), low opacity (5–10%), slightly tinted with primary navy. Reserved for truly floating elements.
 
-## 7. Do's and Don'ts
+## 6. Shapes
+
+**Soft, grid-aligned** — 4px default, 8px for larger containers.
+
+- `rounded-sm` 2px — pills in tables, inline badges
+- `rounded` (default) 4px — buttons, inputs, standard cards
+- `rounded-md` 6px — small panels
+- `rounded-lg` 8px — featured cards, dashboard sections
+- `rounded-xl` 12px — modals, sheets
+- `rounded-full` 9999px — status pills, avatars
+
+Piano keys use `rounded-b-lg` on the bottom edges only while keeping the top flush where they meet the instrument housing.
+
+## 7. Component Patterns
+
+### Data Tables
+The system's core surface. Header row uses `table-header` utility (`bg-muted` + 12px uppercase + 0.05em tracking). Row hover: `hover:bg-secondary` (#eceef0). Borders horizontal-only. Numeric columns right-aligned with `tabular-nums`.
+
+### Status Pills
+Low-opacity fill + high-contrast text. Preset utilities: `pill-success` (emerald), `pill-warning` (gold), `pill-error` (rose), `pill-neutral`. 11px, 700 weight, UPPERCASE, full-round.
+
+### Cards
+Flat by default: `card-flat` (white bg + 1px outline-variant + 4px radius). Elevated when floating: `card-elevated` (+ambient shadow).
+
+**Ranking Card** (featured entries): `ranking-card` — adds 2px gold top border to signify importance.
+
+### Stat Card
+`stat-card` utility — `bg-secondary` + `border-l-4 border-primary` + `px-4 py-2`. Pattern: small UPPERCASE label above a large numeric value (`text-headline-md` or `text-headline-lg`). Used in profile bento, dashboards, quiz results.
+
+### Buttons
+- **Primary**: `bg-primary text-primary-foreground` — solid navy, white text.
+- **Secondary (ghost)**: `border border-outline-variant text-on-surface hover:bg-muted` — thin border, slate text.
+- **Destructive**: `bg-destructive text-white`.
+- **Utility (row action)**: no border, label only (`CHALLENGE`, `MESSAGE`). Label caps style.
+- Hover: slight opacity shift (`hover:opacity-90`) on primary, bg shift on ghost.
+
+### Inputs
+1px `outline-variant` border, 4px radius. Focus: border shifts to `primary` + `ring-1 ring-primary/20`. Labels sit **above** the field in `text-body-md font-semibold` — no placeholder-as-label.
+
+### Navigation
+**Top bar**: white bg, `border-b outline-variant`, 64px tall. Logo wordmark in `text-2xl font-black uppercase tracking-tighter`. Nav links `text-sm font-medium text-muted-foreground`; active link adds `border-b-2 border-primary text-foreground font-bold`.
+
+**Sidebar** (md+): `bg-muted` panel, 256px wide. Nav items: 12px padding, rounded-md, `text-sm font-medium`. Active item: `bg-primary text-primary-foreground scale-[0.98] shadow-sm`.
+
+**Bottom nav** (md-): white bg, `border-t outline-variant`. 4 tabs, icon + `text-[10px] font-bold uppercase` label.
+
+## 8. Kordi-Specific Patterns
+
+### Current Note Card (Piano)
+Centered card `card-flat` + large note name `text-6xl font-black tracking-tighter` + status row (emerald dot `animate-pulse` + `INPUT ACTIVE` status label).
+
+### Consistency Grid (Profile)
+52-column CSS grid, 2px gaps, cells `consistency-cell` with 4 tonal levels:
+- `bg-secondary` (empty/low)
+- `bg-slate-300`
+- `bg-slate-500`
+- `bg-primary` (peak)
+
+Legend row: "Less" → swatches → "More" in `label-caps`.
+
+### Session Log (Piano, right-floating panel)
+`card-flat` with header strip (`bg-secondary` + label-caps title + small history icon). Rows: `font-body-md font-bold` chord name + right-aligned `text-[10px] text-on-secondary-container` timestamp. Subtle row hover.
+
+### Recording Card
+`card-flat` + `border-l-4 border-l-destructive`. Red pulse dot + `status-label text-destructive`. Timer `text-2xl font-bold tabular-nums`. Secondary row shows filename in `label-caps text-on-surface-variant`. Pause/stop buttons in a 2-col grid with ghost styling.
+
+### Mascot Card (Profile)
+Full-bleed `bg-primary text-primary-foreground`. Section headline, Customize ghost button (`border border-white/30 hover:bg-white hover:text-primary`), large mascot illustration, Evolution Rank progress bar (`bg-white/20` track, `bg-white` fill).
+
+### Piano Keyboard
+Container: `bg-slate-900 pt-8 pb-4 px-gutter` (dark inset breaks the bright page). Keys:
+- White: `bg-white border-x border-slate-300 rounded-b-lg shadow-[inset_0_-8px_0_#f1f5f9]`
+- Black: `bg-slate-900 rounded-b shadow-[inset_0_-4px_0_#000]`
+- Active white: `bg-slate-100 ring-4 ring-inset ring-primary/20 translate-y-1` + remove base shadow
+- Octave Up / Down buttons: `card-flat` pill with `label-caps` text.
+
+### Footer Stats (Piano)
+Row of `text-[10px] label-caps text-on-surface-variant`:
+`LATENCY: 12ms · SAMPLE RATE: 48kHz · POWERED BY KORDI AUDIO ENGINE`
+
+Sprinkle this "instrumentation readout" pattern on other pages too (`ranking: UPDATED 2s AGO`, `quiz: ACCURACY 87.5%`) — it's a signature of the system.
+
+## 9. FSD Layer Mapping
+
+| Pattern | Layer |
+|---------|-------|
+| Button, Input, Badge, Avatar, Tabs primitives | `shared/ui/*` |
+| `card-flat`, `stat-card`, `pill-*`, `table-header` utilities | `shared` (CSS only in globals.css) |
+| AppHeader, AppSidebar, AppBottomNav shell | `widgets/app-header`, `widgets/app-sidebar`, `widgets/app-bottom-nav` |
+| Piano keyboard, chord prompt, quiz score, metronome | `widgets/piano-keyboard`, `widgets/chord-quiz-game/*` |
+| Ranking table with medal icons | `widgets/ranking-board` |
+| Friends table, Pending invites list | `widgets/friends-panel` |
+| Consistency grid, Mascot card, Session log | `widgets/` (new, composed in `views/piano`, `views/me`) |
+| Page compositions | `views/{piano,me,friends,ranking,chord-practice,chord-quiz,login}` |
+| Routes (thin shells) | `app/[locale]/(routes)/*` |
+
+## 10. Do's and Don'ts
 
 ### Do
-- Use Inter Variable with `"cv01", "ss03"` on ALL text — these features are fundamental to Linear's typeface identity
-- Use weight 510 as your default emphasis weight — it's Linear's signature between-weight
-- Apply aggressive negative letter-spacing at display sizes (-1.584px at 72px, -1.056px at 48px)
-- Build on near-black backgrounds: `#08090a` for marketing, `#0f1011` for panels, `#191a1b` for elevated surfaces
-- Use semi-transparent white borders (`rgba(255,255,255,0.05)` to `rgba(255,255,255,0.08)`) instead of solid dark borders
-- Keep button backgrounds nearly transparent: `rgba(255,255,255,0.02)` to `rgba(255,255,255,0.05)`
-- Reserve brand indigo (`#5e6ad2` / `#7170ff`) for primary CTAs and interactive accents only
-- Use `#f7f8f8` for primary text — not pure `#ffffff`, which would be too harsh
-- Apply the luminance stacking model: deeper = darker bg, elevated = slightly lighter bg
+- Use tabular numerals on every numeric display.
+- Apply `label-caps` generously for any metadata smaller than body text.
+- Prefer tonal differences over shadows for hierarchy.
+- Reserve emerald / gold / rose for their exact semantic roles.
+- Right-align numeric columns in tables.
+- Use ghost buttons for row-level actions (MESSAGE, CHALLENGE, FOLLOW).
 
 ### Don't
-- Don't use pure white (`#ffffff`) as primary text — `#f7f8f8` prevents eye strain
-- Don't use solid colored backgrounds for buttons — transparency is the system (rgba white at 0.02–0.05)
-- Don't apply the brand indigo decoratively — it's reserved for interactive/CTA elements only
-- Don't use positive letter-spacing on display text — Inter at large sizes always runs negative
-- Don't use visible/opaque borders on dark backgrounds — borders should be whisper-thin semi-transparent white
-- Don't skip the OpenType features (`"cv01", "ss03"`) — without them, it's generic Inter, not Linear's Inter
-- Don't use weight 700 (bold) — Linear's maximum weight is 590, with 510 as the workhorse
-- Don't introduce warm colors into the UI chrome — the palette is cool gray with blue-violet accent only
-- Don't use drop shadows for elevation on dark surfaces — use background luminance stepping instead
-
-## 8. Responsive Behavior
-
-### Breakpoints
-| Name | Width | Key Changes |
-|------|-------|-------------|
-| Mobile Small | <600px | Single column, compact padding |
-| Mobile | 600–640px | Standard mobile layout |
-| Tablet | 640–768px | Two-column grids begin |
-| Desktop Small | 768–1024px | Full card grids, expanded padding |
-| Desktop | 1024–1280px | Standard desktop, full navigation |
-| Large Desktop | >1280px | Full layout, generous margins |
-
-### Touch Targets
-- Buttons use comfortable padding with 6px radius minimum
-- Navigation links at 13–14px with adequate spacing
-- Pill tags have 10px horizontal padding for touch accessibility
-- Icon buttons at 50% radius ensure circular, easy-to-tap targets
-- Search trigger is prominently placed with generous hit area
-
-### Collapsing Strategy
-- Hero: 72px → 48px → 32px display text, tracking adjusts proportionally
-- Navigation: horizontal links + CTAs → hamburger menu at 768px
-- Feature cards: 3-column → 2-column → single column stacked
-- Product screenshots: maintain aspect ratio, may reduce padding
-- Changelog: timeline maintains single-column through all sizes
-- Footer: multi-column → stacked single column
-- Section spacing: 80px+ → 48px on mobile
-
-### Image Behavior
-- Dashboard screenshots maintain border treatment at all sizes
-- Hero visuals simplify on mobile (fewer floating UI elements)
-- Product screenshots use responsive sizing with consistent radius
-- Dark background ensures screenshots blend naturally at any viewport
-
-## 9. Agent Prompt Guide
-
-### Quick Color Reference
-- Primary CTA: Brand Indigo (`#5e6ad2`)
-- Page Background: Marketing Black (`#08090a`)
-- Panel Background: Panel Dark (`#0f1011`)
-- Surface: Level 3 (`#191a1b`)
-- Heading text: Primary White (`#f7f8f8`)
-- Body text: Silver Gray (`#d0d6e0`)
-- Muted text: Tertiary Gray (`#8a8f98`)
-- Subtle text: Quaternary Gray (`#62666d`)
-- Accent: Violet (`#7170ff`)
-- Accent Hover: Light Violet (`#828fff`)
-- Border (default): `rgba(255,255,255,0.08)`
-- Border (subtle): `rgba(255,255,255,0.05)`
-- Focus ring: Multi-layer shadow stack
-
-### Example Component Prompts
-- "Create a hero section on `#08090a` background. Headline at 48px Inter Variable weight 510, line-height 1.00, letter-spacing -1.056px, color `#f7f8f8`, font-feature-settings `'cv01', 'ss03'`. Subtitle at 18px weight 400, line-height 1.60, color `#8a8f98`. Brand CTA button (`#5e6ad2`, 6px radius, 8px 16px padding) and ghost button (`rgba(255,255,255,0.02)` bg, `1px solid rgba(255,255,255,0.08)` border, 6px radius)."
-- "Design a card on dark background: `rgba(255,255,255,0.02)` background, `1px solid rgba(255,255,255,0.08)` border, 8px radius. Title at 20px Inter Variable weight 590, letter-spacing -0.24px, color `#f7f8f8`. Body at 15px weight 400, color `#8a8f98`, letter-spacing -0.165px."
-- "Build a pill badge: transparent background, `#d0d6e0` text, 9999px radius, 0px 10px padding, `1px solid #23252a` border, 12px Inter Variable weight 510."
-- "Create navigation: dark sticky header on `#0f1011`. Inter Variable 13px weight 510 for links, `#d0d6e0` text. Brand indigo CTA `#5e6ad2` right-aligned with 6px radius. Bottom border: `1px solid rgba(255,255,255,0.05)`."
-- "Design a command palette: `#191a1b` background, `1px solid rgba(255,255,255,0.08)` border, 12px radius, multi-layer shadow stack. Input at 16px Inter Variable weight 400, `#f7f8f8` text. Results list with 13px weight 510 labels in `#d0d6e0` and 12px metadata in `#62666d`."
-
-### Iteration Guide
-1. Always set font-feature-settings `"cv01", "ss03"` on all Inter text — this is non-negotiable for Linear's look
-2. Letter-spacing scales with font size: -1.584px at 72px, -1.056px at 48px, -0.704px at 32px, normal below 16px
-3. Three weights: 400 (read), 510 (emphasize/navigate), 590 (announce)
-4. Surface elevation via background opacity: `rgba(255,255,255, 0.02 → 0.04 → 0.05)` — never solid backgrounds on dark
-5. Brand indigo (`#5e6ad2` / `#7170ff`) is the only chromatic color — everything else is grayscale
-6. Borders are always semi-transparent white, never solid dark colors on dark backgrounds
-7. Berkeley Mono for any code or technical content, Inter Variable for everything else
+- Don't introduce chromatic brand colors beyond navy + slate + the three accents.
+- Don't use `neon-*` or `glass-*` utilities — they're legacy shims and will be removed.
+- Don't use `text-brand-accent` for heading emphasis — use `text-primary`.
+- Don't use drop shadows for card elevation on the page canvas; prefer outline + (only if truly floating) ambient shadow.
+- Don't use rounded-full or rounded-xl for small data-table cells.
+- Don't set font-feature-settings "cv01"/"ss03" — those were Linear's Inter; we use `tnum` instead.

@@ -1,7 +1,9 @@
 import { queryOptions } from "@tanstack/react-query";
-import { getFriends } from "./get-friends";
-import { getSentRequests } from "./get-sent-requests";
-import { getReceivedRequests } from "./get-received-requests";
+import {
+  getFriends,
+  getSentRequests,
+  getReceivedRequests,
+} from "./fetchers";
 
 export const friendshipQueries = {
   friends: () =>
