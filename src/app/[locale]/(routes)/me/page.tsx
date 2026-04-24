@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
-import { userServerQueries } from "@/entities/user/api/queries.server";
-import { getMyScores } from "@/entities/quiz/api/get-my-scores";
+import {
+  dehydrate,
+  HydrationBoundary,
+  QueryClient,
+} from "@tanstack/react-query";
+import { userServerQueries } from "@/entities/user/server";
+import { getMyScores } from "@/entities/quiz/server";
+import type { ScoreRecord } from "@/entities/quiz";
 import { MePage } from "@/views/me";
 import { ROUTES } from "@/shared/config/routes";
 
@@ -13,23 +18,27 @@ export const metadata: Metadata = {
 export default async function Page() {
   const queryClient = new QueryClient();
 
-  try {
-    await queryClient.fetchQuery(userServerQueries.me());
-  } catch {
+  // Parallel fetch: auth check + scores in flight together.
+  // Scores has .catch() so it never rejects; auth does reject on 401.
+  const [authResult, scores] = await Promise.allSettled([
+    queryClient.fetchQuery(userServerQueries.me()),
+    getMyScores().catch(() => [] as ScoreRecord[]),
+  ]);
+
+  if (authResult.status === "rejected") {
     redirect(ROUTES.LOGIN);
   }
 
   const user = queryClient.getQueryData(userServerQueries.me().queryKey);
-
   if (!user) {
     redirect(ROUTES.LOGIN);
   }
 
-  const scores = await getMyScores().catch(() => []);
+  const scoreList = scores.status === "fulfilled" ? scores.value : [];
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <MePage user={user} scores={scores} />
+      <MePage user={user} scores={scoreList} />
     </HydrationBoundary>
   );
 }

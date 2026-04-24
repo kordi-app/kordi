@@ -1,2 +1,4 @@
+// Client-safe exports only. For server-only APIs (getMe, userServerQueries),
+// import from "@/entities/user/server" instead.
 export type { User } from "./model/types";
-export { getMe } from "./api/get-me";
+export { userQueries } from "./api/queries";

@@ -1,3 +1,5 @@
+// Client-safe exports only. For server-only APIs (getMyScores),
+// import from "@/entities/quiz/server" instead.
 export type {
   QuizDifficulty,
   QuizChordItem,

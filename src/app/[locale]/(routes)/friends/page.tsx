@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { QueryClient } from "@tanstack/react-query";
-import { userServerQueries } from "@/entities/user/api/queries.server";
+import { userServerQueries } from "@/entities/user/server";
 import { FriendsPage } from "@/views/friends";
 import { ROUTES } from "@/shared/config/routes";
 

@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useDebounceValue } from "@/shared/lib/react/use-debounce-value";
-import { userQueries } from "@/entities/user/api/queries";
+import { userQueries } from "@/entities/user";
 
 const DEBOUNCE_MS = 500;
 
