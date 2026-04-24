@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { ErrorBoundary, Suspense } from "@suspensive/react";
 import { useTranslations } from "next-intl";
 import { Trophy } from "lucide-react";
 import { rankingQueries, type RankingDifficulty } from "@/entities/ranking";
 import { Avatar, AvatarImage, AvatarFallback } from "@/shared/ui/avatar";
+import { MonoPill } from "@/shared/ui/mono-button";
+import { LoadingState } from "@/shared/ui/empty-state";
 import { cn } from "@/shared/lib/utils";
 
 const DIFFICULTIES: RankingDifficulty[] = ["EASY", "MEDIUM", "HARD"];
@@ -14,100 +17,99 @@ export function RankingBoard() {
   const t = useTranslations("ranking");
   const [difficulty, setDifficulty] = useState<RankingDifficulty>("EASY");
 
-  const { data: rankings, isLoading } = useQuery(rankingQueries.list(difficulty));
-
   return (
     <div className="w-full">
-      {/* Difficulty Tabs */}
       <div className="mb-6 flex gap-2">
         {DIFFICULTIES.map((d) => (
-          <button
+          <MonoPill
             key={d}
+            active={difficulty === d}
             onClick={() => setDifficulty(d)}
-            className={cn(
-              "rounded-lg border border-black px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors",
-              difficulty === d
-                ? "bg-black text-white"
-                : "bg-white text-black hover:bg-black/5",
-            )}
           >
             {t(d.toLowerCase())}
-          </button>
+          </MonoPill>
         ))}
       </div>
 
-      {/* Ranking List */}
-      <div className="overflow-hidden rounded-lg border border-black bg-white">
-        {isLoading && (
-          <p className="py-12 text-center text-sm opacity-60">{t("loading")}</p>
+      <ErrorBoundary
+        fallback={() => (
+          <div className="py-12 text-center text-sm opacity-60">
+            {t("empty")}
+          </div>
         )}
+      >
+        <Suspense fallback={<LoadingState label={t("loading")} />}>
+          <RankingList difficulty={difficulty} />
+        </Suspense>
+      </ErrorBoundary>
+    </div>
+  );
+}
 
-        {rankings && rankings.length === 0 && (
-          <p className="py-12 text-center text-sm opacity-60">{t("empty")}</p>
-        )}
+function RankingList({ difficulty }: { difficulty: RankingDifficulty }) {
+  const t = useTranslations("ranking");
+  const { data: rankings } = useSuspenseQuery(rankingQueries.list(difficulty));
 
-        {rankings?.map((entry, i) => {
-          const accuracy =
-            entry.totalCount > 0
-              ? Math.round((entry.correctCount / entry.totalCount) * 100)
-              : 0;
-          const isTopThree = i < 3;
+  if (rankings.length === 0) {
+    return <p className="py-12 text-center text-sm opacity-60">{t("empty")}</p>;
+  }
 
-          return (
-            <div
-              key={`${entry.nickname}-${i}`}
-              className="flex items-center gap-4 border-b border-black px-4 py-3 last:border-b-0"
-            >
-              {/* Rank */}
-              <div className="flex w-8 shrink-0 items-center justify-center">
-                {isTopThree ? (
-                  <Trophy className="size-5 text-black" strokeWidth={1.75} />
-                ) : (
-                  <span className="font-heading text-sm font-black tabular-nums text-black">
-                    {i + 1}
-                  </span>
-                )}
-              </div>
+  return (
+    <div className="overflow-hidden rounded-lg border border-black bg-white">
+      {rankings.map((entry, i) => {
+        const accuracy =
+          entry.totalCount > 0
+            ? Math.round((entry.correctCount / entry.totalCount) * 100)
+            : 0;
+        const isTopThree = i < 3;
 
-              {/* Avatar */}
-              <Avatar size="sm" className="ring-1 ring-black">
-                <AvatarImage
-                  src={entry.profileImageUrl ?? undefined}
-                  alt={entry.nickname}
-                />
-                <AvatarFallback className="bg-black text-xs font-bold text-white">
-                  {entry.nickname.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-
-              {/* Name */}
-              <span
-                className={cn(
-                  "flex-1 text-sm",
-                  isTopThree ? "font-bold text-black" : "text-black opacity-80",
-                )}
-              >
-                {entry.nickname}
-              </span>
-
-              {/* Accuracy */}
-              <span className="text-xs tabular-nums opacity-60">
-                {accuracy}%
-              </span>
-
-              {/* Score */}
-              <span
-                className={cn(
-                  "w-16 text-right font-heading text-sm tabular-nums",
-                  i === 0 ? "font-black" : "font-bold",
-                )}
-              >
-                {entry.totalScore}
-              </span>
+        return (
+          <div
+            key={`${entry.nickname}-${i}`}
+            className="flex items-center gap-4 border-b border-black px-4 py-3 last:border-b-0"
+          >
+            <div className="flex w-8 shrink-0 items-center justify-center">
+              {isTopThree ? (
+                <Trophy className="size-5 text-black" strokeWidth={1.75} />
+              ) : (
+                <span className="font-heading text-sm font-black tabular-nums text-black">
+                  {i + 1}
+                </span>
+              )}
             </div>
-          );
-        })}
-      </div>
+
+            <Avatar size="sm" className="ring-1 ring-black">
+              <AvatarImage
+                src={entry.profileImageUrl ?? undefined}
+                alt={entry.nickname}
+              />
+              <AvatarFallback className="bg-black text-xs font-bold text-white">
+                {entry.nickname.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+
+            <span
+              className={cn(
+                "flex-1 text-sm",
+                isTopThree ? "font-bold text-black" : "text-black opacity-80",
+              )}
+            >
+              {entry.nickname}
+            </span>
+
+            <span className="text-xs tabular-nums opacity-60">{accuracy}%</span>
+
+            <span
+              className={cn(
+                "w-16 text-right font-heading text-sm tabular-nums",
+                i === 0 ? "font-black" : "font-bold",
+              )}
+            >
+              {entry.totalScore}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
