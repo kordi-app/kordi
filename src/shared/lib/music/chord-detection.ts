@@ -1,5 +1,5 @@
 import { CHORD_TEMPLATES, type ChordType } from "./chord-templates";
-import { rootLabel, bassLabel } from "./note-names";
+import { rootLabel, bassLabel, displaySuffix } from "./note-names";
 import { toPitchClasses, pitchClassesEqual } from "./pitch-class";
 
 // Detection priority, simple/common first. Kept explicit because plain object
@@ -124,7 +124,7 @@ export function detectChord(midiNotes: number[]): DetectedChord | null {
   const rootedFull = fullCandidates.find((c) => c.root === bass);
   if (rootedFull) {
     return {
-      primary: `${rootLabel(rootedFull.root, rootedFull.suffix)}${rootedFull.suffix}`,
+      primary: `${rootLabel(rootedFull.root, rootedFull.suffix)}${displaySuffix(rootedFull.suffix)}`,
       secondary: null,
     };
   }
@@ -134,7 +134,7 @@ export function detectChord(midiNotes: number[]): DetectedChord | null {
   const rootedReduced = reducedCandidates.find((c) => c.root === bass);
   if (rootedReduced) {
     return {
-      primary: `${rootLabel(rootedReduced.root, rootedReduced.suffix)}${rootedReduced.suffix}`,
+      primary: `${rootLabel(rootedReduced.root, rootedReduced.suffix)}${displaySuffix(rootedReduced.suffix)}`,
       secondary: null,
     };
   }
@@ -143,7 +143,7 @@ export function detectChord(midiNotes: number[]): DetectedChord | null {
   const best = fullCandidates[0] ?? reducedCandidates[0];
   if (!best) return null;
 
-  const rootName = `${rootLabel(best.root, best.suffix)}${best.suffix}`;
+  const rootName = `${rootLabel(best.root, best.suffix)}${displaySuffix(best.suffix)}`;
   const slashName = `${rootName}/${bassLabel(bass)}`;
 
   // A bass isolated an octave+ below the rest reads as a deliberate bass line →

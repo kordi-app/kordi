@@ -21,6 +21,16 @@ const FLAT_LABELS = [
 // m7, m9, mMaj7, madd9, m6/9, … but not maj7/maj9/maj13
 const MINOR_FAMILY = /^(m(?!aj)|dim)/;
 
+/**
+ * Chart-convention spelling for a chord suffix: the major 7th is written M, not
+ * maj ("maj7" → "M7", "mMaj7" → "mM7", "dim(maj7)" → "dim(M7)", "+Maj7" → "+M7").
+ * Display only — identity (DB rows, CHORD_TEMPLATES keys, answer matching) keeps
+ * "maj", so this must not be fed back into rootLabel or the validator.
+ */
+export function displaySuffix(suffix: string): string {
+  return suffix.replace(/maj/gi, "M");
+}
+
 /** Chart-convention spelling for a chord root, picked by chord quality. */
 export function rootLabel(root: number, suffix: string): string {
   const labels = MINOR_FAMILY.test(suffix) ? MINOR_ROOT_LABELS : MAJOR_ROOT_LABELS;
@@ -58,7 +68,8 @@ export function toDisplayChordName(name: string): string {
 
   const match = chord.match(ROOT_TOKEN);
   if (match && NOTE_INDEX[match[1]] !== undefined) {
-    chord = `${rootLabel(NOTE_INDEX[match[1]], match[2])}${match[2]}`;
+    // rootLabel needs the raw suffix — MINOR_FAMILY keys off the stored "maj".
+    chord = `${rootLabel(NOTE_INDEX[match[1]], match[2])}${displaySuffix(match[2])}`;
   }
   if (bass !== null && NOTE_INDEX[bass] !== undefined) {
     bass = bassLabel(NOTE_INDEX[bass]);
