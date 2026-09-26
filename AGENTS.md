@@ -45,6 +45,39 @@ src/
 6. **Entities = interfaces + Read**: Type definitions and data fetching (Get/Read) belong in entities.
 7. **Shared has no slices**: No domain folders under shared — it's domain-agnostic.
 8. **Segments = role-based folders**: Within each slice, organize by role (ui, model, lib, api).
+9. **Dual public API for RSC**: `index.ts` exports client-safe code only. Anything that
+   touches `next/headers` (server fetches, `requireUser`) goes in a sibling `server.ts`
+   that starts with `import "server-only"`. Server Components and route handlers import
+   from `@/entities/{domain}/server`; everything else from `@/entities/{domain}`.
+   See `src/entities/user/`.
+
+### Enforcement
+
+Rules 1, 2, 3 and 9 are enforced by `no-restricted-imports` in `eslint.config.mjs`
+(`pnpm lint`) — not by convention. Slices reach their own internals by relative path,
+which is what makes the cross-import ban expressible as "no `@/{own-layer}/` alias
+inside that layer". `shared/` is exempt from the cross-import ban because it has no
+slices (rule 7).
+
+We deliberately do not use Steiger, the official FSD linter: it cannot be taught the
+`server.ts` entry point of rule 9 and would flag every use of it, and it expects the
+`pages` layer to be named `_pages` rather than `views`.
+
+### Documented exceptions
+
+- **`shared/lib/music/`** holds chord/scale theory (~800 lines). It is domain knowledge,
+  but it is pure, dependency-free functions with no app state or API coupling, so it
+  lives in shared rather than an entity. Keep it that way: no fetching, no React state.
+  `use-chord-check.ts` is the one hook there — it wraps those pure validators and nothing else.
+- **`entities/note/model/use-active-notes.ts`** is a hook in entities, against the usual
+  "hooks live in features/lib" guidance. Active MIDI notes are entity state shared by
+  several features, so the state lives with the entity.
+
+For questions this file does not answer (cross-import escape hatches, whether a new
+entity is warranted, layout placement), use the `feature-sliced-design` skill — the
+official FSD v2.1 skill, installed at `.claude/skills/feature-sliced-design/`. Note that
+it discourages the `widgets` layer; our existing widgets stay as they are ("discouraged"
+is not "deprecated"), but prefer composing in `views/` for new work.
 
 ## Path Aliases
 
