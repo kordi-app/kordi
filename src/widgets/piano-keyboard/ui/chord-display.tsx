@@ -30,10 +30,10 @@ export function ChordDisplay({ activeNotes, ringingNotes }: ChordDisplayProps) {
 
   return (
     <div className="flex h-20 flex-col items-center justify-center">
-      <span className="font-heading text-6xl font-black tabular-nums text-black">
+      <span className="font-heading text-5xl font-semibold tabular-nums text-foreground">
         {chord.primary}
       </span>
-      <span className="h-5 text-sm font-bold tabular-nums opacity-50">
+      <span className="h-5 text-sm font-semibold tabular-nums opacity-50">
         {chord.secondary ?? ""}
       </span>
     </div>

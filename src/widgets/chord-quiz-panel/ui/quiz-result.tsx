@@ -32,11 +32,11 @@ export function QuizResult({
         {t("result")}
       </SectionHeader>
 
-      <div className="rounded-lg border border-black bg-black px-10 py-6 text-center text-white">
-        <div className="font-heading text-5xl font-black tabular-nums">
+      <div className="rounded-lg border border-border bg-primary px-10 py-6 text-center text-primary-foreground">
+        <div className="font-heading text-4xl font-semibold tabular-nums">
           {state.totalScore}
         </div>
-        <div className="mt-1 text-xs font-bold uppercase tracking-widest opacity-70">
+        <div className="mt-1 text-xs font-semibold uppercase tracking-widest opacity-70">
           / 1000 {t("maxScore")}
         </div>
       </div>
@@ -46,23 +46,23 @@ export function QuizResult({
         <StatBlock value={incorrectCount} label={t("incorrect")} />
       </div>
 
-      <div className="w-full overflow-hidden rounded-lg border border-black">
+      <div className="w-full overflow-hidden rounded-lg border border-border">
         {state.questions.map((q, i) => (
           <div
             key={q.id}
-            className="flex items-center justify-between border-b border-black px-4 py-2 last:border-b-0"
+            className="flex items-center justify-between border-b border-border px-4 py-2 last:border-b-0"
           >
             <div className="flex items-center gap-3">
               <span className="text-xs tabular-nums opacity-60">{i + 1}</span>
-              <span className="font-bold text-black">
+              <span className="font-semibold text-foreground">
                 {toDisplayChordName(q.name)}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-widest opacity-70">
+              <span className="text-[10px] font-semibold uppercase tracking-widest opacity-70">
                 {t(state.answers[i] ?? "timeout")}
               </span>
-              <span className="font-heading font-bold tabular-nums text-black">
+              <span className="font-heading font-semibold tabular-nums text-foreground">
                 {state.scores[i] ?? 0}
               </span>
             </div>
@@ -72,7 +72,7 @@ export function QuizResult({
 
       {isSaving && <p className="text-sm opacity-60">{t("saving")}</p>}
       {isSaved && (
-        <p className="text-xs font-bold uppercase tracking-widest text-black">
+        <p className="text-xs font-semibold uppercase tracking-widest text-foreground">
           {t("saved")}
         </p>
       )}
@@ -92,10 +92,10 @@ export function QuizResult({
 function StatBlock({ value, label }: { value: number; label: string }) {
   return (
     <MonoCard className="flex-1 px-4 py-3 text-center">
-      <div className="font-heading text-2xl font-black tabular-nums">
+      <div className="font-heading text-2xl font-semibold tabular-nums">
         {value}
       </div>
-      <div className="text-[11px] font-bold uppercase tracking-widest opacity-70">
+      <div className="text-[11px] font-semibold uppercase tracking-widest opacity-70">
         {label}
       </div>
     </MonoCard>

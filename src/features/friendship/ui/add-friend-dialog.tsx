@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { UserPlus, Search, UserX, Loader2, UserSearch } from "lucide-react";
 import {
@@ -30,10 +30,6 @@ export function AddFriendDialog({ currentUserId }: AddFriendDialogProps) {
   const { data, isFetching, isError } = useSearchUser(nickname);
   const { mutate, isPending } = useSendRequest();
 
-  useEffect(() => {
-    if (!open) setNickname("");
-  }, [open]);
-
   const isSelf = data && currentUserId != null && data.id === currentUserId;
 
   const handleSend = () => {
@@ -44,15 +40,21 @@ export function AddFriendDialog({ currentUserId }: AddFriendDialogProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) setNickname("");
+      }}
+    >
       <DialogTrigger render={<Button size="sm" />}>
-        <UserPlus className="size-3.5" strokeWidth={1.75} />
+        <UserPlus className="size-3.5" />
         {t("add")}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="size-4 text-primary" strokeWidth={1.75} />
+            <UserPlus className="size-4 text-primary" />
             {t("add")}
           </DialogTitle>
           <DialogDescription>{t("addDescription")}</DialogDescription>
@@ -72,22 +74,22 @@ export function AddFriendDialog({ currentUserId }: AddFriendDialogProps) {
         <div className="min-h-[92px]">
           {trimmed.length < 2 ? (
             <EmptyHint
-              icon={<UserSearch className="size-5" strokeWidth={1.5} />}
+              icon={<UserSearch className="size-5" />}
               label={t("searchHint")}
             />
           ) : isFetching ? (
             <EmptyHint
-              icon={<Loader2 className="size-5 animate-spin" strokeWidth={1.5} />}
+              icon={<Loader2 className="size-5 animate-spin" />}
               label={t("searching")}
             />
           ) : isError || !data ? (
             <EmptyHint
-              icon={<UserX className="size-5" strokeWidth={1.5} />}
+              icon={<UserX className="size-5" />}
               label={t("noResult")}
             />
           ) : isSelf ? (
             <EmptyHint
-              icon={<UserX className="size-5 text-destructive" strokeWidth={1.5} />}
+              icon={<UserX className="size-5 text-destructive" />}
               label={t("error.cannotAddSelf")}
               destructive
             />

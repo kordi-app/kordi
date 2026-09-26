@@ -49,7 +49,7 @@ export function PianoPage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center p-6">
+    <main className="flex flex-1 flex-col items-center px-6 py-10 md:py-14">
       <MidiStatus
         midiName={midi.selectedDevice?.name}
         fallback={t("noMidiDevice")}
@@ -121,23 +121,23 @@ function KeyboardStatusBar({
       <button
         type="button"
         onClick={onToggleMute}
-        className={`cursor-pointer rounded-lg border border-black px-2.5 py-1 font-bold uppercase transition-colors ${
-          isMuted ? "bg-white text-black opacity-60" : "bg-black text-white"
+        className={`cursor-pointer rounded border border-border px-2.5 py-1 font-semibold uppercase tracking-widest transition-colors ${
+          isMuted ? "bg-card text-foreground opacity-60" : "bg-primary text-primary-foreground"
         }`}
       >
         Sound {isMuted ? "OFF" : "ON"}
       </button>
-      <span className="rounded-lg border border-black bg-white px-2.5 py-1 font-bold uppercase">
-        Oct: <span className="font-black">{octave}</span>
+      <span className="rounded-lg border border-border bg-card px-2.5 py-1 font-semibold uppercase">
+        Oct: <span className="font-semibold">{octave}</span>
         <span className="ml-1 opacity-40">[Z/X]</span>
       </span>
-      <span className="rounded-lg border border-black bg-white px-2.5 py-1 font-bold uppercase">
-        Vel: <span className="font-black">{velocity}</span>
+      <span className="rounded-lg border border-border bg-card px-2.5 py-1 font-semibold uppercase">
+        Vel: <span className="font-semibold">{velocity}</span>
         <span className="ml-1 opacity-40">[C/V]</span>
       </span>
       <span
-        className={`rounded-lg border border-black px-2.5 py-1 font-bold uppercase transition-colors ${
-          sustain ? "bg-black text-white" : "bg-white text-black"
+        className={`rounded-lg border border-border px-2.5 py-1 font-semibold uppercase transition-colors ${
+          sustain ? "bg-primary text-primary-foreground" : "bg-card text-foreground"
         }`}
       >
         Sustain {sustain ? "ON" : "OFF"}

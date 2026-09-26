@@ -15,7 +15,7 @@ export function QuizScore({ state }: QuizScoreProps) {
       : 0;
 
   return (
-    <div className="flex items-center gap-6 rounded-lg border border-black bg-white px-6 py-3">
+    <div className="flex items-center gap-6 rounded-lg border border-border bg-card px-6 py-3">
       <Stat value={state.score} label={t("score")} accent />
       <Stat value={state.streak} label={t("streak")} />
       <Stat value={state.bestStreak} label={t("best")} />
@@ -36,11 +36,11 @@ function Stat({
   return (
     <div className="min-w-16 text-center">
       <div
-        className={`font-heading text-2xl font-black tabular-nums ${accent ? "text-black" : "text-black opacity-70"}`}
+        className={`font-heading text-2xl font-semibold tabular-nums ${accent ? "text-foreground" : "text-foreground opacity-70"}`}
       >
         {value}
       </div>
-      <div className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+      <div className="text-[10px] font-semibold uppercase tracking-widest opacity-60">
         {label}
       </div>
     </div>

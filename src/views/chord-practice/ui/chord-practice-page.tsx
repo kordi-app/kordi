@@ -50,8 +50,8 @@ export function ChordPracticePage() {
   const isIdle = state.status === "idle";
 
   return (
-    <div className="w-full p-6">
-      <div className="mx-auto w-full max-w-4xl space-y-6">
+    <div className="w-full px-6 py-10 md:px-8 md:py-14">
+      <div className="mx-auto w-full max-w-4xl space-y-10">
         <MidiStatus
           midiName={midi.selectedDevice?.name}
           fallback={t("noMidiDevice")}
@@ -116,9 +116,9 @@ export function ChordPracticePage() {
         <div
           className={cn(
             "w-full rounded-lg transition-all duration-200",
-            feedbackState === "correct" && "ring-2 ring-black",
+            feedbackState === "correct" && "ring-2 ring-ring",
             feedbackState === "incorrect" &&
-              "ring-2 ring-black ring-offset-2 ring-offset-white",
+              "ring-2 ring-ring ring-offset-2 ring-offset-background",
           )}
         >
           <PianoKeyboard

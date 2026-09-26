@@ -3,23 +3,27 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/shared/lib/utils";
 
 const monoButton = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-black font-bold uppercase transition disabled:opacity-40 disabled:pointer-events-none",
+  // Weight caps at 600 and labels run sentence-case: the cream system carries
+  // emphasis with color and space, not with bold uppercase.
+  "inline-flex items-center justify-center whitespace-nowrap rounded font-semibold transition active:opacity-80 disabled:opacity-40 disabled:pointer-events-none",
   {
     variants: {
       variant: {
-        /** Solid black — primary action. Hover dims slightly. */
-        solid: "bg-black text-white hover:opacity-90",
-        /** Outlined white — secondary. Hover shifts to muted bg. */
-        outline: "bg-white text-black hover:bg-muted",
-        /** Pill (tab) active state — solid black. */
-        "pill-active": "bg-black text-white",
-        /** Pill (tab) inactive state — outlined with subtle hover. */
-        "pill-inactive": "bg-white text-black hover:bg-black/5",
+        /** Charcoal fill with the signature inset — the primary action. */
+        solid: "btn-inset",
+        /** Outlined — secondary. The interactive border, not the passive one. */
+        outline:
+          "border border-[rgba(42,37,33,0.4)] bg-transparent text-foreground hover:bg-accent",
+        /** Pill (tab) active state. */
+        "pill-active": "btn-inset rounded-full",
+        /** Pill (tab) inactive state. */
+        "pill-inactive":
+          "rounded-full border border-border bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
       },
       size: {
-        sm: "px-3 py-1.5 text-sm tracking-wider",
-        md: "px-4 py-2 text-sm tracking-widest",
-        lg: "px-6 py-3.5 text-base tracking-widest",
+        sm: "px-3.5 py-1.5 text-sm",
+        md: "px-5 py-2.5 text-sm",
+        lg: "px-7 py-3.5 text-base",
       },
     },
     defaultVariants: { variant: "outline", size: "md" },

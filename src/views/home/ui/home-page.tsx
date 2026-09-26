@@ -5,102 +5,55 @@ import { ROUTES } from "@/shared/config/routes";
 import { MonoCard } from "@/shared/ui/mono-card";
 import { MonoButton } from "@/shared/ui/mono-button";
 import { SectionHeader } from "@/shared/ui/section-header";
-import { KordiMascot } from "@/shared/ui/illustrations/kordi-mascot";
 import { ChordDiagramCmaj7 } from "./chord-diagram-cmaj7";
 import { QuickAccessCard } from "./quick-access-card";
-import { TypingBubble } from "./typing-bubble";
 
 export function HomePage() {
   const t = useTranslations("home");
 
   return (
-    <main className="p-6 md:p-8">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <MonoCard className="grid grid-cols-1 items-center gap-8 p-8 md:grid-cols-2 md:gap-10 md:p-10">
-          <div className="min-w-0 space-y-5">
-            <SectionHeader as="h1" size="xl">
-              {t("hero.title")}
-            </SectionHeader>
-            <p className="text-base leading-relaxed md:text-lg">
-              {t("hero.subtitle")}
-            </p>
-            <Link href={ROUTES.CHORD_PRACTICE} className="inline-block">
-              <MonoButton variant="solid" size="lg">
-                {t("hero.cta")}
-              </MonoButton>
-            </Link>
+    <main className="px-6 py-10 md:px-8 md:py-16">
+      <div className="mx-auto max-w-3xl space-y-10">
+        <section className="flex flex-col items-center gap-5 text-center">
+          <SectionHeader as="h1" size="xl">
+            {t("hero.title")}
+          </SectionHeader>
+          <Link href={ROUTES.CHORD_PRACTICE}>
+            <MonoButton variant="solid" size="md">
+              {t("hero.cta")}
+            </MonoButton>
+          </Link>
+        </section>
+
+        {/* The two entry cards share a row and match each other. The chord card
+            sits in its own row — mixing it in stretched these two to its height
+            and left their single line floating in the middle. */}
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <QuickAccessCard
+            href={ROUTES.CHORD_PRACTICE}
+            icon={Dumbbell}
+            title={t("card.practice.title")}
+          />
+          <QuickAccessCard
+            href={ROUTES.CHORD_QUIZ}
+            icon={HelpCircle}
+            title={t("card.quiz.title")}
+          />
+        </section>
+
+        <MonoCard className="flex items-center gap-5 p-5">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              {t("daily.title")}
+            </h2>
+            <div className="font-heading mt-1 text-2xl font-semibold -tracking-[0.02em]">
+              Cmaj7
+            </div>
           </div>
-          <div className="flex min-w-0 items-center justify-center gap-3 md:justify-end md:gap-4">
-            <TypingBubble />
-            <KordiMascot size="lg" interactive mood="idle" />
+          <div className="h-14 w-40 shrink-0">
+            <ChordDiagramCmaj7 />
           </div>
         </MonoCard>
-
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:col-span-8">
-            <QuickAccessCard
-              href={ROUTES.CHORD_PRACTICE}
-              icon={Dumbbell}
-              title={t("card.practice.title")}
-              desc={t("card.practice.desc")}
-              cta={t("card.practice.cta")}
-            />
-            <QuickAccessCard
-              href={ROUTES.CHORD_QUIZ}
-              icon={HelpCircle}
-              title={t("card.quiz.title")}
-              desc={t("card.quiz.desc")}
-              cta={t("card.quiz.cta")}
-            />
-          </div>
-
-          <aside className="flex flex-col gap-6 md:col-span-4">
-            <MonoCard className="p-4">
-              <h3 className="mb-2 border-b border-black pb-1 text-xs font-bold uppercase tracking-widest">
-                {t("daily.title")}
-              </h3>
-              <div className="space-y-2 py-3 text-center">
-                <div className="font-heading text-[32px] font-black leading-tight">
-                  Cmaj7
-                </div>
-                <p className="text-sm">{t("daily.subtitle")}</p>
-                <MonoCard className="mt-2 grid h-24 overflow-hidden">
-                  <ChordDiagramCmaj7 />
-                </MonoCard>
-              </div>
-            </MonoCard>
-
-            <MonoCard className="p-4">
-              <h3 className="mb-2 border-b border-black pb-1 text-xs font-bold uppercase tracking-widest">
-                {t("activity.title")}
-              </h3>
-              <ul className="space-y-1">
-                <li className="flex items-center justify-between border-b border-black py-1.5 last:border-0">
-                  <div className="flex items-center gap-2">
-                    <Dumbbell
-                      className="size-4"
-                      strokeWidth={1.75}
-                      aria-hidden
-                    />
-                    <span className="text-sm">{t("activity.item1")}</span>
-                  </div>
-                  <span className="text-sm font-bold tabular-nums">85%</span>
-                </li>
-                <li className="flex items-center justify-between border-b border-black py-1.5 last:border-0">
-                  <div className="flex items-center gap-2">
-                    <HelpCircle
-                      className="size-4"
-                      strokeWidth={1.75}
-                      aria-hidden
-                    />
-                    <span className="text-sm">{t("activity.item2")}</span>
-                  </div>
-                  <span className="text-sm font-bold tabular-nums">1,200</span>
-                </li>
-              </ul>
-            </MonoCard>
-          </aside>
-        </div>
       </div>
     </main>
   );

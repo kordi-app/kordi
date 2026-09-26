@@ -8,8 +8,7 @@ export default function Loading() {
   return (
     <main className="flex flex-1 items-center justify-center p-6">
       <Loader2
-        className="size-6 animate-spin text-black opacity-60"
-        strokeWidth={1.75}
+        className="size-6 animate-spin text-foreground opacity-60"
         aria-label="Loading"
       />
     </main>

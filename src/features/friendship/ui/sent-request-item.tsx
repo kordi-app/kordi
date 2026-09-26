@@ -19,8 +19,8 @@ export function SentRequestItem({ friendship }: SentRequestItemProps) {
     <FriendRow
       dim
       avatar={
-        <Avatar className="ring-1 ring-black">
-          <AvatarFallback className="bg-white text-black border border-black">
+        <Avatar className="ring-1 ring-ring">
+          <AvatarFallback className="bg-card text-foreground border border-border">
             {friendship.receiverNickname.charAt(0).toUpperCase()}
           </AvatarFallback>
         </Avatar>
@@ -28,7 +28,7 @@ export function SentRequestItem({ friendship }: SentRequestItemProps) {
       title={friendship.receiverNickname}
       subtitle={
         <span className="inline-flex items-center gap-1">
-          <Clock className="size-3" strokeWidth={2} />
+          <Clock className="size-3" />
           {t("pending")}
         </span>
       }
@@ -36,7 +36,7 @@ export function SentRequestItem({ friendship }: SentRequestItemProps) {
         <button
           disabled={isPending}
           onClick={() => mutate(friendship.id)}
-          className="rounded-lg border border-black bg-white px-3 py-1.5 text-xs font-bold uppercase text-black transition-colors hover:bg-muted disabled:opacity-40"
+          className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold uppercase text-foreground transition-colors hover:bg-muted disabled:opacity-40"
         >
           {t("cancelRequest")}
         </button>

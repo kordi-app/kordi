@@ -41,14 +41,14 @@ function FriendsPanelContent({ currentUserId }: FriendsPanelProps) {
         <RequestsCard
           title={t("tabs.received")}
           items={received}
-          emptyIcon={<Inbox className="size-6" strokeWidth={1.75} />}
+          emptyIcon={<Inbox className="size-6" />}
           emptyLabel={t("empty.received")}
           renderItem={(f) => <ReceivedRequestItem key={f.id} friendship={f} />}
         />
         <RequestsCard
           title={t("tabs.sent")}
           items={sent}
-          emptyIcon={<Send className="size-6" strokeWidth={1.75} />}
+          emptyIcon={<Send className="size-6" />}
           emptyLabel={t("empty.sent")}
           renderItem={(f) => <SentRequestItem key={f.id} friendship={f} />}
         />

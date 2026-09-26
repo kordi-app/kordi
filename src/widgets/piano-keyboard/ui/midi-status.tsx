@@ -26,12 +26,12 @@ export function MidiStatus({
   return (
     <div className="mb-2 flex w-full max-w-4xl justify-end">
       {showSelector ? (
-        <label className="flex items-center gap-1.5 rounded-full border border-black bg-black px-3 py-1 text-xs font-bold uppercase text-white">
-          <span className="size-1.5 rounded-full bg-white" />
+        <label className="flex items-center gap-1.5 rounded-full border border-border bg-primary px-3 py-1 text-xs font-semibold uppercase text-primary-foreground">
+          <span className="size-1.5 rounded-full bg-card" />
           <select
             value={selectedDeviceId ?? ""}
             onChange={(e) => onSelectDevice(e.target.value)}
-            className="cursor-pointer appearance-none bg-black text-xs font-bold uppercase text-white outline-none"
+            className="cursor-pointer appearance-none bg-primary text-xs font-semibold uppercase text-primary-foreground outline-none"
             aria-label="MIDI device"
           >
             {devices.map((d) => (
@@ -42,13 +42,13 @@ export function MidiStatus({
           </select>
         </label>
       ) : midiName ? (
-        <span className="flex items-center gap-1.5 rounded-full border border-black bg-black px-3 py-1 text-xs font-bold uppercase text-white">
-          <span className="size-1.5 rounded-full bg-white" />
+        <span className="flex items-center gap-1.5 rounded-full border border-border bg-primary px-3 py-1 text-xs font-semibold uppercase text-primary-foreground">
+          <span className="size-1.5 rounded-full bg-card" />
           {midiName}
         </span>
       ) : (
-        <span className="flex items-center gap-1.5 rounded-full border border-black bg-white px-3 py-1 text-xs font-bold uppercase text-black">
-          <span className="size-1.5 rounded-full bg-black opacity-40" />
+        <span className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold uppercase text-foreground">
+          <span className="size-1.5 rounded-full bg-primary opacity-40" />
           {fallback}
         </span>
       )}

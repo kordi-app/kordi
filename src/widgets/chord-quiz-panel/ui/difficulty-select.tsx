@@ -25,7 +25,7 @@ export function DifficultySelect({
 
   return (
     <div className="flex w-full flex-col items-center gap-6">
-      <h2 className="font-heading text-xl font-extrabold uppercase tracking-tight text-black">
+      <h2 className="font-heading text-xl font-semibold uppercase tracking-tight text-foreground">
         {t("selectDifficulty")}
       </h2>
       <div className="grid w-full max-w-sm gap-3">
@@ -34,14 +34,14 @@ export function DifficultySelect({
             key={value}
             onClick={() => onSelect(value)}
             disabled={isLoading}
-            className="flex items-center gap-4 rounded-lg border border-black bg-white p-5 transition-all hover:bg-muted disabled:opacity-50"
+            className="flex items-center gap-4 rounded-lg border border-border bg-card p-5 transition-all hover:bg-muted disabled:opacity-50"
           >
-            <div className="flex size-10 items-center justify-center rounded-lg border border-black bg-black text-white">
-              <span className="font-heading text-lg font-black">
+            <div className="flex size-10 items-center justify-center rounded-lg border border-border bg-primary text-primary-foreground">
+              <span className="font-heading text-lg font-semibold">
                 {key.charAt(0).toUpperCase()}
               </span>
             </div>
-            <span className="font-heading text-lg font-bold uppercase tracking-wider">
+            <span className="font-heading text-lg font-semibold -tracking-[0.01em]">
               {t(key)}
             </span>
           </button>

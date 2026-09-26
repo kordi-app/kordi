@@ -97,7 +97,7 @@ type TFn = (key: string) => string;
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <label className="mb-2 block text-[11px] font-bold uppercase tracking-widest opacity-70">
+    <label className="mb-2 block text-[11px] font-semibold uppercase tracking-widest opacity-70">
       {children}
     </label>
   );
@@ -220,10 +220,10 @@ function KeySection({
       <Label>{t("key")}</Label>
       <DropdownMenu>
         <DropdownMenuTrigger
-          className="flex w-full cursor-pointer items-center justify-between rounded-lg border border-black bg-white px-3 py-1.5 text-sm text-black transition-colors hover:bg-muted data-[popup-open]:bg-black data-[popup-open]:text-white"
+          className="flex w-full cursor-pointer items-center justify-between rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted data-[popup-open]:bg-primary data-[popup-open]:text-primary-foreground"
         >
           <span>{displayLabel}</span>
-          <ChevronDown className="size-4 shrink-0" strokeWidth={2} />
+          <ChevronDown className="size-4 shrink-0" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="max-h-72 w-(--anchor-width) overflow-y-auto">
           <DropdownMenuRadioGroup value={value} onValueChange={onChange}>
@@ -253,7 +253,7 @@ function TempoSection({
     <div>
       <Label>
         {t("tempo")}:{" "}
-        <span className="font-heading text-sm text-black tabular-nums">{bpm}</span> BPM
+        <span className="font-heading text-sm text-foreground tabular-nums">{bpm}</span> BPM
       </Label>
       <input
         type="range"
@@ -261,7 +261,7 @@ function TempoSection({
         max={200}
         value={bpm}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full accent-black"
+        className="w-full accent-foreground"
       />
     </div>
   );
@@ -359,13 +359,13 @@ function Toggle({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center justify-between text-sm font-semibold text-black">
+    <label className="flex cursor-pointer items-center justify-between text-sm font-semibold text-foreground">
       {label}
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="size-4 accent-black"
+        className="size-4 accent-foreground"
       />
     </label>
   );

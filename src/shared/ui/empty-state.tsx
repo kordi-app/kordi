@@ -13,10 +13,10 @@ interface EmptyStateProps {
 export function EmptyState({ icon, label, hint }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
-      <div className="flex size-10 items-center justify-center rounded-lg border border-black bg-white">
+      <div className="flex size-10 items-center justify-center rounded-lg border border-border bg-card">
         {icon}
       </div>
-      <p className="text-sm font-semibold text-black">{label}</p>
+      <p className="text-sm font-semibold text-foreground">{label}</p>
       {hint ? <p className="text-xs opacity-60">{hint}</p> : null}
     </div>
   );

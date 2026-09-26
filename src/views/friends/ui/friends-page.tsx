@@ -13,7 +13,7 @@ export function FriendsPage({ user }: FriendsPageProps) {
   const t = useTranslations("friends");
 
   return (
-    <main className="p-6 md:p-8">
+    <main className="px-6 py-10 md:px-8 md:py-14">
       <div className="mx-auto w-full max-w-5xl">
         <header className="mb-6 flex flex-col gap-4">
           <div className="flex items-start justify-between gap-4">
@@ -24,14 +24,13 @@ export function FriendsPage({ user }: FriendsPageProps) {
           </div>
           <div className="relative max-w-md">
             <Search
-              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-black opacity-60"
-              strokeWidth={1.75}
+              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground opacity-60"
               aria-hidden
             />
             <input
               type="text"
               placeholder={t("searchPlaceholder")}
-              className="w-full rounded-lg border border-black bg-white py-3 pl-10 pr-4 text-sm text-black outline-none transition-all placeholder:opacity-60 focus:ring-1 focus:ring-black"
+              className="w-full rounded-lg border border-border bg-card py-3 pl-10 pr-4 text-sm text-foreground outline-none transition-all placeholder:opacity-60 focus:ring-1 focus:ring-ring"
             />
           </div>
         </header>

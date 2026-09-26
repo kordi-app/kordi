@@ -31,7 +31,7 @@ export function MyScoresPanel({ scores }: MyScoresPanelProps) {
   return (
     <MonoCard className="px-6 py-8">
       <div className="mb-6 flex items-center gap-2">
-        <Trophy className="size-5 text-black" strokeWidth={1.75} aria-hidden />
+        <Trophy className="size-5 text-foreground" aria-hidden />
         <SectionHeader as="h2" size="sm">
           {t("quizScores")}
         </SectionHeader>
@@ -50,12 +50,12 @@ export function MyScoresPanel({ scores }: MyScoresPanelProps) {
       </div>
 
       {best && (
-        <div className="mb-6 rounded-lg border border-black bg-black px-4 py-4 text-white">
-          <p className="mb-1 text-[11px] font-bold uppercase tracking-widest opacity-70">
+        <div className="mb-6 rounded-lg border border-border bg-primary px-4 py-4 text-primary-foreground">
+          <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest opacity-70">
             {t("bestScore")}
           </p>
           <div className="flex items-baseline gap-2">
-            <span className="font-heading text-2xl font-black tabular-nums">
+            <span className="font-heading text-2xl font-semibold tabular-nums">
               {best.totalScore}
             </span>
             <span className="text-sm opacity-70">
@@ -72,10 +72,10 @@ export function MyScoresPanel({ scores }: MyScoresPanelProps) {
           {filtered.map((score) => (
             <div
               key={score.id}
-              className="flex items-center justify-between border-b border-black py-3 last:border-b-0"
+              className="flex items-center justify-between border-b border-border py-3 last:border-b-0"
             >
               <div className="flex items-center gap-4">
-                <span className="text-sm font-bold tabular-nums text-black">
+                <span className="text-sm font-semibold tabular-nums text-foreground">
                   {score.totalScore}
                 </span>
                 <span className="text-xs tabular-nums opacity-60">

@@ -24,13 +24,13 @@ export function NetworkTable({
     <section className="flex flex-col gap-4">
       <div className="flex items-baseline justify-between">
         <SectionHeader size="md">{title}</SectionHeader>
-        <span className="text-[11px] font-bold uppercase tracking-widest tabular-nums opacity-70">
+        <span className="text-[11px] font-semibold uppercase tracking-widest tabular-nums opacity-70">
           {items.length} {t("musicians")}
         </span>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-black bg-white">
-        <div className="grid grid-cols-12 gap-2 border-b border-black bg-white px-6 py-3 text-[11px] font-bold uppercase tracking-widest">
+      <div className="overflow-hidden rounded-lg border border-border bg-card">
+        <div className="grid grid-cols-12 gap-2 border-b border-border bg-card px-6 py-3 text-[11px] font-semibold uppercase tracking-widest">
           <div className="col-span-6">{t("columns.musician")}</div>
           <div className="col-span-4">{t("columns.status")}</div>
           <div className="col-span-2 text-right">{t("columns.actions")}</div>
@@ -38,7 +38,7 @@ export function NetworkTable({
 
         {items.length === 0 ? (
           <EmptyState
-            icon={<Users className="size-6" strokeWidth={1.75} />}
+            icon={<Users className="size-6" />}
             label={t("empty.friends")}
             hint={t("empty.friendsHint")}
           />

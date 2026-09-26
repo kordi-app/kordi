@@ -22,8 +22,8 @@ export function ReceivedRequestItem({ friendship }: ReceivedRequestItemProps) {
     <FriendRow
       accent
       avatar={
-        <Avatar className="ring-1 ring-black">
-          <AvatarFallback className="bg-black text-white">
+        <Avatar className="ring-1 ring-ring">
+          <AvatarFallback className="bg-primary text-primary-foreground">
             {friendship.senderNickname.charAt(0).toUpperCase()}
           </AvatarFallback>
         </Avatar>
@@ -35,17 +35,17 @@ export function ReceivedRequestItem({ friendship }: ReceivedRequestItemProps) {
           <button
             disabled={disabled}
             onClick={() => reject.mutate(friendship.id)}
-            className="inline-flex items-center gap-1 rounded-lg border border-black bg-white px-3 py-1.5 text-xs font-bold uppercase text-black transition-colors hover:bg-muted disabled:opacity-40"
+            className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold uppercase text-foreground transition-colors hover:bg-muted disabled:opacity-40"
           >
-            <X className="size-3.5" strokeWidth={2} />
+            <X className="size-3.5" />
             {t("reject")}
           </button>
           <button
             disabled={disabled}
             onClick={() => accept.mutate(friendship.id)}
-            className="inline-flex items-center gap-1 rounded-lg border border-black bg-black px-3 py-1.5 text-xs font-bold uppercase text-white transition hover:opacity-90 disabled:opacity-40"
+            className="inline-flex items-center gap-1 rounded-lg border border-border bg-primary px-3 py-1.5 text-xs font-semibold uppercase text-primary-foreground transition hover:opacity-90 disabled:opacity-40"
           >
-            <Check className="size-3.5" strokeWidth={2.25} />
+            <Check className="size-3.5" />
             {t("accept")}
           </button>
         </>

@@ -2,16 +2,18 @@ import type { HTMLAttributes } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/shared/lib/utils";
 
+// Uppercase belongs to the small label role only — it is not a heading style.
+// Display sizes get their weight from tight tracking, not from shouting.
 const sectionHeader = cva(
-  "font-heading font-extrabold uppercase text-black -tracking-[0.02em]",
+  "font-heading font-semibold text-foreground -tracking-[0.02em]",
   {
     variants: {
       size: {
-        xs: "text-sm font-bold uppercase tracking-widest text-[11px]",
-        sm: "text-lg font-bold",
-        md: "text-xl",
-        lg: "text-[28px] leading-[1.15]",
-        xl: "text-[32px] md:text-[40px] leading-[1.1]",
+        xs: "text-[11px] uppercase tracking-widest",
+        sm: "text-base",
+        md: "text-lg",
+        lg: "text-[22px] leading-[1.2]",
+        xl: "text-[26px] md:text-[32px] leading-[1.15] -tracking-[0.025em]",
       },
     },
     defaultVariants: { size: "md" },

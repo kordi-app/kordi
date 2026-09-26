@@ -33,10 +33,10 @@ export function InstrumentSelector() {
           disabled={loading}
           onClick={() => handleSelect(id)}
           className={cn(
-            "rounded-lg border border-black px-3 py-1.5 text-xs font-semibold transition-colors duration-150",
+            "rounded-lg border border-border px-3 py-1.5 text-xs font-semibold transition-colors duration-150",
             id === activeId
-              ? "bg-black text-white"
-              : "bg-white text-black hover:bg-muted",
+              ? "bg-primary text-primary-foreground"
+              : "bg-card text-foreground hover:bg-muted",
             loading && "cursor-wait opacity-50"
           )}
         >

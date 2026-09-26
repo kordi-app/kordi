@@ -140,31 +140,21 @@
     "brand": "KORDI",
     "brandTagline": "PIANO MASTER",
     "hero": {
-      "title": "MASTER YOUR PIANO CHORDS",
-      "subtitle": "Unlock your musical potential with structured practice and competitive quizzes. The keys are yours to command.",
-      "cta": "Start Learning"
+      "title": "Piano chord practice",
+      "cta": "Start practicing"
     },
     "card": {
       "practice": {
-        "title": "Practice Mode",
-        "desc": "Drill major, minor, and dominant 7th chords at your own pace.",
-        "cta": "Enter Mode"
+        "title": "Practice"
       },
       "quiz": {
-        "title": "Quiz Mode",
-        "desc": "Test your recognition speed and compete on the global leaderboard.",
-        "cta": "Start Quiz"
+        "title": "Quiz"
       }
     },
     "daily": {
-      "title": "Daily Challenge",
-      "subtitle": "Chord of the Day",
+      "title": "Chord of the day",
+      "subtitle": "Major seventh",
       "diagram": "C MAJOR 7"
-    },
-    "activity": {
-      "title": "Recent Activity",
-      "item1": "Triad Drill",
-      "item2": "Weekly Speed Quiz"
     },
     "nav": {
       "piano": "Free Play",
@@ -173,64 +163,7 @@
       "profile": "My Profile",
       "friends": "Friends",
       "ranking": "Ranking"
-    },
-    "tips_0": "Don't know C major? ...Just kidding. It's C-E-G!",
-    "tips_1": "Skip practice today and yesterday-you wins",
-    "tips_2": "Am sounds sad? Not practicing is sadder",
-    "tips_3": "Piano never lies. It plays exactly how bad you are. Motivating, right?",
-    "tips_4": "G7 = G-B-D-F. Memorize it. Now.",
-    "tips_5": "3 chords and you can play half of all songs. Seriously.",
-    "tips_6": "I used to mix up C and D too. I'm... slightly better now.",
-    "tips_7": "Practice doesn't lie. But it does ghost you sometimes.",
-    "tips_8": "Stop scrolling and go play piano~",
-    "tips_9": "ii-V-I is the backbone of jazz. No excuses.",
-    "tips_10": "Dm7-G7-Cmaj7... if you hear it, you've got jazz ears already",
-    "tips_11": "The tritone resolution in a dom7? Pure dopamine. Trust me.",
-    "tips_12": "Every major scale: W-W-H-W-W-W-H. That's it. You're welcome.",
-    "tips_13": "Relative minor? C's bestie is Am. They share everything.",
-    "tips_14": "sus4 = king of tension. Not resolving it is... anxiety.",
-    "tips_15": "dim7 = all minor 3rds. Perfectly symmetric. Kinda creepy tbh.",
-    "tips_16": "Change one voicing and the whole vibe shifts. Actual magic.",
-    "tips_17": "Lydian mode has a #4. That dreamy floaty sound? Yeah, that's it.",
-    "tips_18": "88 keys on a piano, you'll use about 30. The rest are decorative.",
-    "tips_19": "Can't switch chords fast? Just do it 500 more times. Not joking.",
-    "tips_20": "Mozart composed at 5. Don't compare yourself. Seriously.",
-    "tips_21": "Bach had 20 kids and still wrote 1000+ pieces. No excuses.",
-    "tips_22": "Debussy got bad grades in harmony class. Then broke all the rules. Legend.",
-    "tips_23": "Mozart composed while playing billiards. OG multitasker.",
-    "tips_24": "Bach loved coffee so much he wrote a 'Coffee Cantata'. Relatable king.",
-    "tips_25": "Debussy said 'burn all music theory books'. A bit aggressive tbh.",
-    "tips_26": "Chopin's hands were so big he could reach 10ths easily. Born with cheats.",
-    "tips_27": "Liszt was famous for snapping piano strings mid-concert. Built different.",
-    "tips_28": "Beethoven wrote symphonies after going deaf. Your excuses just vanished.",
-    "tips_29": "Satie bought 12 identical suits to avoid choosing. Decision fatigue solved.",
-    "tips_30": "Octopuses have 3 hearts. You have 1. Use it to practice.",
-    "tips_31": "Honey never spoils. 3000-year-old honey is still edible. But why are you reading this?",
-    "tips_32": "Bananas are berries. Strawberries aren't. The world is a lie...",
-    "tips_33": "Time spent reading this = time not practicing. Just saying.",
-    "tips_34": "Sound doesn't travel in space. Your piano skills are safe from aliens.",
-    "tips_35": "Cats sleep 16 hours a day. Don't be jealous, be productive.",
-    "tips_36": "Can't decide what to eat? Play piano first, think later.",
-    "tips_37": "Polar bear fur is actually transparent. Things aren't what they seem. Like diminished chords.",
-    "tips_38": "You'd need ~230,000 pianos stacked to reach the moon. Useless knowledge +1",
-    "tips_39": "What time is it? It's piano o'clock.",
-    "tips_40": "J Dilla made beats off-grid on purpose. Not a mistake — it's groove.",
-    "tips_41": "Hip-hop beats are built on piano samples. What you learn here? Useful.",
-    "tips_42": "J Dilla made 'Donuts' from a hospital bed. Your excuses just expired.",
-    "tips_43": "Bill Evans revolutionized left-hand voicings. Proved you don't need the root. Legend.",
-    "tips_44": "Nujabes sampled jazz piano into hip-hop. Genre is a door, not a wall.",
-    "tips_45": "Kanye's first hit started from a soul piano sample. Piano is the answer.",
-    "tips_46": "You listen to lo-fi hip-hop to study? Why not make that piano loop yourself?",
-    "tips_47": "Cmaj7 - Dm7 - Em7 - Fmaj7... memorize diatonic chords and everything changes",
-    "tips_48": "Secondary dominant? V/V borrows from another key for a moment. It's not cheating.",
-    "tips_49": "Neapolitan chord (bII) shows up in dramatic classical moments. Total drama queen.",
-    "tips_50": "Pivot chord modulation: sneak into a new key through a shared chord. Smooth criminal.",
-    "tips_51": "Augmented 6th chords come in Italian, French, and German. A European tour of tension.",
-    "tips_52": "Comping = rhythm + voicing for accompaniment. It's not about flash. It's about taste.",
-    "tips_53": "Tritone sub: replace a dom7 with the dom7 a b5 away. Jazz's secret weapon.",
-    "tips_54": "Modal interchange: borrow chords from parallel minor. Try bVII. You'll thank me.",
-    "tips_55": "Ascending chromatic bass under chord changes... once you try it, you can't stop.",
-    "tips_56": "Upper structure triads: stack a triad on a dom7 and tensions appear like magic."
+    }
   },
   "piano": {
     "title": "Piano",

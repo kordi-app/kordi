@@ -18,9 +18,8 @@ export function ChordDiagramCmaj7() {
           y={4}
           width={20}
           height={64}
-          fill={HIGHLIGHTED.includes(i) ? "#000" : "#fff"}
-          stroke="#000"
-          strokeWidth={1}
+          fill={HIGHLIGHTED.includes(i) ? "var(--primary)" : "var(--card)"}
+          stroke="var(--border)"
           rx={1}
         />
       ))}

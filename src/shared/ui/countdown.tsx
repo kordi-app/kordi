@@ -26,7 +26,7 @@ export function Countdown({ from = 3, onComplete }: CountdownProps) {
     <div className="flex flex-1 items-center justify-center">
       <span
         key={count}
-        className="animate-[countdown_0.6s_ease-out] text-8xl font-bold neon-text"
+        className="animate-[countdown_0.6s_ease-out] text-8xl font-semibold neon-text"
       >
         {count}
       </span>

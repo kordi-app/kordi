@@ -55,7 +55,7 @@ function RankingList({ difficulty }: { difficulty: RankingDifficulty }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-black bg-white">
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
       {rankings.map((entry, i) => {
         const accuracy =
           entry.totalCount > 0
@@ -66,24 +66,24 @@ function RankingList({ difficulty }: { difficulty: RankingDifficulty }) {
         return (
           <div
             key={`${entry.nickname}-${i}`}
-            className="flex items-center gap-4 border-b border-black px-4 py-3 last:border-b-0"
+            className="flex items-center gap-4 border-b border-border px-4 py-3 last:border-b-0"
           >
             <div className="flex w-8 shrink-0 items-center justify-center">
               {isTopThree ? (
-                <Trophy className="size-5 text-black" strokeWidth={1.75} />
+                <Trophy className="size-5 text-foreground" />
               ) : (
-                <span className="font-heading text-sm font-black tabular-nums text-black">
+                <span className="font-heading text-sm font-semibold tabular-nums text-foreground">
                   {i + 1}
                 </span>
               )}
             </div>
 
-            <Avatar size="sm" className="ring-1 ring-black">
+            <Avatar size="sm" className="ring-1 ring-ring">
               <AvatarImage
                 src={entry.profileImageUrl ?? undefined}
                 alt={entry.nickname}
               />
-              <AvatarFallback className="bg-black text-xs font-bold text-white">
+              <AvatarFallback className="bg-primary text-xs font-semibold text-primary-foreground">
                 {entry.nickname.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
@@ -91,7 +91,7 @@ function RankingList({ difficulty }: { difficulty: RankingDifficulty }) {
             <span
               className={cn(
                 "flex-1 text-sm",
-                isTopThree ? "font-bold text-black" : "text-black opacity-80",
+                isTopThree ? "font-semibold text-foreground" : "text-foreground opacity-80",
               )}
             >
               {entry.nickname}
@@ -102,7 +102,7 @@ function RankingList({ difficulty }: { difficulty: RankingDifficulty }) {
             <span
               className={cn(
                 "w-16 text-right font-heading text-sm tabular-nums",
-                i === 0 ? "font-black" : "font-bold",
+                i === 0 ? "font-semibold" : "font-semibold",
               )}
             >
               {entry.totalScore}

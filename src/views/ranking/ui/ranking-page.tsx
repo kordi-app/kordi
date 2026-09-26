@@ -7,10 +7,10 @@ export function RankingPage() {
   const t = useTranslations("ranking");
 
   return (
-    <main className="p-6 md:p-8">
+    <main className="px-6 py-10 md:px-8 md:py-14">
       <div className="mx-auto w-full max-w-5xl">
         <header className="mb-8 flex items-center gap-3">
-          <Trophy className="size-6 text-black" strokeWidth={1.75} aria-hidden />
+          <Trophy className="size-6 text-foreground" aria-hidden />
           <SectionHeader as="h1" size="lg">
             {t("leaderboard")}
           </SectionHeader>

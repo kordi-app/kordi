@@ -16,9 +16,9 @@ interface QuizControlsProps {
 }
 
 const PRIMARY =
-  "rounded-lg border border-black bg-black px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-white transition-all hover:opacity-90";
+  "rounded-lg border border-border bg-primary px-6 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground transition-all hover:opacity-90";
 const GHOST =
-  "rounded-lg border border-black bg-white px-5 py-2 text-xs font-bold uppercase tracking-widest text-black transition-all hover:bg-muted";
+  "rounded-lg border border-border bg-card px-5 py-2 text-xs font-semibold uppercase tracking-widest text-foreground transition-all hover:bg-muted";
 
 export function QuizControls({
   ns,
@@ -62,10 +62,10 @@ export function QuizControls({
       {status === "idle" && (
         <button
           onClick={onSettingsOpen}
-          className="rounded-lg border border-black bg-white p-2 text-black transition-all hover:bg-muted"
+          className="rounded-lg border border-border bg-card p-2 text-foreground transition-all hover:bg-muted"
           aria-label="Settings"
         >
-          <Settings className="size-4" strokeWidth={1.75} />
+          <Settings className="size-4" />
         </button>
       )}
     </div>

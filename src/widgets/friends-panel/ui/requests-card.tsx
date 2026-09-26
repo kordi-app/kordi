@@ -25,7 +25,7 @@ export function RequestsCard({
     <MonoCard className="p-6">
       <div className="mb-4 flex items-baseline justify-between">
         <SectionHeader size="sm">{title}</SectionHeader>
-        <span className="text-[11px] font-bold uppercase tracking-widest tabular-nums opacity-70">
+        <span className="text-[11px] font-semibold uppercase tracking-widest tabular-nums opacity-70">
           {items.length}
         </span>
       </div>
@@ -33,7 +33,7 @@ export function RequestsCard({
       {items.length === 0 ? (
         <EmptyState icon={emptyIcon} label={emptyLabel} />
       ) : (
-        <ul className="border-t border-black">
+        <ul className="border-t border-border">
           {items.map((f) => (
             <li key={f.id}>{renderItem(f)}</li>
           ))}

@@ -25,27 +25,27 @@ export function QuizProgress({
     <div className="flex w-full max-w-4xl flex-col gap-3">
       {/* Question number + Time + Score */}
       <div className="flex items-center justify-between">
-        <span className="text-xs font-bold uppercase tracking-widest opacity-70 tabular-nums">
+        <span className="text-xs font-semibold uppercase tracking-widest opacity-70 tabular-nums">
           {t("question")} {currentIndex + 1}/{totalCount}
         </span>
         <span
           className={cn(
-            "font-heading text-5xl font-black tabular-nums leading-none text-black",
+            "font-heading text-4xl font-semibold tabular-nums leading-none text-foreground",
             seconds <= 2 && "animate-pulse",
           )}
         >
           {seconds}
         </span>
 
-        <span className="text-xs font-bold uppercase tracking-widest text-black tabular-nums">
+        <span className="text-xs font-semibold uppercase tracking-widest text-foreground tabular-nums">
           {t("totalScore")}: {totalScore}
         </span>
       </div>
 
       {/* Timer bar */}
-      <div className="h-2 w-full overflow-hidden rounded-full border border-black bg-white">
+      <div className="h-2 w-full overflow-hidden rounded-full border border-border bg-card">
         <div
-          className="h-full bg-black transition-all duration-100"
+          className="h-full bg-primary transition-all duration-100"
           style={{ width: `${progress}%` }}
         />
       </div>

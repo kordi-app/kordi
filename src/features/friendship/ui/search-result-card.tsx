@@ -37,7 +37,7 @@ export function SearchResultCard({
         <p className="text-xs text-muted-foreground">{t("foundUser")}</p>
       </div>
       <Button size="sm" onClick={onSend} disabled={disabled}>
-        <UserPlus className="size-3.5" strokeWidth={1.75} />
+        <UserPlus className="size-3.5" />
         {t("sendRequest")}
       </Button>
     </div>
