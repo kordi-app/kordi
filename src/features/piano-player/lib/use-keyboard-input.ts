@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useCallbackRef } from "@/shared/lib/react/use-callback-ref";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import {
   NOTE_KEY_OFFSETS,
   CONTROL_KEYS,
@@ -30,16 +29,21 @@ export function useKeyboardInput({
   const [velocity, setVelocity] = useState(DEFAULT_VELOCITY);
   const [sustain, setSustain] = useState(false);
 
-  const octaveRef = useRef(octave);
-  const velocityRef = useRef(velocity);
-  octaveRef.current = octave;
-  velocityRef.current = velocity;
-
-  const onNoteOnRef = useCallbackRef(onNoteOn);
-  const onNoteOffRef = useCallbackRef(onNoteOff);
-  const onSustainChangeRef = useCallbackRef(onSustainChange);
-
   const pressedKeys = useRef(new Map<string, number>());
+
+  // Effect Events read the latest octave/velocity/sustain without making the
+  // key listeners re-subscribe on every change.
+  const pressNote = useEffectEvent((code: string, offset: number) => {
+    const midi = offsetToMidi(offset, octave);
+    pressedKeys.current.set(code, midi);
+    onNoteOn(midi, velocity / 127);
+  });
+  const releaseNote = useEffectEvent((midi: number) => onNoteOff(midi));
+  const toggleSustain = useEffectEvent(() => {
+    const next = !sustain;
+    setSustain(next);
+    onSustainChange?.(next);
+  });
 
   useEffect(() => {
     if (!enabled) return;
@@ -72,11 +76,7 @@ export function useKeyboardInput({
       }
       if (code === CONTROL_KEYS.SUSTAIN) {
         e.preventDefault();
-        setSustain((prev) => {
-          const next = !prev;
-          onSustainChangeRef.current?.(next);
-          return next;
-        });
+        toggleSustain();
         return;
       }
 
@@ -85,9 +85,7 @@ export function useKeyboardInput({
       if (pressedKeys.current.has(code)) return;
 
       e.preventDefault();
-      const midi = offsetToMidi(offset, octaveRef.current);
-      pressedKeys.current.set(code, midi);
-      onNoteOnRef.current(midi, velocityRef.current / 127);
+      pressNote(code, offset);
     }
 
     function handleKeyUp(e: KeyboardEvent) {
@@ -97,7 +95,7 @@ export function useKeyboardInput({
 
       e.preventDefault();
       pressedKeys.current.delete(code);
-      onNoteOffRef.current(midi);
+      releaseNote(midi);
     }
 
     window.addEventListener("keydown", handleKeyDown, { passive: false });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef } from "react";
 import { validateChord } from "./chord-validator";
 
 /** Wrong answers only count once at least this many notes are pressed. */
@@ -39,11 +39,8 @@ export function useChordCheck({
   const answeredRef = useRef(false);
   const lastChangeRef = useRef(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const onCorrectRef = useRef(onCorrect);
-  const onIncorrectRef = useRef(onIncorrect);
-
-  onCorrectRef.current = onCorrect;
-  onIncorrectRef.current = onIncorrect;
+  const reportCorrect = useEffectEvent(() => onCorrect());
+  const reportIncorrect = useEffectEvent(() => onIncorrect());
 
   useEffect(() => {
     answeredRef.current = false;
@@ -58,10 +55,10 @@ export function useChordCheck({
     const check = () => {
       if (validateChord(targetChordName, midiNotes)) {
         answeredRef.current = true;
-        onCorrectRef.current();
+        reportCorrect();
       } else if (midiNotes.length >= INCORRECT_MIN_NOTES) {
         if (finalizeIncorrect) answeredRef.current = true;
-        onIncorrectRef.current();
+        reportIncorrect();
       }
     };
 

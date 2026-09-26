@@ -77,7 +77,7 @@ export function useMetronome({
 
     transport.start();
     setIsPlaying(true);
-  }, [bpm, timeSignature, audioEnabled]);
+  }, [bpm, timeSignature, audioEnabled, onBeatRef, onBarCompleteRef]);
 
   const stop = useCallback(() => {
     const transport = Tone.getTransport();

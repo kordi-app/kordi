@@ -30,8 +30,6 @@ export function useQuizOrchestrator({
 }: UseQuizOrchestratorArgs) {
   const [selectedDifficulty, setSelectedDifficulty] =
     useState<QuizDifficulty | null>(null);
-  const [showCountdown, setShowCountdown] = useState(false);
-  const quizStartedRef = useRef(false);
   const scoreSavedRef = useRef(false);
 
   const {
@@ -55,19 +53,13 @@ export function useQuizOrchestrator({
 
   const scoreMutation = useMutation({ mutationFn: saveScore });
 
-  // Start countdown once chords are loaded and difficulty selected
-  useEffect(() => {
-    if (
-      chords &&
-      chords.length > 0 &&
-      selectedDifficulty &&
-      state.phase === "select" &&
-      !quizStartedRef.current
-    ) {
-      quizStartedRef.current = true;
-      setShowCountdown(true);
-    }
-  }, [chords, selectedDifficulty, state.phase]);
+  // The countdown is simply the "select" phase with everything needed to start.
+  // startQuiz moves the machine to "playing", which ends it.
+  const showCountdown =
+    state.phase === "select" &&
+    selectedDifficulty !== null &&
+    chords !== undefined &&
+    chords.length > 0;
 
   // Save score once quiz enters "result" phase
   useEffect(() => {
@@ -129,7 +121,6 @@ export function useQuizOrchestrator({
   });
 
   const handleCountdownComplete = useCallback(() => {
-    setShowCountdown(false);
     if (selectedDifficulty && chords) {
       startQuiz(selectedDifficulty, chords);
     }
@@ -143,24 +134,17 @@ export function useQuizOrchestrator({
     [isAudioStarted, startAudio],
   );
 
+  // reset() returns the machine to "select" with the difficulty still chosen and
+  // the chords still cached, so the countdown restarts on its own.
   const handleRetry = useCallback(() => {
     scoreMutation.reset();
     scoreSavedRef.current = false;
-    quizStartedRef.current = false;
-    setShowCountdown(false);
     reset();
-    if (selectedDifficulty) {
-      const kept = selectedDifficulty;
-      setSelectedDifficulty(null);
-      setTimeout(() => setSelectedDifficulty(kept), 0);
-    }
-  }, [selectedDifficulty, reset, scoreMutation]);
+  }, [reset, scoreMutation]);
 
   const handleBackToSelect = useCallback(() => {
     scoreMutation.reset();
     scoreSavedRef.current = false;
-    quizStartedRef.current = false;
-    setShowCountdown(false);
     setSelectedDifficulty(null);
     reset();
   }, [reset, scoreMutation]);

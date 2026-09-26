@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useCallback } from "react";
+import { useCallbackRef } from "@/shared/lib/react/use-callback-ref";
 
 interface UseQuizTimerOptions {
   duration: number;
@@ -20,11 +21,10 @@ export function useQuizTimer({
   const startTimeRef = useRef<number>(0);
   const pausedAtRef = useRef<number>(0);
   const rafRef = useRef<number>(0);
-  const onTickRef = useRef(onTick);
-  const onTimeoutRef = useRef(onTimeout);
-
-  onTickRef.current = onTick;
-  onTimeoutRef.current = onTimeout;
+  // rAF callbacks fire from restart(), which callers invoke from event handlers,
+  // so useEffectEvent is not allowed here.
+  const onTickRef = useCallbackRef(onTick);
+  const onTimeoutRef = useCallbackRef(onTimeout);
 
   const stop = useCallback(() => {
     if (rafRef.current) {
@@ -51,7 +51,7 @@ export function useQuizTimer({
     };
 
     rafRef.current = requestAnimationFrame(loop);
-  }, [duration, stop]);
+  }, [duration, stop, onTickRef, onTimeoutRef]);
 
   const restart = useCallback(() => {
     startTimeRef.current = performance.now();
