@@ -1,5 +1,12 @@
 import { CHORD_TEMPLATES, type ChordType } from "./chord-templates";
-import { rootLabel, bassLabel, displaySuffix } from "./note-names";
+import {
+  rootLabel,
+  bassLabel,
+  displaySuffix,
+  chordToneLabel,
+  keyLabels,
+} from "./note-names";
+import { isInKey, type KeySignature } from "./music-theory";
 import { toPitchClasses, pitchClassesEqual } from "./pitch-class";
 
 // Detection priority, simple/common first. Kept explicit because plain object
@@ -112,7 +119,38 @@ export interface DetectedChord {
   secondary: string | null;
 }
 
-export function detectChord(midiNotes: number[]): DetectedChord | null {
+// Roots in the key take its signature's spelling (D#m in B major, Gb in Db
+// major); borrowed/chromatic roots keep the quality-based chart default.
+function spellRoot(root: number, suffix: ChordType, key: KeySignature | null): string {
+  if (key && isInKey(key, root)) return keyLabels(key.root, key.mode)[root];
+  return rootLabel(root, suffix);
+}
+
+function chordName(root: number, suffix: ChordType, key: KeySignature | null): string {
+  return `${spellRoot(root, suffix, key)}${displaySuffix(suffix)}`;
+}
+
+// The bass is always a chord tone here, so it's spelled from the root (E/G#, A/C#).
+function spellBass(
+  bass: number,
+  root: number,
+  suffix: ChordType,
+  key: KeySignature | null,
+): string {
+  const spelled = chordToneLabel(spellRoot(root, suffix, key), bass, CHORD_TEMPLATES[suffix]);
+  if (spelled) return spelled;
+  if (key && isInKey(key, bass)) return keyLabels(key.root, key.mode)[bass];
+  return bassLabel(bass);
+}
+
+/**
+ * Name the chord being played. With a key, in-key roots follow its signature;
+ * without one, roots use the chart default. Slash basses always follow the root.
+ */
+export function detectChord(
+  midiNotes: number[],
+  key: KeySignature | null = null,
+): DetectedChord | null {
   if (midiNotes.length < 1) return null;
 
   const pitchClasses = toPitchClasses(midiNotes);
@@ -124,7 +162,7 @@ export function detectChord(midiNotes: number[]): DetectedChord | null {
   const rootedFull = fullCandidates.find((c) => c.root === bass);
   if (rootedFull) {
     return {
-      primary: `${rootLabel(rootedFull.root, rootedFull.suffix)}${displaySuffix(rootedFull.suffix)}`,
+      primary: chordName(rootedFull.root, rootedFull.suffix, key),
       secondary: null,
     };
   }
@@ -134,7 +172,7 @@ export function detectChord(midiNotes: number[]): DetectedChord | null {
   const rootedReduced = reducedCandidates.find((c) => c.root === bass);
   if (rootedReduced) {
     return {
-      primary: `${rootLabel(rootedReduced.root, rootedReduced.suffix)}${displaySuffix(rootedReduced.suffix)}`,
+      primary: chordName(rootedReduced.root, rootedReduced.suffix, key),
       secondary: null,
     };
   }
@@ -143,8 +181,8 @@ export function detectChord(midiNotes: number[]): DetectedChord | null {
   const best = fullCandidates[0] ?? reducedCandidates[0];
   if (!best) return null;
 
-  const rootName = `${rootLabel(best.root, best.suffix)}${displaySuffix(best.suffix)}`;
-  const slashName = `${rootName}/${bassLabel(bass)}`;
+  const rootName = chordName(best.root, best.suffix, key);
+  const slashName = `${rootName}/${spellBass(bass, best.root, best.suffix, key)}`;
 
   // A bass isolated an octave+ below the rest reads as a deliberate bass line →
   // the slash chord IS the name. A close-position inversion (e.g. right-hand

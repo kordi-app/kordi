@@ -42,6 +42,12 @@ export const ALL_KEYS: KeySignature[] = [
   })),
 ];
 
+/** Whether a pitch class belongs to the key's (natural) scale. */
+export function isInKey(key: KeySignature, pitchClass: number): boolean {
+  const scale = key.mode === "major" ? MAJOR_SCALE : MINOR_SCALE;
+  return scale.includes((((pitchClass - key.root) % 12) + 12) % 12);
+}
+
 export interface DiatonicChord {
   root: number;
   rootName: string;

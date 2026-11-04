@@ -171,7 +171,9 @@
     "audioDescription": "Play with your keyboard or connect a MIDI piano",
     "loadingSamples": "Loading piano samples...",
     "noMidiDevice": "No MIDI Device",
-    "instructions": "Use your keyboard (A-J, W/E/T/Y/U) or connect a MIDI device to play"
+    "instructions": "Use your keyboard (A-J, W/E/T/Y/U) or connect a MIDI device to play",
+    "key": "Key",
+    "autoKey": "Auto"
   },
   "chordPractice": {
     "title": "Chord Practice",

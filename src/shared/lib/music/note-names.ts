@@ -42,6 +42,50 @@ export function bassLabel(pitchClass: number): string {
   return MAJOR_ROOT_LABELS[((pitchClass % 12) + 12) % 12];
 }
 
+const LETTERS = ["C", "D", "E", "F", "G", "A", "B"] as const;
+const LETTER_PITCH = [0, 2, 4, 5, 7, 9, 11];
+
+// Letter steps above the root for an interval in semitones. Ambiguous intervals
+// read from the chord: 3 is #9 beside a major 3rd, 6 is #11 beside a perfect 5th
+// (else b5), 8 is b13 beside a perfect 5th (else #5). dim7's bb7 is written as 6.
+function intervalDegree(interval: number, template: readonly number[]): number {
+  switch (interval) {
+    case 0: return 0;
+    case 1: case 2: return 1;
+    case 3: return template.includes(4) ? 1 : 2;
+    case 4: return 2;
+    case 5: return 3;
+    case 6: return template.includes(7) ? 3 : 4;
+    case 7: return 4;
+    case 8: return template.includes(7) ? 5 : 4;
+    case 9: return 5;
+    default: return 6;
+  }
+}
+
+/**
+ * Spell a chord tone from its root's spelling, so the 3rd of E is G# (not Ab) and
+ * the 3rd of Ab is C. Null when that would need a double accidental (Gbm → Bbb);
+ * callers fall back to a plain label.
+ */
+export function chordToneLabel(
+  rootName: string,
+  pitchClass: number,
+  template: readonly number[],
+): string | null {
+  const rootPc = NOTE_INDEX[rootName];
+  const letterIndex = LETTERS.indexOf(rootName[0] as (typeof LETTERS)[number]);
+  if (rootPc === undefined || letterIndex === -1) return null;
+
+  const interval = (((pitchClass - rootPc) % 12) + 12) % 12;
+  const target = (letterIndex + intervalDegree(interval, template)) % 7;
+  const offset = ((((pitchClass - LETTER_PITCH[target]) % 12) + 18) % 12) - 6;
+  if (offset === 0) return LETTERS[target];
+  if (offset === 1) return `${LETTERS[target]}#`;
+  if (offset === -1) return `${LETTERS[target]}b`;
+  return null;
+}
+
 /** Every accepted spelling → pitch class. */
 export const NOTE_INDEX: Record<string, number> = Object.fromEntries([
   ...NOTE_LABELS.map((n, i) => [n, i] as const),

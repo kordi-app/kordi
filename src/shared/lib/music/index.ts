@@ -28,6 +28,7 @@ export {
 export {
   ALL_KEYS,
   getDiatonicChords,
+  isInKey,
   rootNameToIndex,
   indexToRootName,
   type KeySignature,

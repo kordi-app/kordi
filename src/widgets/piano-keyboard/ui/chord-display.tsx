@@ -2,22 +2,24 @@
 
 import { useMemo } from "react";
 import type { ActiveNote } from "@/entities/note";
-import { detectChord } from "@/shared/lib/music";
+import { detectChord, type KeySignature } from "@/shared/lib/music";
 
 interface ChordDisplayProps {
   activeNotes: ActiveNote[];
   /** Pedal-sustained notes still ringing — included in detection (free-play mode) */
   ringingNotes?: number[];
+  /** Spells detected chords in this key; null uses chart-default spellings */
+  musicKey?: KeySignature | null;
 }
 
-export function ChordDisplay({ activeNotes, ringingNotes }: ChordDisplayProps) {
+export function ChordDisplay({ activeNotes, ringingNotes, musicKey = null }: ChordDisplayProps) {
   const chord = useMemo(
     () =>
       detectChord([
         ...activeNotes.map((n) => n.midi),
         ...(ringingNotes ?? []),
-      ]),
-    [activeNotes, ringingNotes],
+      ], musicKey),
+    [activeNotes, ringingNotes, musicKey],
   );
 
   if (!chord) {

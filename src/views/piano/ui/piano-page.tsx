@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePianoInput, InstrumentSelector } from "@/features/piano-player";
 import {
   AudioStartPrompt,
   ChordDisplay,
+  KeySelect,
   MidiStatus,
   PianoKeyboard,
 } from "@/widgets/piano-keyboard";
 import { useTranslations } from "next-intl";
+import type { KeySignature } from "@/shared/lib/music";
 
 // Full 88-key range (A0–C8) so real digital pianos highlight every key
 const KEYBOARD_START_MIDI = 21;
@@ -29,6 +31,7 @@ export function PianoPage() {
     sound,
   } = usePianoInput();
 
+  const [musicKey, setMusicKey] = useState<KeySignature | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Start scrolled to the middle of the 88-key strip (around middle C)
@@ -58,12 +61,18 @@ export function PianoPage() {
         onSelectDevice={midi.selectDevice}
       />
 
-      <div className="mb-4 w-full max-w-4xl">
+      <div className="mb-4 flex w-full max-w-4xl flex-wrap items-center justify-between gap-3">
         <InstrumentSelector />
+        <KeySelect
+          value={musicKey}
+          onChange={setMusicKey}
+          label={t("key")}
+          autoLabel={t("autoKey")}
+        />
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center">
-        <ChordDisplay activeNotes={activeNotes} ringingNotes={ringingNotes} />
+        <ChordDisplay activeNotes={activeNotes} ringingNotes={ringingNotes} musicKey={musicKey} />
 
         {!isLoaded && (
           <div className="mt-4 text-sm opacity-60">{t("loadingSamples")}</div>
