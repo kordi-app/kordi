@@ -15,17 +15,20 @@ export interface InteractableDef {
   z: number;
   /** how close you need to be for the prompt to appear */
   radius: number;
+  /** footprint you can't walk through (0 = walk-over, like the disco button or the cat) */
+  solid: number;
 }
 
 const FRONT = WHITE_L / 2 + 2.6;
 
 export const INTERACTABLES: readonly InteractableDef[] = [
-  { id: "cat", region: "hall", x: SPAWN.x, z: 1.2, radius: 1.6 },
-  { id: "chordCard", region: "hall", x: SPAWN.x - 6, z: FRONT, radius: 1.5 },
-  { id: "teacher", region: "hall", x: SPAWN.x + 6.5, z: FRONT, radius: 1.7 },
-  { id: "musicBox", region: "cathedral", x: SPAWN.x - 5, z: FRONT, radius: 1.5 },
-  { id: "jukebox", region: "lounge", x: SPAWN.x - 6, z: FRONT, radius: 1.6 },
-  { id: "discoBall", region: "neon", x: SPAWN.x - 4, z: FRONT, radius: 1.8 },
+  // prompt radius must exceed solid + body radius (0.42) so you can reach it
+  { id: "cat", region: "hall", x: SPAWN.x, z: 1.2, radius: 1.6, solid: 0 },
+  { id: "chordCard", region: "hall", x: SPAWN.x - 6, z: FRONT, radius: 1.5, solid: 0.55 },
+  { id: "teacher", region: "hall", x: SPAWN.x + 6.5, z: FRONT, radius: 1.7, solid: 0.8 },
+  { id: "musicBox", region: "cathedral", x: SPAWN.x - 5, z: FRONT, radius: 1.5, solid: 0.5 },
+  { id: "jukebox", region: "lounge", x: SPAWN.x - 6, z: FRONT, radius: 1.6, solid: 0.75 },
+  { id: "discoBall", region: "neon", x: SPAWN.x - 4, z: FRONT, radius: 1.8, solid: 0 },
 ];
 
 export const interactablesIn = (region: RegionId) =>

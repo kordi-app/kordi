@@ -30,7 +30,7 @@ export function RemoteKordi({
   course: boolean;
 }) {
   const group = useRef<THREE.Group>(null);
-  const motion = useRef<KordiMotion>({ phase: 0, amount: 0, emote: null });
+  const motion = useRef<KordiMotion>({ phase: 0, amount: 0, emote: null, land: 0, stretch: 0 });
   const initial = remotes.current.get(id);
   const pos = useRef(new THREE.Vector3(initial?.x ?? 0, 0, initial?.z ?? 0));
   const heading = useRef(initial?.h ?? 0);

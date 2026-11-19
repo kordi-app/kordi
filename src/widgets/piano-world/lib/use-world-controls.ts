@@ -62,6 +62,7 @@ export function useWorldControls(handlers: ControlHandlers) {
     if (e.code === "Space") {
       e.preventDefault(); // Space would otherwise scroll the page
       if (!e.repeat) input.current.jump = true;
+      input.current.jumpHeld = true;
       handlers.onGesture();
       return;
     }
@@ -75,6 +76,7 @@ export function useWorldControls(handlers: ControlHandlers) {
   useEffect(() => {
     const down = (e: KeyboardEvent) => onKeyDown(e);
     const up = (e: KeyboardEvent) => {
+      if (e.code === "Space") input.current.jumpHeld = false;
       const direction = KEY_TO_DIRECTION[e.code];
       if (direction) input.current[direction] = false;
     };
@@ -106,10 +108,17 @@ export function useWorldControls(handlers: ControlHandlers) {
     },
     [onGesture],
   );
-  const pressJump = useCallback(() => {
-    input.current.jump = true;
-    onGesture();
-  }, [onGesture]);
+  /** Touch jump button: press starts the jump, holding makes it higher. */
+  const pressJump = useCallback(
+    (pressed: boolean) => {
+      if (pressed) {
+        input.current.jump = true;
+        onGesture();
+      }
+      input.current.jumpHeld = pressed;
+    },
+    [onGesture],
+  );
 
   return { input, containerRef, visible, takeJump, pressDirection, pressJump };
 }

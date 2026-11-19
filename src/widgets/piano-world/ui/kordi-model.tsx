@@ -13,6 +13,10 @@ export interface KordiMotion {
   amount: number;
   /** Emote being performed, if any */
   emote: EmoteId | null;
+  /** 0–1: fresh hard landing → squash (decays in the scene) */
+  land: number;
+  /** -0.4–1: vertical speed while airborne → stretch when rising */
+  stretch: number;
 }
 
 const CREAM = "#f4efe6";
@@ -38,6 +42,7 @@ export const KordiModel = forwardRef<
   const leftArm = useRef<THREE.Mesh>(null);
   const rightArm = useRef<THREE.Mesh>(null);
   const body = useRef<THREE.Group>(null);
+  const squash = useRef<THREE.Group>(null);
   const emoteClock = useRef<{ emote: EmoteId | null; time: number }>({ emote: null, time: 0 });
 
   useFrame((_, dt) => {
@@ -94,10 +99,16 @@ export const KordiModel = forwardRef<
       body.current.position.y = bodyY;
       body.current.rotation.set(0, bodyRotY, bodyRotZ);
     }
+    // squash on landing, stretch on the way up — volume roughly preserved
+    if (squash.current) {
+      const flat = m.land * 0.28 - Math.max(m.stretch, 0) * 0.09;
+      squash.current.scale.set(1 + flat * 0.6, 1 - flat, 1 + flat * 0.6);
+    }
   });
 
   return (
     <group ref={ref} scale={scale}>
+      <group ref={squash}>
       {/* feet stay on the ground while the body bobs */}
       <mesh ref={leftFoot} position={[-0.2, 0.06, 0.04]} scale={[0.15, 0.08, 0.2]} castShadow>
         <sphereGeometry args={[1, 24, 16]} />
@@ -173,6 +184,7 @@ export const KordiModel = forwardRef<
             </mesh>
           ))}
         </group>
+      </group>
       </group>
     </group>
   );

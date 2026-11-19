@@ -10,6 +10,7 @@ import {
   WHITE_W,
 } from "../model/layout";
 import type { RegionTheme } from "../model/regions";
+import { useKeySprings } from "../lib/use-key-springs";
 
 /** The giant keyboard Kordi walks on. Only `pressed` changes between renders. */
 export const PianoFloor = memo(function PianoFloor({
@@ -20,6 +21,11 @@ export const PianoFloor = memo(function PianoFloor({
   theme: RegionTheme;
 }) {
   const caseWidth = WHITE_COUNT * WHITE_W + 0.6;
+  const springRef = useKeySprings(
+    KEYS.length,
+    (i) => CASE_H + KEYS[i].height / 2,
+    (i) => (pressed.has(KEYS[i].midi) ? -PRESS_DEPTH : 0),
+  );
 
   return (
     <group>
@@ -35,13 +41,13 @@ export const PianoFloor = memo(function PianoFloor({
         <meshStandardMaterial color={theme.keyboardCase} roughness={0.5} />
       </mesh>
 
-      {KEYS.map((key) => {
+      {KEYS.map((key, i) => {
         const isPressed = pressed.has(key.midi);
-        const y = CASE_H + key.height / 2 - (isPressed ? PRESS_DEPTH : 0);
         return (
           <mesh
             key={key.midi}
-            position={[key.x, y, key.z]}
+            ref={springRef(i)}
+            position={[key.x, CASE_H + key.height / 2, key.z]}
             castShadow={key.black}
             receiveShadow
           >

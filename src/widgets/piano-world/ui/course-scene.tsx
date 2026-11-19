@@ -5,6 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { CASE_THICKNESS, COURSE, GOAL_INDEX, PLATFORM_THICKNESS, type Platform } from "../model/course";
 import { CrownMesh } from "./crown-mesh";
+import { useKeySprings } from "../lib/use-key-springs";
 
 const COLORS: Record<Platform["kind"], string> = {
   white: "#fbf8f2",
@@ -77,6 +78,11 @@ export const CourseScene = memo(function CourseScene({ pressed }: { pressed: Rea
     [],
   );
   const goal = COURSE[GOAL_INDEX];
+  const springRef = useKeySprings(
+    COURSE.length,
+    (i) => COURSE[i].y - PLATFORM_THICKNESS / 2,
+    (i) => (pressed.has(COURSE[i].midi) ? -0.06 : 0),
+  );
 
   return (
     <group>
@@ -91,7 +97,6 @@ export const CourseScene = memo(function CourseScene({ pressed }: { pressed: Rea
 
       {COURSE.map((p, i) => {
         const isPressed = pressed.has(p.midi);
-        const top = p.y - (isPressed ? 0.05 : 0);
         return (
           <group key={i}>
             {/* dark case under every step, so it reads against the white sky like a piano key */}
@@ -99,7 +104,7 @@ export const CourseScene = memo(function CourseScene({ pressed }: { pressed: Rea
               <boxGeometry args={[p.width + 0.16, CASE_THICKNESS, p.depth + 0.16]} />
               <meshStandardMaterial color={p.kind === "goal" ? "#7a5418" : "#2f2b27"} roughness={0.5} />
             </mesh>
-            <mesh position={[p.x, top - PLATFORM_THICKNESS / 2, p.z]} castShadow receiveShadow>
+            <mesh ref={springRef(i)} position={[p.x, p.y - PLATFORM_THICKNESS / 2, p.z]} castShadow receiveShadow>
               <boxGeometry args={[p.width, PLATFORM_THICKNESS, p.depth]} />
               <meshStandardMaterial
                 color={COLORS[p.kind]}

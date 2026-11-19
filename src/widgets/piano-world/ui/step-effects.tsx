@@ -15,10 +15,14 @@ export interface StepEffectsApi {
   hearts: (x: number, y: number, z: number) => void;
   /** a single soft light drifting up into the sky (a sent wish) */
   lantern: (x: number, y: number, z: number) => void;
+  /** puffs of dust spreading from a hard landing */
+  dust: (x: number, y: number, z: number) => void;
 }
 
 const NOTE_POOL = 24;
 const LANTERN_POOL = 4;
+const DUST_POOL = 16;
+const DUST_PER_LANDING = 8;
 const RIPPLE_POOL = 10;
 const CONFETTI_POOL = 70;
 const CONFETTI_COLORS = ["#ff6b6b", "#ffd166", "#06d6a0", "#4cc9f0", "#b388ff", "#ff9a4a"];
@@ -93,6 +97,8 @@ export const StepEffects = forwardRef<StepEffectsApi>(function StepEffects(_, re
   );
   const noteTexture = textures.note;
   const lanterns = useRef(freshPool(LANTERN_POOL));
+  const dust = useRef(freshPool(DUST_POOL));
+  const dustSprites = useRef<(THREE.Sprite | null)[]>([]);
   const lanternSprites = useRef<(THREE.Sprite | null)[]>([]);
 
   /** shared by ♪ and ♥: a few glyphs popping upward */
@@ -126,6 +132,15 @@ export const StepEffects = forwardRef<StepEffectsApi>(function StepEffects(_, re
     },
     hearts(x, y, z) {
       burst(textures.heart, 5, x, y + 0.4, z, "#ff6b8a");
+    },
+    dust(x, y, z) {
+      for (let i = 0; i < DUST_PER_LANDING; i++) {
+        const p = nextFree(dust.current);
+        const angle = (i / DUST_PER_LANDING) * Math.PI * 2 + Math.random() * 0.4;
+        p.maxLife = p.life = 0.45 + Math.random() * 0.2;
+        p.pos.set(x + Math.cos(angle) * 0.35, y + 0.08, z + Math.sin(angle) * 0.35);
+        p.vel.set(Math.cos(angle) * 1.6, 0.35, Math.sin(angle) * 1.6);
+      }
     },
     lantern(x, y, z) {
       const p = nextFree(lanterns.current);
@@ -172,6 +187,24 @@ export const StepEffects = forwardRef<StepEffectsApi>(function StepEffects(_, re
       const t = p.life / p.maxLife;
       (sprite.material as THREE.SpriteMaterial).opacity = Math.min(1, t * 2);
       const size = 0.45 + (1 - t) * 0.15;
+      sprite.scale.set(size, size, 1);
+    });
+
+    dust.current.forEach((p, i) => {
+      const sprite = dustSprites.current[i];
+      if (!sprite) return;
+      if (p.life <= 0) {
+        sprite.visible = false;
+        return;
+      }
+      p.life -= dt;
+      p.vel.multiplyScalar(1 - 5 * dt); // puffs slow quickly
+      p.pos.addScaledVector(p.vel, dt);
+      const t = p.life / p.maxLife;
+      sprite.visible = true;
+      sprite.position.copy(p.pos);
+      (sprite.material as THREE.SpriteMaterial).opacity = t * 0.55;
+      const size = 0.25 + (1 - t) * 0.35;
       sprite.scale.set(size, size, 1);
     });
 
@@ -239,6 +272,17 @@ export const StepEffects = forwardRef<StepEffectsApi>(function StepEffects(_, re
           }}
         >
           <spriteMaterial map={noteTexture} transparent depthWrite={false} />
+        </sprite>
+      ))}
+      {Array.from({ length: DUST_POOL }, (_, i) => (
+        <sprite
+          key={`d${i}`}
+          visible={false}
+          ref={(el) => {
+            dustSprites.current[i] = el;
+          }}
+        >
+          <spriteMaterial map={textures.glow} color="#cfc6b6" transparent depthWrite={false} />
         </sprite>
       ))}
       {Array.from({ length: LANTERN_POOL }, (_, i) => (

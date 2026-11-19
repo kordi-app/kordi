@@ -7,14 +7,25 @@ import { BOUNDS, CASE_H, SPAWN } from "../model/layout";
 import { COURSE_BOUNDS, courseBlocked, courseCeiling } from "../model/course";
 import { interactablesIn, type EmoteId, type InteractableId } from "../model/interactables";
 import {
+  AIR_ACCEL,
+  BODY_RADIUS,
+  COYOTE_TIME,
   FALL_THRESHOLD,
   GRAVITY,
+  GROUND_ACCEL,
+  GROUND_FRICTION,
+  HARD_LANDING,
+  JUMP_BUFFER,
+  JUMP_CUT_GRAVITY,
   JUMP_SPEED,
   SPEED,
   SPRING_BOOST,
+  approach,
   groundAt,
   lerpAngle,
+  resolveCircles,
   type Arrival,
+  type CircleCollider,
   type InputState,
 } from "../model/physics";
 import { PORTAL_RADIUS, type RegionDef, type RegionId } from "../model/regions";
@@ -105,12 +116,20 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
   const light = useRef<THREE.DirectionalLight>(null);
   const bubble = useRef<THREE.Group>(null);
   const fx = useRef<StepEffectsApi>(null);
-  const motion = useRef<KordiMotion>({ phase: 0, amount: 0, emote: null });
+  const motion = useRef<KordiMotion>({ phase: 0, amount: 0, emote: null, land: 0, stretch: 0 });
   const sim = useRef({
     pos: new THREE.Vector3(SPAWN.x, CASE_H, SPAWN.z),
     heading: 0, // face the camera on arrival
+    vx: 0,
+    vz: 0,
     vy: 0,
     airborne: false,
+    /** in the air because of a jump (not a fall) — no coyote jump then */
+    jumped: false,
+    /** launched by a neon spring: ignores the early-release cut */
+    springing: false,
+    sinceGrounded: 0,
+    jumpBuffer: 0,
     midi: null as number | null,
     platform: null as number | null,
   });
@@ -130,6 +149,10 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
 
   const cameraOffset = useMemo(() => new THREE.Vector3(...region.camera), [region]);
   const items = useMemo(() => interactablesIn(region.id), [region]);
+  const solids = useMemo<CircleCollider[]>(
+    () => items.filter((item) => item.solid > 0).map((item) => ({ x: item.x, z: item.z, radius: item.solid })),
+    [items],
+  );
   const course = region.feature === "course";
 
   useFrame((_, rawDelta) => {
@@ -142,44 +165,93 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       placedFor.current = arrival;
       s.pos.set(arrival.x, groundAt(region, arrival.x, arrival.z, 0).height, arrival.z);
       s.heading = 0;
-      s.vy = 0;
-      s.airborne = false;
+      s.vx = s.vz = s.vy = 0;
+      s.airborne = s.jumped = s.springing = false;
       portalArmed.current = false;
       camera.position.copy(s.pos).add(cameraOffset);
       lookTarget.current.set(s.pos.x, s.pos.y + 0.6, s.pos.z - 1.2);
     }
 
-    // --- walking
-    let dx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
-    let dz = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
-    const moving = dx !== 0 || dz !== 0;
-    if (moving) {
-      const length = Math.hypot(dx, dz);
-      dx /= length;
-      dz /= length;
+    // --- walking: velocity eases toward the input direction (momentum, weaker in the air)
+    let ix = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+    let iz = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
+    const steering = ix !== 0 || iz !== 0;
+    if (steering) {
+      const length = Math.hypot(ix, iz);
+      ix /= length;
+      iz /= length;
+    }
+    const accel = (s.airborne ? AIR_ACCEL : steering ? GROUND_ACCEL : GROUND_FRICTION) * dt;
+    s.vx = approach(s.vx, ix * SPEED, accel);
+    s.vz = approach(s.vz, iz * SPEED, accel);
+
+    const speed = Math.hypot(s.vx, s.vz);
+    if (speed > 1e-3) {
       const bounds = course ? COURSE_BOUNDS : BOUNDS;
-      const nextX = THREE.MathUtils.clamp(s.pos.x + dx * SPEED * dt, -bounds.x, bounds.x);
-      const nextZ = THREE.MathUtils.clamp(s.pos.z + dz * SPEED * dt, bounds.zMin, bounds.zMax);
-      // Course steps are solid: resolve each axis separately so you slide along a side
-      if (!course || !courseBlocked(nextX, s.pos.z, s.pos.y)) s.pos.x = nextX;
-      if (!course || !courseBlocked(s.pos.x, nextZ, s.pos.y)) s.pos.z = nextZ;
-      s.heading = lerpAngle(s.heading, Math.atan2(dx, dz), 1 - Math.exp(-dt * 12));
+      const nextX = THREE.MathUtils.clamp(s.pos.x + s.vx * dt, -bounds.x, bounds.x);
+      const nextZ = THREE.MathUtils.clamp(s.pos.z + s.vz * dt, bounds.zMin, bounds.zMax);
+      if (course) {
+        // Course steps are solid: resolve each axis separately so you slide along a side
+        if (!courseBlocked(nextX, s.pos.z, s.pos.y)) s.pos.x = nextX;
+        else s.vx = 0;
+        if (!courseBlocked(s.pos.x, nextZ, s.pos.y)) s.pos.z = nextZ;
+        else s.vz = 0;
+      } else {
+        s.pos.x = nextX;
+        s.pos.z = nextZ;
+      }
+    }
+    if (!course) {
+      // props you can't walk through, and a gentle push away from other players
+      const pushed = resolveCircles(s.pos.x, s.pos.z, BODY_RADIUS, solids);
+      const nearbyPlayers: CircleCollider[] = [];
+      for (const remote of remotes.current.values()) {
+        if (Math.abs((remote.y ?? 0) - s.pos.y) < 1.5) {
+          nearbyPlayers.push({ x: remote.x, z: remote.z, radius: BODY_RADIUS });
+        }
+      }
+      const shoved = resolveCircles(pushed.x, pushed.z, BODY_RADIUS, nearbyPlayers);
+      s.pos.x = THREE.MathUtils.lerp(pushed.x, shoved.x, 1 - Math.exp(-dt * 10)); // soft, not a wall
+      s.pos.z = THREE.MathUtils.lerp(pushed.z, shoved.z, 1 - Math.exp(-dt * 10));
+      if (pushed.normal) {
+        // stop pushing into the prop, keep sliding along it
+        const into = s.vx * pushed.normal.x + s.vz * pushed.normal.z;
+        if (into < 0) {
+          s.vx -= into * pushed.normal.x;
+          s.vz -= into * pushed.normal.z;
+        }
+      }
+    }
+    if (speed > 0.3) {
+      s.heading = lerpAngle(s.heading, Math.atan2(s.vx, s.vz), 1 - Math.exp(-dt * 12));
     }
 
     const m = motion.current;
-    m.amount = THREE.MathUtils.lerp(m.amount, moving ? 1 : 0, 1 - Math.exp(-dt * 10));
+    m.amount = THREE.MathUtils.lerp(m.amount, Math.min(speed / SPEED, 1), 1 - Math.exp(-dt * 10));
     m.phase += dt * 11 * m.amount;
     m.emote = emote;
-    if (emote && moving) events.onEmoteCancel();
+    if (emote && steering) events.onEmoteCancel();
 
     // --- jumping, falling, landing
     const ground = groundAt(region, s.pos.x, s.pos.z, s.pos.y);
-    if (takeJump() && !s.airborne) {
+    if (takeJump()) s.jumpBuffer = JUMP_BUFFER;
+    else s.jumpBuffer = Math.max(0, s.jumpBuffer - dt);
+    s.sinceGrounded = s.airborne ? s.sinceGrounded + dt : 0;
+
+    // forgiving jumps: buffered presses fire on landing, and you get a beat after leaving a ledge
+    const canJump = !s.airborne || (s.sinceGrounded < COYOTE_TIME && !s.jumped);
+    if (s.jumpBuffer > 0 && canJump) {
       s.airborne = true;
+      s.jumped = true;
+      s.springing = false;
       s.vy = JUMP_SPEED;
+      s.jumpBuffer = 0;
     }
+
     if (s.airborne) {
-      s.vy -= GRAVITY * dt;
+      // let go of jump early and the rise is cut short (springs always go full height)
+      const cut = s.vy > 0 && !keys.jumpHeld && !s.springing ? JUMP_CUT_GRAVITY : 1;
+      s.vy -= GRAVITY * cut * dt;
       const nextY = s.pos.y + s.vy * dt;
       const ceiling = course && s.vy > 0 ? courseCeiling(s.pos.x, s.pos.z, s.pos.y, nextY) : null;
       if (ceiling !== null) {
@@ -189,16 +261,26 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
         s.pos.y = nextY;
       }
       if (s.vy < 0 && s.pos.y <= ground.height) {
+        const impact = -s.vy;
         s.pos.y = ground.height; // landing re-strikes the key below
         s.airborne = false;
+        s.jumped = false;
+        s.springing = false;
         s.vy = 0;
+        if (impact > HARD_LANDING) {
+          m.land = Math.min(1, (impact - HARD_LANDING) / 8 + 0.35);
+          fx.current?.dust(s.pos.x, s.pos.y, s.pos.z);
+        }
       }
     } else if (s.pos.y - ground.height > FALL_THRESHOLD) {
-      s.airborne = true; // walked off a ledge
+      s.airborne = true; // walked off a ledge (coyote time starts now)
       s.vy = 0;
     } else {
       s.pos.y = THREE.MathUtils.lerp(s.pos.y, ground.height, 1 - Math.exp(-dt * 18));
     }
+    // squash on landing eases out; stretch while rising fast
+    m.land = Math.max(0, m.land - dt * 4);
+    m.stretch = s.airborne ? THREE.MathUtils.clamp(s.vy / JUMP_SPEED, -0.4, 1) : 0;
 
     // --- what's underfoot: nothing is pressed while in the air
     const midi = s.airborne ? null : ground.midi;
@@ -215,6 +297,8 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
         if (region.feature === "echo") fx.current?.ripple(s.pos.x, s.pos.y, s.pos.z, accent);
         if (region.feature === "springs" && ground.black) {
           s.airborne = true;
+          s.jumped = true;
+          s.springing = true;
           s.vy = JUMP_SPEED * SPRING_BOOST;
         }
       }

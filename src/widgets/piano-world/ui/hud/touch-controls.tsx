@@ -40,14 +40,19 @@ export function TouchControls({
   onJump,
 }: {
   onDirection: (direction: Direction, pressed: boolean) => void;
-  onJump: () => void;
+  onJump: (pressed: boolean) => void;
 }) {
   return (
     <>
       <button
         type="button"
         aria-label="jump"
-        onPointerDown={onJump}
+        onPointerDown={(e) => {
+          e.currentTarget.setPointerCapture(e.pointerId);
+          onJump(true);
+        }}
+        onPointerUp={() => onJump(false)}
+        onPointerCancel={() => onJump(false)}
         onContextMenu={(e) => e.preventDefault()}
         className="absolute bottom-6 right-48 hidden size-14 touch-none select-none items-center justify-center rounded-full border border-border bg-card/90 text-foreground shadow-sm active:bg-muted pointer-coarse:flex"
       >
