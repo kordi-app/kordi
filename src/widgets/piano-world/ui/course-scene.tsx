@@ -13,6 +13,7 @@ import {
   beamLight,
   beamWidthAt,
   beamX,
+  goalSpots,
   courseRuntime,
   isSolid,
   slideOffset,
@@ -78,7 +79,7 @@ function Treasure({ x, y, z, star }: { x: number; y: number; z: number; star: bo
     crown.current.position.y = 1.35 + Math.sin(t * 2) * 0.12;
   });
   return (
-    <group position={[x + 0.9, y, z - 0.5]}>
+    <group position={[x, y, z]}>
       <mesh position={[0, 0.3, 0]} castShadow>
         <boxGeometry args={[0.9, 0.6, 0.6]} />
         <meshStandardMaterial color="#8a5a2b" roughness={0.6} />
@@ -283,7 +284,7 @@ export const CourseScene = memo(function CourseScene({
   course: CourseDef;
   pressed: ReadonlySet<number>;
 }) {
-  const { platforms, goalIndex, beams } = course;
+  const { platforms, beams } = course;
   const night = beams !== undefined;
   const clouds = useMemo(
     () =>
@@ -313,7 +314,6 @@ export const CourseScene = memo(function CourseScene({
   );
   useEffect(() => () => outlines.forEach((g) => g.dispose()), [outlines]);
 
-  const goal = platforms[goalIndex];
   const platformGroups = useRef<(THREE.Group | null)[]>([]);
   /** smoothed 0–1 visibility per step on the night course */
   const levels = useRef(platforms.map(() => 0));
@@ -441,7 +441,7 @@ export const CourseScene = memo(function CourseScene({
           </group>
         );
       })}
-      <Treasure x={goal.x} y={goal.y} z={goal.z} star={night} />
+      <Treasure {...goalSpots(course).treasure} star={night} />
     </group>
   );
 });

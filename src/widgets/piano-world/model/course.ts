@@ -63,6 +63,14 @@ const RUN = 2.25;
 const FRONT_Z = 0;
 const BACK_Z = -2.6;
 
+/** The summit: wide enough for a treasure up front and a portal behind it. */
+const GOAL_WIDTH = 6;
+const GOAL_DEPTH = 4.6;
+/** Gap from the last step's centre to the summit's near edge (unchanged jump). */
+const GOAL_NEAR_EDGE = RUN * 1.35 - 1.6;
+/** How far the summit's front edge sits in front of the last step's row centre. */
+const GOAL_FRONT_OVERHANG = 1.3;
+
 export const SLIDE_AMPLITUDE = 0.45;
 const SLIDE_PERIOD = 3.2;
 export const CRUMBLE_DELAY = 0.7;
@@ -108,14 +116,17 @@ function buildPlatforms({ steps, rise, baseNote, whiteWidth, behaviors = {} }: L
       behavior: behaviors[i],
     });
   }
+  // The goal is a wide summit: the treasure up front, the exit portal at the
+  // back. Its near edge keeps the same jump from the last step; it grows away
+  // from that step and backward (away from the camera).
   const last = platforms[platforms.length - 1];
   const lastForward = Math.floor((steps - 1) / SWEEP) % 2 === 0;
   platforms.push({
-    x: last.x + (lastForward ? 1 : -1) * RUN * 1.35,
+    x: last.x + (lastForward ? 1 : -1) * (GOAL_NEAR_EDGE + GOAL_WIDTH / 2),
     y: last.y + rise,
-    z: last.z,
-    width: 3.2,
-    depth: 2.6,
+    z: last.z + GOAL_FRONT_OVERHANG - GOAL_DEPTH / 2,
+    width: GOAL_WIDTH,
+    depth: GOAL_DEPTH,
     midi: scaleNote(steps, baseNote) + 12,
     kind: "goal",
   });
@@ -124,13 +135,24 @@ function buildPlatforms({ steps, rise, baseNote, whiteWidth, behaviors = {} }: L
 
 function defineCourse(id: CourseId, layout: LayoutOptions, beams?: readonly Beam[]): CourseDef {
   const platforms = buildPlatforms(layout);
+  const goal = platforms[platforms.length - 1];
   return {
     id,
     platforms,
     goalIndex: platforms.length - 1,
     start: { x: -6, z: 2.6 },
-    bounds: { x: 12, zMin: -4.5, zMax: 4 },
+    // reach the back of the summit, where the portal stands
+    bounds: { x: 12, zMin: Math.min(-4.5, goal.z - goal.depth / 2 - 0.4), zMax: 4 },
     beams,
+  };
+}
+
+/** Where things stand on the summit: the treasure up front, the exit portal at the back. */
+export function goalSpots(course: CourseDef) {
+  const goal = course.platforms[course.goalIndex];
+  return {
+    treasure: { x: goal.x, y: goal.y, z: goal.z + goal.depth / 2 - 1.1 },
+    portal: { x: goal.x, y: goal.y, z: goal.z - goal.depth / 2 + 1.1 },
   };
 }
 

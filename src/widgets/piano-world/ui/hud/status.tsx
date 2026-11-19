@@ -44,7 +44,7 @@ export function NoteDisplay({ note }: { note: number | null }) {
   );
 }
 
-/** Who else is here: channel, people in it, and everyone online. */
+/** Who else is here: my channel and how many of us are in it (me included). */
 function PresencePanel({ info, copy }: { info: PresenceInfo; copy: PianoWorldCopy }) {
   if (info.status === "disabled") return null;
   if (info.status !== "online") {
@@ -60,7 +60,7 @@ function PresencePanel({ info, copy }: { info: PresenceInfo; copy: PianoWorldCop
         <span className="size-1.5 rounded-full bg-success" />
         <span className="font-medium">{copy.channel.replace("{channel}", String(info.channel ?? ""))}</span>
         <span className="text-muted-foreground">
-          {copy.online.replace("{count}", info.online.toLocaleString())}
+          {copy.online.replace("{count}", (info.others.length + 1).toLocaleString())}
         </span>
       </div>
       {listed.length > 0 ? (

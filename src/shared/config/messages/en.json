@@ -134,7 +134,7 @@
       "soundOn": "Sound on",
       "guest": "Guest",
       "channel": "Channel {channel}",
-      "online": "{count} online",
+      "online": "{count} here",
       "connecting": "Connecting to others…",
       "full": "It's busy — walking solo for now",
       "offline": "Disconnected — walking solo, reconnecting",

@@ -1,6 +1,6 @@
 import type { InstrumentId } from "@/shared/lib/audio";
 import { SPAWN, WHITE_L } from "./layout";
-import { COURSES, type CourseDef } from "./course";
+import { COURSES, goalSpots, type CourseDef } from "./course";
 
 /**
  * The piano world is a hub (the Grand Hall) with portals out to themed
@@ -92,13 +92,12 @@ const homePortal = (color: string): PortalDef[] => [
 
 const CLOUDS = COURSES.clouds;
 const NIGHT = COURSES.night;
-const goalOf = (course: CourseDef) => course.platforms[course.goalIndex];
-
-/** A portal standing on a course's goal; `side` shifts it off-centre so two fit. */
-const goalPortal = (course: CourseDef, to: RegionId, color: string, side = 0): PortalDef => {
-  const goal = goalOf(course);
-  return { to, x: goal.x + side, y: goal.y, z: goal.z - 0.6, color };
-};
+/** The one way off a course's summit: a portal at its back, behind the treasure. */
+const goalPortal = (course: CourseDef, to: RegionId, color: string): PortalDef => ({
+  to,
+  ...goalSpots(course).portal,
+  color,
+});
 
 export const REGIONS: Record<RegionId, RegionDef> = {
   hall: {
@@ -208,9 +207,8 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     camera: [0, 4.5, 12],
     portals: [
       { to: "hall", x: CLOUDS.start.x - 3, z: CLOUDS.start.z, color: "#8f7cff" },
-      // at the top: home, or on into the night
-      goalPortal(CLOUDS, "hall", "#d4a64a", -0.85),
-      goalPortal(CLOUDS, "night", "#5b6cff", 0.85),
+      // at the top, the only way on is into the night (home is back down at the start)
+      goalPortal(CLOUDS, "night", "#5b6cff"),
     ],
     course: CLOUDS,
     theme: {
