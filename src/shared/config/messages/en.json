@@ -143,7 +143,8 @@
         "neon": "Neon Street",
         "cathedral": "Cathedral",
         "lounge": "Lounge"
-      }
+      },
+      "people": "{count} here"
     }
   },
   "piano": {

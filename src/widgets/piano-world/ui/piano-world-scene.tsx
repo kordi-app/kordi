@@ -59,6 +59,8 @@ const KEY_TO_DIRECTION: Record<string, Direction> = {
 
 export interface PianoWorldCopy {
   regions: Record<RegionId, string>;
+  /** "{count}" is filled in, e.g. "3명" */
+  people: string;
   soundOff: string;
   soundLoading: string;
   soundOn: string;
@@ -370,9 +372,8 @@ export default function PianoWorldScene({
   const [fading, setFading] = useState(false);
   const transitioning = useRef(false);
 
-  // Stage 1: the presence server has no notion of regions yet, so only the
-  // hub is shared — elsewhere you'd see people who are really in the hall.
-  const { remotes, info, sendPosition } = useWorldPresence(playerName, regionId === "hall");
+  // Each region is its own set of rooms on the server; changing region reconnects
+  const { remotes, info, sendPosition } = useWorldPresence(playerName, regionId);
   const containerRef = useRef<HTMLDivElement>(null);
   const input = useRef<InputState>({
     up: false,
@@ -587,7 +588,12 @@ export default function PianoWorldScene({
           region={region}
           arrival={arrival}
           onPortal={handlePortal}
-          portalLabel={(to) => copy.regions[to]}
+          portalLabel={(to) => {
+            const count = info.regionCounts[to] ?? 0;
+            return count > 0
+              ? `${copy.regions[to]} · ${copy.people.replace("{count}", String(count))}`
+              : copy.regions[to];
+          }}
         />
       </Canvas>
 

@@ -33,6 +33,7 @@ export async function HomePage() {
           // Raw templates: "{channel}"/"{count}" are filled in on the client
           channel: t.raw("channel") as string,
           online: t.raw("online") as string,
+          people: t.raw("people") as string,
           connecting: t("connecting"),
           full: t("full"),
           offline: t("offline"),
