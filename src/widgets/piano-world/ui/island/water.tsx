@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { skyAt } from "../model/day-night";
+import { skyAt } from "../../model/day-night";
 
 /**
  * Stylised water: rippling normals from layered noise, a Fresnel blend toward

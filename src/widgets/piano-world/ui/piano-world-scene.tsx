@@ -16,9 +16,10 @@ import { useWorldAudio } from "../lib/use-world-audio";
 import { useWorldControls } from "../lib/use-world-controls";
 import { useWorldPresence } from "../lib/use-world-presence";
 import { useWarpStones } from "../lib/use-warp-stones";
+import { quality } from "../lib/quality";
 import { CourseCard, MelodyCard } from "./hud/progress-cards";
 import { EmoteBar, InteractPrompt, SpeechBubble, WarpPrompt } from "./hud/interaction-hud";
-import { NameChip, NoteDisplay, RegionLabel, StatusStack } from "./hud/status";
+import { NameChip, NoteDisplay, RegionLabel, StatusStack, ZoneBanner } from "./hud/status";
 import { TouchControls } from "./hud/touch-controls";
 import { ChordCardPanel, WarpPanel, WishPanel } from "./interaction-panels";
 import { World, type WorldDisplay, type WorldEvents } from "./world";
@@ -49,6 +50,8 @@ export default function PianoWorldScene({
   const [warpNearby, setWarpNearbyState] = useState<WarpStoneId | null>(null);
   /** the melody card only shows on the keyboard plaza */
   const [nearKeys, setNearKeys] = useState(true);
+  /** the named place you're in on the island (shown as a banner on arrival) */
+  const [zone, setZone] = useState<WarpStoneId | null>(null);
   const warpNearbyRef = useRef<WarpStoneId | null>(null);
   const melody = useMelodyGame(bumpCelebrate);
   const course = useCourseRun(bumpCelebrate, region.course?.id);
@@ -160,6 +163,7 @@ export default function PianoWorldScene({
       onVoice: voice,
       onWarpNearby: handleWarpNearby,
       onNearKeys: setNearKeys,
+      onZone: setZone,
     }),
     [
       handleStep,
@@ -190,7 +194,7 @@ export default function PianoWorldScene({
     <div ref={containerRef} className="relative h-full w-full" onPointerDown={startAudio}>
       <Canvas
         shadows="percentage"
-        dpr={[1, 2]}
+        dpr={quality.dpr}
         frameloop={visible ? "always" : "never"}
         camera={{ position: [0, 12, 18], fov: 45, near: 0.1, far: 150 }}
       >
@@ -217,6 +221,7 @@ export default function PianoWorldScene({
       />
 
       <RegionLabel region={region} copy={copy} />
+      {region.island ? <ZoneBanner name={zone ? copy.warpStones[zone] : null} /> : null}
       {region.feature === "melody" && nearKeys ? (
         <MelodyCard melody={melody.melody} progress={melody.progress} copy={copy} />
       ) : null}

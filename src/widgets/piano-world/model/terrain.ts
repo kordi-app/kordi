@@ -43,34 +43,95 @@ function overlaps(foot: Footprint, x: number, z: number, radius: number) {
   return Math.hypot(x - foot.x, z - foot.z) < foot.r + radius;
 }
 
-/** The highest top you could stand on at (x, z) from height y, or null for the base floor. */
-export function terrainGround(
-  solids: readonly Solid[],
-  x: number,
-  z: number,
-  y: number,
-): { height: number; index: number | null } {
-  let best = { height: -Infinity, index: null as number | null };
-  for (let i = 0; i < solids.length; i++) {
-    const s = solids[i];
-    if (s.top <= y + STEP_UP && s.top > best.height && overlaps(s.foot, x, z, FOOT_RADIUS)) {
-      best = { height: s.top, index: i };
+/**
+ * Solids bucketed into a coarse grid, so a query only tests what's nearby
+ * instead of every tree on the island. Build once per solid list.
+ */
+export interface Terrain {
+  readonly solids: readonly Solid[];
+  readonly cell: number;
+  readonly buckets: ReadonlyMap<number, readonly number[]>;
+}
+
+const CELL = 6;
+const cellKey = (cx: number, cz: number) => (cx + 4096) * 8192 + (cz + 4096);
+
+function extent(foot: Footprint) {
+  return foot.shape === "box" ? { hx: foot.w / 2, hz: foot.d / 2 } : { hx: foot.r, hz: foot.r };
+}
+
+export function buildTerrain(solids: readonly Solid[], cell = CELL): Terrain {
+  const buckets = new Map<number, number[]>();
+  solids.forEach((solid, i) => {
+    const { hx, hz } = extent(solid.foot);
+    for (let cx = Math.floor((solid.foot.x - hx) / cell); cx <= Math.floor((solid.foot.x + hx) / cell); cx++) {
+      for (let cz = Math.floor((solid.foot.z - hz) / cell); cz <= Math.floor((solid.foot.z + hz) / cell); cz++) {
+        const key = cellKey(cx, cz);
+        const bucket = buckets.get(key);
+        if (bucket) bucket.push(i);
+        else buckets.set(key, [i]);
+      }
+    }
+  });
+  return { solids, cell, buckets };
+}
+
+/** Indices of solids whose cells touch the square (x ± r, z ± r); each listed once. */
+const nearbyScratch: number[] = [];
+let stamp = 0;
+const stamps = new Map<Terrain, Uint32Array>();
+function nearby(t: Terrain, x: number, z: number, r: number): readonly number[] {
+  let seen = stamps.get(t);
+  if (!seen) {
+    seen = new Uint32Array(t.solids.length);
+    stamps.set(t, seen);
+  }
+  stamp = (stamp + 1) >>> 0 || 1;
+  nearbyScratch.length = 0;
+  for (let cx = Math.floor((x - r) / t.cell); cx <= Math.floor((x + r) / t.cell); cx++) {
+    for (let cz = Math.floor((z - r) / t.cell); cz <= Math.floor((z + r) / t.cell); cz++) {
+      const bucket = t.buckets.get(cellKey(cx, cz));
+      if (!bucket) continue;
+      for (const i of bucket) {
+        if (seen[i] === stamp) continue;
+        seen[i] = stamp;
+        nearbyScratch.push(i);
+      }
     }
   }
-  return best;
+  return nearbyScratch;
+}
+
+/** The highest top you could stand on at (x, z) from height y, or null for the base floor. */
+export function terrainGround(t: Terrain, x: number, z: number, y: number): { height: number; index: number | null } {
+  let height = -Infinity;
+  let index: number | null = null;
+  for (const i of nearby(t, x, z, FOOT_RADIUS)) {
+    const s = t.solids[i];
+    if (s.top <= y + STEP_UP && s.top > height && overlaps(s.foot, x, z, FOOT_RADIUS)) {
+      height = s.top;
+      index = i;
+    }
+  }
+  return { height, index };
 }
 
 const blocks = (s: Solid, y: number) => s.top > y + STEP_UP && y + BODY_HEIGHT > s.bottom;
 
 /** Would a body at (x, y, z) be inside something it can't step onto? */
-export function terrainBlocked(solids: readonly Solid[], x: number, z: number, y: number) {
-  return solids.some((s) => blocks(s, y) && overlaps(s.foot, x, z, BODY_RADIUS));
+export function terrainBlocked(t: Terrain, x: number, z: number, y: number) {
+  for (const i of nearby(t, x, z, BODY_RADIUS)) {
+    const s = t.solids[i];
+    if (blocks(s, y) && overlaps(s.foot, x, z, BODY_RADIUS)) return true;
+  }
+  return false;
 }
 
 /** Rising from fromY to toY: the highest feet height before the head hits an underside, or null. */
-export function terrainCeiling(solids: readonly Solid[], x: number, z: number, fromY: number, toY: number) {
+export function terrainCeiling(t: Terrain, x: number, z: number, fromY: number, toY: number) {
   let limit: number | null = null;
-  for (const s of solids) {
+  for (const i of nearby(t, x, z, BODY_RADIUS)) {
+    const s = t.solids[i];
     if (!overlaps(s.foot, x, z, BODY_RADIUS * 0.8)) continue;
     const headroom = s.bottom - BODY_HEIGHT;
     if (headroom >= fromY - 1e-3 && headroom < toY && (limit === null || headroom < limit)) limit = headroom;
@@ -78,25 +139,28 @@ export function terrainCeiling(solids: readonly Solid[], x: number, z: number, f
   return limit;
 }
 
-/** Push a body out of anything it ended up inside, the shortest way out. */
-export function terrainDepenetrate(solids: readonly Solid[], x: number, z: number, y: number) {
+/**
+ * Push a body out of anything it ended up inside, the shortest way out. One
+ * solid at a time, re-checking what's nearby after each push (a push can land
+ * you against a neighbour), until clear.
+ */
+export function terrainDepenetrate(t: Terrain, x: number, z: number, y: number) {
   const SKIN = 1e-3;
-  for (let pass = 0; pass < 2; pass++) {
+  for (let push = 0; push < 6; push++) {
     let moved = false;
-    for (const s of solids) {
+    for (const i of nearby(t, x, z, BODY_RADIUS)) {
+      const s = t.solids[i];
       if (!blocks(s, y)) continue;
       const f = s.foot;
+      const dx = x - f.x;
+      const dz = z - f.z;
       if (f.shape === "box") {
-        const dx = x - f.x;
-        const dz = z - f.z;
         const ox = f.w / 2 + BODY_RADIUS - Math.abs(dx);
         const oz = f.d / 2 + BODY_RADIUS - Math.abs(dz);
         if (ox <= 0 || oz <= 0) continue;
         if (ox < oz) x += (dx >= 0 ? 1 : -1) * (ox + SKIN);
         else z += (dz >= 0 ? 1 : -1) * (oz + SKIN);
       } else {
-        const dx = x - f.x;
-        const dz = z - f.z;
         const distance = Math.hypot(dx, dz);
         const min = f.r + BODY_RADIUS;
         if (distance >= min) continue;
@@ -106,6 +170,7 @@ export function terrainDepenetrate(solids: readonly Solid[], x: number, z: numbe
         z = f.z + nz * (min + SKIN);
       }
       moved = true;
+      break; // the neighbourhood changed: look again from the new spot
     }
     if (!moved) break;
   }

@@ -18,21 +18,11 @@ import {
 import { interactablesIn, type EmoteId, type InteractableId } from "../model/interactables";
 import { decorColliders } from "../model/decor";
 import { skyAt } from "../model/day-night";
-import {
-  BELL,
-  BELL_REACH,
-  CRYSTALS,
-  CRYSTAL_REACH,
-  HARP,
-  HARP_STRINGS,
-  PIPES,
-  PIPE_HUM_REACH,
-  WARP_REACH,
-  WARP_STONES,
-  islandHits,
-  type WarpStoneId,
-} from "../model/island";
-import { ALL_ISLAND_SOLIDS } from "../model/nature";
+import { islandHits, type WarpStoneId } from "../model/island";
+import { createAmbience, resetAmbience, stepAmbience, type AmbienceEvents } from "../lib/island-ambience";
+import { aimSunLight, applySky, createSunAim } from "../lib/sun-light";
+import { quality } from "../lib/quality";
+import { ISLAND_TERRAIN } from "../model/nature";
 import { terrainBlocked, terrainCeiling, terrainDepenetrate } from "../model/terrain";
 import { BALL_RADIUS, ballSpawns, newBall, stepBall, type Ball } from "../model/ball";
 import { NoteBall } from "./note-ball";
@@ -79,17 +69,12 @@ const CAT_EARSHOT = 9;
 const PORTAL_HEIGHT_TOLERANCE = 1.2;
 const EMOTE_BUBBLE_HEIGHT = 2.75;
 const KORDI_SCALE = 1.6;
-/** Island: re-strike the same pipe / crystal no sooner than this (seconds) */
-const HUM_COOLDOWN = 1.4;
-const BELL_COOLDOWN = 2.5;
-/** The bell's chord: a low tonic under a bright triad */
-const BELL_CHORD = [48, 72, 76, 79];
-/** Shadows are drawn for this far around Kordi (half-width), at this resolution */
+/** Shadows are drawn for this far around Kordi (half-width); the map size comes from the quality tier */
 const SHADOW_EXTENT = 28;
-const SHADOW_MAP_SIZE = 2048;
 /** how far back along the light the shadow camera sits (clears the tower top) */
 const SHADOW_DISTANCE = 45;
-const UP = new THREE.Vector3(0, 1, 0);
+/** How often the island's sky is recomputed (it changes slowly) */
+const SKY_INTERVAL = 0.2;
 /** The keyboard plaza: the melody game's card shows only while you're here */
 const PLAZA_REACH = { x: 36, zMin: -10, zMax: 16 };
 
@@ -114,6 +99,8 @@ export interface WorldEvents {
   onVoice: (voice: VoiceId, midi: number, velocity: number) => void;
   /** the warp stone now in reach (island only) */
   onWarpNearby: (id: WarpStoneId | null) => void;
+  /** the named place on the island you're in (null between places) */
+  onZone: (id: WarpStoneId | null) => void;
   /** whether you're on the keyboard plaza (the melody game only shows there) */
   onNearKeys: (near: boolean) => void;
 }
@@ -160,7 +147,7 @@ interface WorldProps {
  * The simulation and scene graph: moves Kordi with physics, follows with the
  * camera, detects keys / portals / interactables underfoot, and renders the
  * region. All per-frame state lives in refs; React state only changes when
- * something visible does (pressed keys, emote bubble).
+ * something visible does (the emote bubble, who's here).
  */
 export function World({ region, arrival, input, takeJump, presence, display, events }: WorldProps) {
   const { remotes, others, sendPosition } = presence;
@@ -194,22 +181,17 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     bumpCooldown: 0,
     midi: null as number | null,
     platform: null as number | null,
-    /** island terrain underfoot (ISLAND_SOLIDS index) */
+    /** island terrain underfoot (ISLAND_TERRAIN.solids index) */
     solid: null as number | null,
     /** height of the last ground stood on: the camera follows this, not jumps */
     restY: 0,
   });
   /** island ambience: per-thing cooldowns, last position (for harp strings), stone in reach */
-  const isle = useRef({
-    played: new Map<string, number>(),
-    lastX: 0,
-    lastZ: 0,
-    warp: null as WarpStoneId | null,
-    skyAt: -Infinity,
-    nearKeys: true,
-  });
-  /** shadow camera snapping (keeps shadow edges from crawling as Kordi moves) */
-  const shadowScratch = useRef({ dir: new THREE.Vector3(), right: new THREE.Vector3(), up: new THREE.Vector3(), target: new THREE.Vector3() });
+  /** island ambience (pipes, harp, bell, warp stones, places) between frames */
+  const ambience = useRef(createAmbience());
+  const view = useRef({ skyAt: -Infinity, nearKeys: true });
+  /** where the sun light points (follows the sky on the island) */
+  const sunAim = useRef(createSunAim());
   const lookTarget = useRef(new THREE.Vector3(SPAWN.x, 0.6, SPAWN.z - 1.2));
   const scratch = useRef({ camera: new THREE.Vector3(), look: new THREE.Vector3() });
 
@@ -218,8 +200,8 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
   const placedFor = useRef<Arrival | null>(null);
   const seen = useRef({ celebrate, hearts: interaction.hearts, lantern: interaction.lantern });
   const remoteNotes = useRef(new Map<string, number | null>());
-  const [pressed, setPressed] = useState<ReadonlySet<number>>(() => new Set());
-  const pressedSignature = useRef("");
+  /** keys held down by me and everyone in the channel: read every frame by the floor (no React renders) */
+  const pressed = useRef<Set<number>>(new Set());
 
   const cat = useRef({ pos: new THREE.Vector3(SPAWN.x, 0, 1.2), key: null as number | null, heard: null as number | null });
   const nearby = useRef<InteractableId | null>(null);
@@ -238,7 +220,19 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     [items, region],
   );
   const course = region.course ?? null;
-  const island = region.island ? ALL_ISLAND_SOLIDS : null;
+  const island = region.island ? ISLAND_TERRAIN : null;
+  const ambienceEvents = useMemo<AmbienceEvents>(
+    () => ({
+      voice: events.onVoice,
+      warpNearby: events.onWarpNearby,
+      zone: events.onZone,
+      bell: () => {
+        const p = sim.current.pos;
+        fx.current?.confetti(p.x, p.y, p.z);
+      },
+    }),
+    [events],
+  );
 
   useFrame((state, rawDelta) => {
     const dt = Math.min(rawDelta, 0.05);
@@ -258,12 +252,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       s.midi = null;
       s.solid = null;
       s.restY = s.pos.y;
-      isle.current.lastX = s.pos.x;
-      isle.current.lastZ = s.pos.z;
-      if (isle.current.warp !== null) {
-        isle.current.warp = null;
-        events.onWarpNearby(null);
-      }
+      resetAmbience(ambience.current, s.pos.x, ambienceEvents);
       if (island) {
         // a shimmer where you land (portal arrivals and warps alike)
         fx.current?.ripple(s.pos.x, s.pos.y, s.pos.z, "#7fd8ff");
@@ -449,7 +438,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
           m.land = 0.8;
         }
         // island drums: every landing is a beat, and the skin throws you back up
-        const landed = island && ground.solid !== null ? island[ground.solid] : null;
+        const landed = island && ground.solid !== null ? island.solids[ground.solid] : null;
         if (landed?.bounce) {
           if (landed.sound) events.onVoice(landed.sound.voice, landed.sound.midi, Math.min(1, 0.45 + impact / 18));
           if (landed.tag) islandHits.set(landed.tag, now);
@@ -483,7 +472,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     const solidUnder = s.airborne ? null : ground.solid;
     if (island && solidUnder !== s.solid) {
       s.solid = solidUnder;
-      const piece = solidUnder === null ? null : island[solidUnder];
+      const piece = solidUnder === null ? null : island.solids[solidUnder];
       if (piece?.sound && !piece.bounce) {
         events.onVoice(piece.sound.voice, piece.sound.midi, 0.75);
         if (piece.tag) islandHits.set(piece.tag, now);
@@ -579,55 +568,12 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       events.onCatStep(heard);
     }
 
-    // --- the island's ambient instruments and warp stones
-    if (island) {
-      const iso = isle.current;
-      /** play `tag` unless it played within `cooldown` seconds */
-      const strike = (tag: string, cooldown: number, play: () => void) => {
-        if (now - (iso.played.get(tag) ?? -Infinity) < cooldown) return;
-        iso.played.set(tag, now);
-        islandHits.set(tag, now);
-        play();
-      };
-      // organ pipes hum as you brush past
-      PIPES.forEach((pipe, i) => {
-        if (Math.hypot(s.pos.x - pipe.x, s.pos.z - pipe.z) - pipe.r < PIPE_HUM_REACH) {
-          strike(`pipe:${i}`, HUM_COOLDOWN, () => events.onVoice("pipe", pipe.midi, 0.6));
-        }
-      });
-      // harp strings: crossing one (in the spray, below its top) plucks it
-      if (s.pos.z > HARP.zMin - 0.3 && s.pos.z < HARP.zMax + 0.3 && s.pos.y < HARP.height) {
-        HARP_STRINGS.forEach((string, i) => {
-          if ((iso.lastX - string.x) * (s.pos.x - string.x) < 0) {
-            strike(`harp:${i}`, 0.08, () => events.onVoice("harp", string.midi, 0.7));
-          }
-        });
-      }
-      CRYSTALS.forEach((crystal, i) => {
-        if (Math.hypot(s.pos.x - crystal.x, s.pos.z - crystal.z) < CRYSTAL_REACH) {
-          strike(`crystal:${i}`, HUM_COOLDOWN, () => events.onVoice("crystal", crystal.midi, 0.6));
-        }
-      });
-      // the bell on the tower roof rings when you reach it
-      if (s.pos.y > BELL.y - 0.5 && Math.hypot(s.pos.x - BELL.x, s.pos.z - BELL.z) < BELL_REACH) {
-        strike("bell", BELL_COOLDOWN, () => {
-          BELL_CHORD.forEach((note, i) => events.onVoice("bell", note, i === 0 ? 0.9 : 0.55));
-          fx.current?.confetti(s.pos.x, s.pos.y, s.pos.z);
-        });
-      }
-      iso.lastX = s.pos.x;
-      iso.lastZ = s.pos.z;
-      // warp stone in reach (waking it is the page's call)
-      const stone = WARP_STONES.find((w) => Math.hypot(s.pos.x - w.x, s.pos.z - w.z) < WARP_REACH) ?? null;
-      if ((stone?.id ?? null) !== iso.warp) {
-        iso.warp = stone?.id ?? null;
-        events.onWarpNearby(iso.warp);
-      }
-    }
+    // --- the island's ambient instruments, warp stones and places
+    if (island) stepAmbience(ambience.current, s.pos, now, ambienceEvents);
 
     const nearKeys = !island || (Math.abs(s.pos.x) < PLAZA_REACH.x && s.pos.z > PLAZA_REACH.zMin && s.pos.z < PLAZA_REACH.zMax);
-    if (nearKeys !== isle.current.nearKeys) {
-      isle.current.nearKeys = nearKeys;
+    if (nearKeys !== view.current.nearKeys) {
+      view.current.nearKeys = nearKeys;
       events.onNearKeys(nearKeys);
     }
 
@@ -645,7 +591,8 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     }
 
     // --- keys held by me and everyone else in the channel
-    const down = new Set<number>();
+    const down = pressed.current;
+    down.clear();
     if (midi !== null) down.add(midi);
     for (const remote of remotes.current.values()) {
       if (remote.m !== null) down.add(remote.m);
@@ -660,11 +607,6 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
         events.onRemoteStep(id, null);
       }
     }
-    const signature = [...down].sort((a, b) => a - b).join(",");
-    if (signature !== pressedSignature.current) {
-      pressedSignature.current = signature;
-      setPressed(down);
-    }
 
     // --- place things
     if (kordi.current) {
@@ -673,42 +615,18 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     }
     lantern.current?.position.set(s.pos.x + 0.9, s.pos.y + 2.6, s.pos.z + 1.4);
     bubble.current?.position.set(s.pos.x, s.pos.y + EMOTE_BUBBLE_HEIGHT, s.pos.z);
-    // The keyboard is 52 keys wide: the sun travels with Kordi so nearby shadows stay crisp
-    const sh = shadowScratch.current;
-    sh.dir.set(0.4, 0.8, 0.45).normalize();
-    if (island) {
-      // the island's sky follows the wall clock (everyone shares the same time of day)
-      const iso = isle.current;
-      if (now - iso.skyAt > 0.2) {
-        iso.skyAt = now;
-        const sky = skyAt(Date.now());
-        if (scene.background instanceof THREE.Color) scene.background.set(sky.background);
-        scene.fog?.color.set(sky.background);
-        if (light.current) {
-          light.current.color.set(sky.sunColor);
-          light.current.intensity = sky.sunIntensity;
-        }
-        if (hemi.current) {
-          hemi.current.color.set(sky.hemiSky);
-          hemi.current.groundColor.set(sky.hemiGround);
-          hemi.current.intensity = sky.ambient;
-        }
-      }
-      sh.dir.set(...skyAt(Date.now()).lightDir);
+    // The keyboard is 52 keys wide: the sun travels with Kordi so nearby shadows stay crisp.
+    // On the island the sky (and the sun's angle) follows the wall clock, shared by everyone.
+    if (island && now - view.current.skyAt > SKY_INTERVAL) {
+      view.current.skyAt = now;
+      const sky = skyAt(Date.now());
+      applySky(scene, light.current, hemi.current, sky);
+      sunAim.current.dir.set(...sky.lightDir);
+    } else if (!island) {
+      sunAim.current.dir.set(0.4, 0.8, 0.45).normalize();
     }
     if (light.current) {
-      // Centre the shadow map on Kordi, snapped to whole shadow texels across the light's view
-      // so shadow edges stay put instead of shimmering as you walk.
-      const texel = (SHADOW_EXTENT * 2) / SHADOW_MAP_SIZE;
-      sh.right.crossVectors(UP, sh.dir).normalize();
-      sh.up.crossVectors(sh.dir, sh.right).normalize();
-      const r = Math.round(s.pos.dot(sh.right) / texel) * texel;
-      const u = Math.round(s.pos.dot(sh.up) / texel) * texel;
-      const d = s.pos.dot(sh.dir);
-      sh.target.copy(sh.right).multiplyScalar(r).addScaledVector(sh.up, u).addScaledVector(sh.dir, d);
-      light.current.target.position.copy(sh.target);
-      light.current.position.copy(sh.target).addScaledVector(sh.dir, SHADOW_DISTANCE);
-      light.current.target.updateMatrixWorld();
+      aimSunLight(light.current, sunAim.current, s.pos, { extent: SHADOW_EXTENT, mapSize: quality.shadowMap, distance: SHADOW_DISTANCE });
     }
 
     // The camera follows the ground you stand on (not your jumps); the course climbs with you
@@ -728,7 +646,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
         intensity={region.theme.sun}
         color={region.theme.sunColor}
         castShadow
-        shadow-mapSize={[SHADOW_MAP_SIZE, SHADOW_MAP_SIZE]}
+        shadow-mapSize={[quality.shadowMap, quality.shadowMap]}
         shadow-camera-left={-SHADOW_EXTENT}
         shadow-camera-right={SHADOW_EXTENT}
         shadow-camera-top={SHADOW_EXTENT}

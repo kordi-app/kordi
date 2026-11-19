@@ -37,6 +37,29 @@ const FOOT = "#b48c5c";
 const BODY_DEPTH = 0.9;
 
 /**
+ * Every Kordi in the world (you and everyone else) shares these: one set of
+ * geometries and materials instead of a fresh copy per player.
+ */
+const PARTS = {
+  foot: new THREE.SphereGeometry(1, 24, 16),
+  body: new THREE.CapsuleGeometry(0.5, 0.42, 12, 32),
+  arm: new THREE.SphereGeometry(1, 20, 16),
+  eye: new THREE.SphereGeometry(0.085, 28, 20),
+  glint: new THREE.SphereGeometry(0.03, 14, 10),
+  glintSmall: new THREE.SphereGeometry(0.013, 10, 8),
+  cheek: new THREE.SphereGeometry(1, 16, 12),
+  smile: new THREE.TorusGeometry(0.05, 0.011, 8, 24, Math.PI),
+};
+const SKIN = {
+  foot: new THREE.MeshStandardMaterial({ color: FOOT, roughness: 0.6 }),
+  cream: new THREE.MeshStandardMaterial({ color: CREAM, roughness: 0.42 }),
+  eye: new THREE.MeshStandardMaterial({ color: INK, roughness: 0.12, metalness: 0.1 }),
+  glint: new THREE.MeshBasicMaterial({ color: "#ffffff" }),
+  cheek: new THREE.MeshStandardMaterial({ color: CHEEK, roughness: 0.6 }),
+  ink: new THREE.MeshStandardMaterial({ color: INK, roughness: 0.4 }),
+};
+
+/**
  * Kordi built from primitives to match the 2D mascot: a soft bean body,
  * dot eyes with highlights, pink cheeks, a small smile, stubby arms, brown
  * feet.
@@ -134,62 +157,32 @@ export const KordiModel = forwardRef<
     <group ref={ref} scale={scale}>
       <group ref={squash}>
       {/* feet stay on the ground while the body bobs */}
-      <mesh ref={leftFoot} position={[-0.2, 0.06, 0.04]} scale={[0.15, 0.08, 0.2]} castShadow>
-        <sphereGeometry args={[1, 24, 16]} />
-        <meshStandardMaterial color={FOOT} roughness={0.6} />
-      </mesh>
-      <mesh ref={rightFoot} position={[0.2, 0.06, 0.04]} scale={[0.15, 0.08, 0.2]} castShadow>
-        <sphereGeometry args={[1, 24, 16]} />
-        <meshStandardMaterial color={FOOT} roughness={0.6} />
-      </mesh>
+      <mesh ref={leftFoot} position={[-0.2, 0.06, 0.04]} scale={[0.15, 0.08, 0.2]} castShadow geometry={PARTS.foot} material={SKIN.foot} />
+      <mesh ref={rightFoot} position={[0.2, 0.06, 0.04]} scale={[0.15, 0.08, 0.2]} castShadow geometry={PARTS.foot} material={SKIN.foot} />
 
       <group ref={body}>
         {/* body: a capsule squashed front-to-back reads as the mascot's bean */}
-        <mesh position={[0, 0.72, 0]} scale={[1, 1, BODY_DEPTH]} castShadow>
-          <capsuleGeometry args={[0.5, 0.42, 12, 32]} />
-          <meshStandardMaterial color={CREAM} roughness={0.42} />
-        </mesh>
+        <mesh position={[0, 0.72, 0]} scale={[1, 1, BODY_DEPTH]} castShadow geometry={PARTS.body} material={SKIN.cream} />
 
         {/* arms */}
-        <mesh ref={leftArm} position={[-0.53, 0.62, 0.02]} rotation={[0, 0, 0.5]} scale={[0.12, 0.2, 0.12]} castShadow>
-          <sphereGeometry args={[1, 20, 16]} />
-          <meshStandardMaterial color={CREAM} roughness={0.42} />
-        </mesh>
-        <mesh ref={rightArm} position={[0.53, 0.62, 0.02]} rotation={[0, 0, -0.5]} scale={[0.12, 0.2, 0.12]} castShadow>
-          <sphereGeometry args={[1, 20, 16]} />
-          <meshStandardMaterial color={CREAM} roughness={0.42} />
-        </mesh>
+        <mesh ref={leftArm} position={[-0.53, 0.62, 0.02]} rotation={[0, 0, 0.5]} scale={[0.12, 0.2, 0.12]} castShadow geometry={PARTS.arm} material={SKIN.cream} />
+        <mesh ref={rightArm} position={[0.53, 0.62, 0.02]} rotation={[0, 0, -0.5]} scale={[0.12, 0.2, 0.12]} castShadow geometry={PARTS.arm} material={SKIN.cream} />
 
         {/* face — big glossy eyes like the mascot. Each is a shallow dome set
             into the head's curve (surface z ≈ 0.416 at x ±0.19), so it shines
             from the front without poking out in profile. */}
         {[-0.19, 0.19].map((x) => (
           <group key={x} position={[x, 0.95, 0.396]}>
-            <mesh scale={[1, 1.08, 0.45]}>
-              <sphereGeometry args={[0.085, 28, 20]} />
-              <meshStandardMaterial color={INK} roughness={0.12} metalness={0.1} />
-            </mesh>
+            <mesh scale={[1, 1.08, 0.45]} geometry={PARTS.eye} material={SKIN.eye} />
             {/* main catchlight up and to the outside, a small one low on the inside */}
-            <mesh position={[Math.sign(x) * 0.028, 0.034, 0.036]} scale={[1, 1, 0.4]}>
-              <sphereGeometry args={[0.03, 14, 10]} />
-              <meshBasicMaterial color="#ffffff" />
-            </mesh>
-            <mesh position={[-Math.sign(x) * 0.026, -0.032, 0.034]} scale={[1, 1, 0.4]}>
-              <sphereGeometry args={[0.013, 10, 8]} />
-              <meshBasicMaterial color="#ffffff" />
-            </mesh>
+            <mesh position={[Math.sign(x) * 0.028, 0.034, 0.036]} scale={[1, 1, 0.4]} geometry={PARTS.glint} material={SKIN.glint} />
+            <mesh position={[-Math.sign(x) * 0.026, -0.032, 0.034]} scale={[1, 1, 0.4]} geometry={PARTS.glintSmall} material={SKIN.glint} />
           </group>
         ))}
         {[-0.32, 0.32].map((x) => (
-          <mesh key={x} position={[x, 0.85, 0.345]} rotation={[0, x > 0 ? 0.6 : -0.6, 0]} scale={[0.09, 0.058, 0.02]}>
-            <sphereGeometry args={[1, 16, 12]} />
-            <meshStandardMaterial color={CHEEK} roughness={0.6} />
-          </mesh>
+          <mesh key={x} position={[x, 0.85, 0.345]} rotation={[0, x > 0 ? 0.6 : -0.6, 0]} scale={[0.09, 0.058, 0.02]} geometry={PARTS.cheek} material={SKIN.cheek} />
         ))}
-        <mesh position={[0, 0.9, 0.447]} rotation={[0, 0, Math.PI]}>
-          <torusGeometry args={[0.05, 0.011, 8, 24, Math.PI]} />
-          <meshStandardMaterial color={INK} roughness={0.4} />
-        </mesh>
+        <mesh position={[0, 0.9, 0.447]} rotation={[0, 0, Math.PI]} geometry={PARTS.smile} material={SKIN.ink} />
 
         {crown ? (
           <group position={[0, 1.33, 0]} rotation={[0, 0, 0.12]} scale={0.95}>

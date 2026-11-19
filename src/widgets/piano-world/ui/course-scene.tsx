@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useMemo, useRef } from "react";
+import { memo, useEffect, useMemo, useRef, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import {
@@ -39,6 +39,7 @@ const BEHAVIOR_COLORS: Record<NonNullable<Platform["behavior"]>, string> = {
 };
 
 const FALL_SPEED = 6;
+const PRESSED_GLOW = { day: new THREE.Color("#b9a8ff"), night: new THREE.Color("#ffe9a8") };
 const BEAM_COLOR = "#fff1c4";
 const LANTERN_COLOR = "#ffcf7a";
 /** How fast a step fades in and out of the dark (per second, exponential). */
@@ -282,7 +283,8 @@ export const CourseScene = memo(function CourseScene({
   pressed,
 }: {
   course: CourseDef;
-  pressed: ReadonlySet<number>;
+  /** keys held down right now; read every frame */
+  pressed: RefObject<ReadonlySet<number>>;
 }) {
   const { platforms, beams } = course;
   const night = beams !== undefined;
@@ -315,6 +317,20 @@ export const CourseScene = memo(function CourseScene({
   useEffect(() => () => outlines.forEach((g) => g.dispose()), [outlines]);
 
   const platformGroups = useRef<(THREE.Group | null)[]>([]);
+  /** each step's top slab, for the pressed glow */
+  const tops = useRef<(THREE.Mesh | null)[]>([]);
+  /** each step's resting glow (lanterns, the goal), restored when it's let go */
+  const restGlow = useMemo(
+    () =>
+      platforms.map((p) => {
+        const lantern = night && alwaysLit(p);
+        return {
+          colour: new THREE.Color(lantern ? LANTERN_COLOR : p.kind === "goal" ? "#a06a00" : night ? BEAM_COLOR : "#000000"),
+          intensity: lantern ? 0.35 : p.kind === "goal" ? 0.3 : 0,
+        };
+      }),
+    [platforms, night],
+  );
   /** smoothed 0–1 visibility per step on the night course */
   const levels = useRef(platforms.map(() => 0));
 
@@ -342,6 +358,15 @@ export const CourseScene = memo(function CourseScene({
       }
       group.position.set(x, y, 0);
 
+      // stepped on: glow (lit steps at night keep their light-driven intensity below)
+      const top = tops.current[i];
+      const down = pressed.current.has(p.midi);
+      if (top) {
+        const material = top.material as THREE.MeshStandardMaterial;
+        material.emissive.copy(down ? PRESSED_GLOW[night ? "night" : "day"] : restGlow[i].colour);
+        material.emissiveIntensity = down ? 0.6 : restGlow[i].intensity;
+      }
+
       if (!night || alwaysLit(p)) return;
       // lit: full; in the grace window after the light leaves: half, as a warning; dark: gone
       const light = Math.max(0, beamLight(course, p.x, p.y, t));
@@ -352,14 +377,14 @@ export const CourseScene = memo(function CourseScene({
         const material = child.material as THREE.MeshStandardMaterial;
         material.opacity = 0.04 + 0.96 * level;
         material.depthWrite = level > 0.9;
-        material.emissiveIntensity = (0.15 + light * 0.55) * level;
+        material.emissiveIntensity = (down ? 0.6 : 0.15 + light * 0.55) * level;
       });
     });
   });
   const springRef = useKeySprings(
     platforms.length,
     (i) => platforms[i].y - PLATFORM_THICKNESS / 2,
-    (i) => (pressed.has(platforms[i].midi) ? -0.06 : 0),
+    (i) => (pressed.current.has(platforms[i].midi) ? -0.06 : 0),
   );
 
   return (
@@ -390,23 +415,10 @@ export const CourseScene = memo(function CourseScene({
       )}
 
       {platforms.map((p, i) => {
-        const isPressed = pressed.has(p.midi);
         // on the night course, steps that come and go fade with the light
         const fading = night && !alwaysLit(p);
         const lantern = night && !fading;
         const caseColor = p.kind === "goal" ? "#7a5418" : night ? "#151933" : "#2f2b27";
-        const emissive = isPressed
-          ? night
-            ? "#ffe9a8"
-            : "#b9a8ff"
-          : fading
-            ? BEAM_COLOR
-            : lantern
-              ? LANTERN_COLOR
-              : p.kind === "goal"
-                ? "#a06a00"
-                : "#000000";
-        const emissiveIntensity = isPressed ? 0.6 : lantern ? 0.35 : p.kind === "goal" ? 0.3 : 0;
         return (
           <group
             key={i}
@@ -419,12 +431,20 @@ export const CourseScene = memo(function CourseScene({
               <boxGeometry args={[p.width + 0.16, CASE_THICKNESS, p.depth + 0.16]} />
               <meshStandardMaterial color={caseColor} roughness={0.5} transparent={fading} opacity={fading ? 0 : 1} />
             </mesh>
-            <mesh ref={springRef(i)} position={[p.x, p.y - PLATFORM_THICKNESS / 2, p.z]} castShadow receiveShadow>
+            <mesh
+              ref={(el) => {
+                springRef(i)(el);
+                tops.current[i] = el;
+              }}
+              position={[p.x, p.y - PLATFORM_THICKNESS / 2, p.z]}
+              castShadow
+              receiveShadow
+            >
               <boxGeometry args={[p.width, PLATFORM_THICKNESS, p.depth]} />
               <meshStandardMaterial
                 color={p.behavior ? BEHAVIOR_COLORS[p.behavior] : COLORS[p.kind]}
-                emissive={emissive}
-                emissiveIntensity={emissiveIntensity}
+                emissive={restGlow[i].colour}
+                emissiveIntensity={restGlow[i].intensity}
                 roughness={0.45}
                 metalness={p.kind === "goal" ? 0.3 : 0}
                 transparent={fading}

@@ -454,6 +454,14 @@
   100% { transform: scale(1); opacity: 1; }
 }
 
+/* piano world: a place name drifting in and out as you arrive */
+@keyframes zone-banner {
+  0% { opacity: 0; transform: translateY(-6px); }
+  15% { opacity: 1; transform: translateY(0); }
+  75% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 @keyframes wiggle {
   0% { transform: scale(1) rotate(0deg); }
   20% { transform: scale(1.1) rotate(-6deg); }

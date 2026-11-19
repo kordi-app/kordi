@@ -4,13 +4,19 @@ import { memo, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { BUSHES, FLOWERS, GRASS, ROCKS, TREES, type Prop, type Tree } from "../model/nature";
+import { quality } from "../../lib/quality";
+import { BUSHES, FLOWERS as ALL_FLOWERS, GRASS as ALL_GRASS, ROCKS, TREES, type Prop, type Tree } from "../../model/nature";
 
 /**
  * Woods, bushes, rocks, grass and flowers: one instanced mesh per kind (a
  * few draw calls for thousands of plants). Leaves, grass and flowers sway in
  * a shared breeze.
  */
+
+/** Lighter devices draw every n-th tuft and flower */
+const thin = <T,>(items: readonly T[]) => items.filter((_, i) => i % quality.undergrowthStride === 0);
+const GRASS = thin(ALL_GRASS);
+const FLOWERS = thin(ALL_FLOWERS);
 
 /** Shared uniforms (module-level so every nature material reads the same values). */
 const wind = { value: 0 };

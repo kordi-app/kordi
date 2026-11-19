@@ -12,7 +12,7 @@ import {
   hash,
 } from "./island";
 import { REGIONS } from "./regions";
-import type { Solid } from "./terrain";
+import { buildTerrain, type Solid } from "./terrain";
 
 /**
  * The island's nature: woods, bushes, rocks, grass and flowers, scattered
@@ -157,5 +157,5 @@ export const NATURE_SOLIDS: readonly Solid[] = [
   ),
 ];
 
-/** Everything solid on the island: the musical zones plus nature. */
-export const ALL_ISLAND_SOLIDS: readonly Solid[] = [...ISLAND_SOLIDS, ...NATURE_SOLIDS];
+/** Everything solid on the island (the musical zones plus nature), indexed for fast queries. */
+export const ISLAND_TERRAIN = buildTerrain([...ISLAND_SOLIDS, ...NATURE_SOLIDS]);

@@ -249,6 +249,22 @@ export const WARP_REACH = 2.6;
 /** Where a warp puts you: just in front of the stone */
 export const warpArrival = (stone: WarpStone) => ({ x: stone.x, z: stone.z + 2.2 });
 
+// --- named places ----------------------------------------------------------
+
+/** Where you are on the island, for the HUD. Checked in order (first match wins). */
+export const ZONES: readonly { id: WarpStoneId; x: number; z: number; r: number }[] = [
+  { id: "falls", x: (CAVE.x0 + CAVE.x1) / 2, z: CLIFF.front - 2, r: 13 },
+  { id: "bridge", x: STREAM.x, z: 0, r: 7 },
+  { id: "drums", x: 72, z: 0, r: 18 },
+  { id: "tower", x: TOWER.x, z: TOWER.z, r: 13 },
+  { id: "pipes", x: -62, z: 0, r: 28 },
+  { id: "plaza", x: 0, z: 3, r: 34 },
+];
+
+export function zoneAt(x: number, z: number): WarpStoneId | null {
+  return ZONES.find((zone) => Math.hypot(x - zone.x, z - zone.z) < zone.r)?.id ?? null;
+}
+
 // --- set dressing ----------------------------------------------------------
 
 /** Lamp posts along the paths: they light up at night */

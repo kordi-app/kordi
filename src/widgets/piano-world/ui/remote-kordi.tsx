@@ -45,7 +45,8 @@ export function RemoteKordi({
     const dt = Math.min(rawDelta, 0.05);
     const ease = 1 - Math.exp(-dt * 12);
 
-    const before = pos.current.clone();
+    const beforeX = pos.current.x;
+    const beforeZ = pos.current.z;
     pos.current.x = THREE.MathUtils.lerp(pos.current.x, target.x, ease);
     pos.current.z = THREE.MathUtils.lerp(pos.current.z, target.z, ease);
     // Use the reported height when the server relays it (jumps, the climb);
@@ -60,7 +61,7 @@ export function RemoteKordi({
     const delta = ((target.h - heading.current + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
     heading.current += delta * ease;
 
-    const speed = Math.hypot(pos.current.x - before.x, pos.current.z - before.z) / Math.max(dt, 1e-3);
+    const speed = Math.hypot(pos.current.x - beforeX, pos.current.z - beforeZ) / Math.max(dt, 1e-3);
     const m = motion.current;
     m.amount = THREE.MathUtils.lerp(m.amount, Math.min(speed / 3, 1), 1 - Math.exp(-dt * 10));
     m.phase += dt * 11 * m.amount;
