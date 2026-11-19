@@ -3,22 +3,108 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import type { RegionId } from "../model/regions";
+import type { RegionId, RegionTheme } from "../model/regions";
 import { BOUNDS, CASE_H, KEYS, WHITE_H, WHITE_L } from "../model/layout";
+import { decorFor, type DecorItem } from "../model/decor";
 
-const BACK_Z = -WHITE_L / 2 - 3;
+/**
+ * Set dressing: a low fence around the walkable area, lamp posts along it,
+ * and each region's own pieces (from model/decor.ts, which also makes them
+ * solid). Cheap geometry, few real lights.
+ */
+export function RegionDecor({
+  region,
+  theme,
+  party = false,
+}: {
+  region: RegionId;
+  theme: RegionTheme;
+  party?: boolean;
+}) {
+  if (region === "clouds") return null;
+  return (
+    <group>
+      <Fence color={theme.keyboardCase} />
+      {decorFor(region).map((item) => (
+        <DecorPiece key={`${item.kind}-${item.x}-${item.z}`} item={item} theme={theme} />
+      ))}
+      {region === "neon" ? <NeonDecor party={party} /> : null}
+      {region === "lounge" ? <Fireflies /> : null}
+    </group>
+  );
+}
 
-/** Light set dressing per region — cheap geometry, few lights. */
-export function RegionDecor({ region, party = false }: { region: RegionId; party?: boolean }) {
-  switch (region) {
-    case "neon":
-      return <NeonDecor party={party} />;
-    case "cathedral":
-      return <CathedralDecor />;
-    case "lounge":
-      return <LoungeDecor />;
-    default:
-      return null;
+const FENCE_HEIGHT = 0.45;
+
+/** A low rail marking the edge of the walkable area. */
+function Fence({ color }: { color: string }) {
+  const width = BOUNDS.x * 2 + 0.6;
+  const depth = BOUNDS.zMax - BOUNDS.zMin + 0.6;
+  const centerZ = (BOUNDS.zMax + BOUNDS.zMin) / 2;
+  const rails: { position: [number, number, number]; size: [number, number, number] }[] = [
+    { position: [0, FENCE_HEIGHT / 2, BOUNDS.zMax + 0.3], size: [width, FENCE_HEIGHT, 0.12] },
+    { position: [0, FENCE_HEIGHT / 2, BOUNDS.zMin - 0.3], size: [width, FENCE_HEIGHT, 0.12] },
+    { position: [BOUNDS.x + 0.3, FENCE_HEIGHT / 2, centerZ], size: [0.12, FENCE_HEIGHT, depth] },
+    { position: [-BOUNDS.x - 0.3, FENCE_HEIGHT / 2, centerZ], size: [0.12, FENCE_HEIGHT, depth] },
+  ];
+  return (
+    <group>
+      {rails.map((rail, i) => (
+        <mesh key={i} position={rail.position} castShadow receiveShadow>
+          <boxGeometry args={rail.size} />
+          <meshStandardMaterial color={color} roughness={0.6} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function DecorPiece({ item, theme }: { item: DecorItem; theme: RegionTheme }) {
+  switch (item.kind) {
+    case "lamp":
+      return (
+        <group position={[item.x, 0, item.z]}>
+          <mesh position={[0, 1.3, 0]} castShadow>
+            <cylinderGeometry args={[0.06, 0.09, 2.6, 10]} />
+            <meshStandardMaterial color={theme.keyboardCase} roughness={0.5} />
+          </mesh>
+          <mesh position={[0, 2.75, 0]}>
+            <sphereGeometry args={[0.22, 16, 12]} />
+            <meshStandardMaterial
+              color="#fff6e0"
+              emissive={theme.dark ? theme.accent : "#ffd98a"}
+              emissiveIntensity={theme.dark ? 1.4 : 0.6}
+            />
+          </mesh>
+        </group>
+      );
+    case "column":
+      return (
+        <group position={[item.x, 0, item.z]}>
+          <mesh position={[0, 3.2, 0]} castShadow receiveShadow>
+            <cylinderGeometry args={[0.45, 0.5, 6.4, 20]} />
+            <meshStandardMaterial color="#e9e2d2" roughness={0.8} />
+          </mesh>
+          <mesh position={[0, 0.15, 0]} receiveShadow>
+            <boxGeometry args={[1.3, 0.3, 1.3]} />
+            <meshStandardMaterial color="#d6cdb9" roughness={0.9} />
+          </mesh>
+        </group>
+      );
+    case "floorLamp":
+      return (
+        <group position={[item.x, 0, item.z]}>
+          <mesh position={[0, 1.4, 0]}>
+            <cylinderGeometry args={[0.04, 0.04, 2.8, 8]} />
+            <meshStandardMaterial color="#1a1310" />
+          </mesh>
+          <mesh position={[0, 2.9, 0]}>
+            <coneGeometry args={[0.45, 0.5, 24, 1, true]} />
+            <meshStandardMaterial color="#ffcf9a" emissive="#ff9a4a" emissiveIntensity={1.2} side={2} />
+          </mesh>
+          <pointLight position={[0, 2.6, 0.4]} color="#ffb070" intensity={18} distance={9} decay={2} />
+        </group>
+      );
   }
 }
 
@@ -122,51 +208,6 @@ function NeonDecor({ party }: { party: boolean }) {
           <boxGeometry args={[length, 0.06, 0.08]} />
           <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1.3} />
         </mesh>
-      ))}
-    </group>
-  );
-}
-
-/** A colonnade behind the keys. */
-function CathedralDecor() {
-  const columns: number[] = [];
-  for (let x = -BOUNDS.x; x <= BOUNDS.x; x += 6) columns.push(x);
-  return (
-    <group>
-      {columns.map((x) => (
-        <group key={x} position={[x, 0, BACK_Z]}>
-          <mesh position={[0, 3.2, 0]} castShadow receiveShadow>
-            <cylinderGeometry args={[0.45, 0.5, 6.4, 20]} />
-            <meshStandardMaterial color="#e9e2d2" roughness={0.8} />
-          </mesh>
-          <mesh position={[0, 0.15, 0]} receiveShadow>
-            <boxGeometry args={[1.3, 0.3, 1.3]} />
-            <meshStandardMaterial color="#d6cdb9" roughness={0.9} />
-          </mesh>
-        </group>
-      ))}
-    </group>
-  );
-}
-
-/** A few warm floor lamps — the only real lights besides sun and sky. */
-function LoungeDecor() {
-  const lamps = [-16, -4, 8, 20];
-  return (
-    <group>
-      <Fireflies />
-      {lamps.map((x) => (
-        <group key={x} position={[x, 0, BACK_Z + 0.8]}>
-          <mesh position={[0, 1.4, 0]}>
-            <cylinderGeometry args={[0.04, 0.04, 2.8, 8]} />
-            <meshStandardMaterial color="#1a1310" />
-          </mesh>
-          <mesh position={[0, 2.9, 0]}>
-            <coneGeometry args={[0.45, 0.5, 24, 1, true]} />
-            <meshStandardMaterial color="#ffcf9a" emissive="#ff9a4a" emissiveIntensity={1.2} side={2} />
-          </mesh>
-          <pointLight position={[0, 2.6, 0.4]} color="#ffb070" intensity={18} distance={9} decay={2} />
-        </group>
       ))}
     </group>
   );

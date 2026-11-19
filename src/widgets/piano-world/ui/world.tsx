@@ -6,6 +6,7 @@ import * as THREE from "three";
 import { BOUNDS, CASE_H, SPAWN } from "../model/layout";
 import { COURSE_BOUNDS, courseBlocked, courseCeiling } from "../model/course";
 import { interactablesIn, type EmoteId, type InteractableId } from "../model/interactables";
+import { decorColliders } from "../model/decor";
 import {
   AIR_ACCEL,
   BODY_RADIUS,
@@ -150,8 +151,11 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
   const cameraOffset = useMemo(() => new THREE.Vector3(...region.camera), [region]);
   const items = useMemo(() => interactablesIn(region.id), [region]);
   const solids = useMemo<CircleCollider[]>(
-    () => items.filter((item) => item.solid > 0).map((item) => ({ x: item.x, z: item.z, radius: item.solid })),
-    [items],
+    () => [
+      ...items.filter((item) => item.solid > 0).map((item) => ({ x: item.x, z: item.z, radius: item.solid })),
+      ...decorColliders(region.id),
+    ],
+    [items, region],
   );
   const course = region.feature === "course";
 
@@ -418,7 +422,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       <hemisphereLight args={[region.theme.sky, region.theme.ground, region.theme.ambient]} />
 
       {course ? <CourseScene pressed={pressed} /> : <PianoFloor pressed={pressed} theme={region.theme} />}
-      <RegionDecor region={region.id} party={interaction.party} />
+      <RegionDecor region={region.id} theme={region.theme} party={interaction.party} />
       {items.map((item) => {
         switch (item.id) {
           case "cat":

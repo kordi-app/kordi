@@ -74,9 +74,9 @@ export interface RegionDef {
 const PORTAL_Z = WHITE_L / 2 + 5.5;
 
 const HALL_PORTALS: PortalDef[] = [
-  { to: "neon", x: -18, z: PORTAL_Z, color: "#ff4fd8" },
-  { to: "cathedral", x: 9, z: PORTAL_Z, color: "#c9a25a" },
-  { to: "lounge", x: 20, z: PORTAL_Z, color: "#e58a3a" },
+  { to: "neon", x: -22, z: PORTAL_Z, color: "#ff4fd8" },
+  { to: "cathedral", x: 13, z: PORTAL_Z, color: "#c9a25a" },
+  { to: "lounge", x: 28, z: PORTAL_Z, color: "#e58a3a" },
   // the secret: tucked behind the far-left end of the keyboard
   { to: "clouds", x: -26.4, z: -WHITE_L / 2 - 1.1, color: "#b9a8ff", hidden: true },
 ];
