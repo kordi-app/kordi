@@ -37,6 +37,8 @@ export interface PianoWorldCopy {
   // hidden course
   courseTitle: string;
   courseHint: string;
+  nightTitle: string;
+  nightHint: string;
   courseBest: string;
   courseDone: string;
   // sound & presence status

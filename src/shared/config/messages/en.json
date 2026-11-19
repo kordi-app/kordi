@@ -143,7 +143,8 @@
         "neon": "Neon Street",
         "cathedral": "Cathedral",
         "lounge": "Lounge",
-        "clouds": "Cloud Keys"
+        "clouds": "Cloud Keys",
+        "night": "Night Keys"
       },
       "melodies": {
         "twinkle": "Twinkle Twinkle Little Star",
@@ -156,6 +157,8 @@
       "melodyNextSong": "Next tune coming up…",
       "courseTitle": "Climb to the top",
       "courseHint": "Space to jump · fall and you start over",
+      "nightTitle": "Only lit keys hold you up",
+      "nightHint": "Cross while the light is on them · fall and you start over",
       "courseBest": "Best",
       "courseDone": "You made it! Crown earned",
       "nameLabel": "Today's name",

@@ -143,7 +143,8 @@
         "neon": "네온 거리",
         "cathedral": "성당",
         "lounge": "라운지",
-        "clouds": "구름 건반"
+        "clouds": "구름 건반",
+        "night": "밤의 건반"
       },
       "melodies": {
         "twinkle": "작은별",
@@ -156,6 +157,8 @@
       "melodyNextSong": "다음 곡을 준비하는 중…",
       "courseTitle": "꼭대기까지 올라가 보세요",
       "courseHint": "Space로 점프 · 떨어지면 처음부터 다시",
+      "nightTitle": "빛이 닿는 건반만 밟을 수 있어요",
+      "nightHint": "조명이 비출 때 건너세요 · 떨어지면 처음부터",
       "courseBest": "최고 기록",
       "courseDone": "완주! 왕관을 얻었어요",
       "nameLabel": "오늘의 이름",

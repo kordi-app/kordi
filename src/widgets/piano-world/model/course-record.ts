@@ -1,5 +1,8 @@
-/** State of the current climb on the hidden course. */
+import type { CourseId } from "./course";
+
+/** State of the current climb on a jump course. */
 export interface CourseRun {
+  course: CourseId;
   /** performance.now() when the climb began; null when not climbing */
   startedAt: number | null;
   /** highest platform index reached this attempt */
@@ -9,12 +12,16 @@ export interface CourseRun {
   best: number | null;
 }
 
-const COURSE_BEST_KEY = "kordi.world.course-best.v1";
+// the cloud course keeps its original key so earlier records carry over
+const BEST_KEYS: Record<CourseId, string> = {
+  clouds: "kordi.world.course-best.v1",
+  night: "kordi.world.course-best.night.v1",
+};
 
-/** Best time lives only in this browser; storage can be unavailable, so never throw. */
-export function readCourseBest(): number | null {
+/** Best times live only in this browser; storage can be unavailable, so never throw. */
+export function readCourseBest(course: CourseId): number | null {
   try {
-    const raw = window.localStorage.getItem(COURSE_BEST_KEY);
+    const raw = window.localStorage.getItem(BEST_KEYS[course]);
     const value = raw === null ? NaN : Number(raw);
     return Number.isFinite(value) && value > 0 ? value : null;
   } catch {
@@ -22,9 +29,9 @@ export function readCourseBest(): number | null {
   }
 }
 
-export function writeCourseBest(ms: number) {
+export function writeCourseBest(course: CourseId, ms: number) {
   try {
-    window.localStorage.setItem(COURSE_BEST_KEY, String(Math.round(ms)));
+    window.localStorage.setItem(BEST_KEYS[course], String(Math.round(ms)));
   } catch {
     // private mode etc. — the crown just won't persist
   }

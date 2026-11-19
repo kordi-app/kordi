@@ -1,17 +1,21 @@
 "use client";
 
-import { memo, useMemo, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import {
   CASE_THICKNESS,
-  COURSE,
   CRUMBLE_DELAY,
   CRUMBLE_DOWN_TIME,
-  GOAL_INDEX,
   PLATFORM_THICKNESS,
+  alwaysLit,
+  beamLight,
+  beamX,
   courseRuntime,
+  isSolid,
   slideOffset,
+  type Beam,
+  type CourseDef,
   type Platform,
 } from "../model/course";
 import { CrownMesh } from "./crown-mesh";
@@ -32,8 +36,12 @@ const BEHAVIOR_COLORS: Record<NonNullable<Platform["behavior"]>, string> = {
 };
 
 const FALL_SPEED = 6;
+const BEAM_COLOR = "#fff1c4";
+const LANTERN_COLOR = "#ffcf7a";
+/** How fast a step fades in and out of the dark (per second, exponential). */
+const FADE_RATE = 14;
 
-/** Deterministic noise so clouds stay put between renders. */
+/** Deterministic noise so clouds and stars stay put between renders. */
 function hash(i: number, salt: number) {
   const x = Math.sin(i * 57.3 + salt * 19.1) * 43758.5453;
   return x - Math.floor(x);
@@ -59,7 +67,7 @@ function Cloud({ x, y, z, scale }: { x: number; y: number; z: number; scale: num
 }
 
 /** The goal's treasure: a chest with a crown hovering over it. */
-function Treasure({ x, y, z }: { x: number; y: number; z: number }) {
+function Treasure({ x, y, z, star }: { x: number; y: number; z: number; star: boolean }) {
   const crown = useRef<THREE.Group>(null);
   useFrame(({ clock }) => {
     if (!crown.current) return;
@@ -78,14 +86,136 @@ function Treasure({ x, y, z }: { x: number; y: number; z: number }) {
         <meshStandardMaterial color="#e3b341" metalness={0.4} roughness={0.3} />
       </mesh>
       <group ref={crown}>
-        <CrownMesh />
+        <CrownMesh kind={star ? "star" : "gold"} />
       </group>
     </group>
   );
 }
 
-/** The hidden jump course: cloud sea below, floating keys going up. */
-export const CourseScene = memo(function CourseScene({ pressed }: { pressed: ReadonlySet<number> }) {
+/** Soft white texture: `fx(u)` across, `fy(v)` up (both 0–1 → 0–1 alpha). */
+function makeFalloffTexture(fx: (u: number) => number, fy: (v: number) => number) {
+  const size = 64;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  const image = ctx.createImageData(size, size);
+  for (let py = 0; py < size; py++) {
+    for (let px = 0; px < size; px++) {
+      const alpha = fx(px / (size - 1)) * fy(1 - py / (size - 1));
+      const o = (py * size + px) * 4;
+      image.data[o] = image.data[o + 1] = image.data[o + 2] = 255;
+      image.data[o + 3] = Math.round(alpha * 255);
+    }
+  }
+  ctx.putImageData(image, 0, 0);
+  return new THREE.CanvasTexture(canvas);
+}
+
+/**
+ * A searchlight: a tall shaft of light hanging from a lamp above the course,
+ * swinging with the same clock the physics reads — what you see lit is
+ * exactly what will hold you.
+ */
+function Searchlight({ beam, top, texture }: { beam: Beam; top: number; texture: THREE.Texture }) {
+  const group = useRef<THREE.Group>(null);
+  const height = top + 7;
+  useFrame(() => {
+    if (group.current) group.current.position.x = beamX(beam, courseRuntime.time);
+  });
+  return (
+    <group ref={group}>
+      {/* the shaft, between the two rows of steps */}
+      <mesh position={[0, height / 2, -1.3]}>
+        <planeGeometry args={[beam.width, height]} />
+        <meshBasicMaterial
+          map={texture}
+          color={BEAM_COLOR}
+          transparent
+          opacity={0.34}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          toneMapped={false}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      {/* the lamp it hangs from */}
+      <mesh position={[0, height, -1.3]}>
+        <cylinderGeometry args={[0.35, 0.6, 0.5, 20]} />
+        <meshStandardMaterial color="#20243a" emissive={BEAM_COLOR} emissiveIntensity={0.6} />
+      </mesh>
+    </group>
+  );
+}
+
+/** Night backdrop: stars that ignore the fog, and a moon. */
+function NightSky() {
+  const geometry = useMemo(() => {
+    const COUNT = 420;
+    const positions = new Float32Array(COUNT * 3);
+    for (let i = 0; i < COUNT; i++) {
+      positions[i * 3] = (hash(i, 11) - 0.5) * 140;
+      positions[i * 3 + 1] = hash(i, 12) * 60 - 4;
+      positions[i * 3 + 2] = -30 - hash(i, 13) * 20;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    return g;
+  }, []);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
+  const stars = useRef<THREE.Points>(null);
+  useFrame(({ clock }) => {
+    const material = stars.current?.material as THREE.PointsMaterial | undefined;
+    if (material) material.opacity = 0.75 + Math.sin(clock.getElapsedTime() * 1.7) * 0.15; // a slow twinkle
+  });
+
+  return (
+    <group>
+      <points ref={stars} geometry={geometry}>
+        <pointsMaterial color="#ffffff" size={0.22} sizeAttenuation transparent fog={false} depthWrite={false} />
+      </points>
+      <mesh position={[16, 26, -34]}>
+        <sphereGeometry args={[2.4, 32, 24]} />
+        <meshBasicMaterial color="#fff4d6" fog={false} toneMapped={false} />
+      </mesh>
+      <mesh position={[16, 26, -34.5]}>
+        <circleGeometry args={[6, 48]} />
+        <meshBasicMaterial color="#9fb0ff" transparent opacity={0.12} fog={false} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+}
+
+/** A little lantern on a landing: the night course's safe spots carry their own light. */
+function Lantern({ x, y, z }: { x: number; y: number; z: number }) {
+  return (
+    <group position={[x, y, z]}>
+      <mesh position={[0, 0.45, 0]}>
+        <cylinderGeometry args={[0.03, 0.03, 0.9, 6]} />
+        <meshStandardMaterial color="#2a2a3a" />
+      </mesh>
+      <mesh position={[0, 0.98, 0]}>
+        <sphereGeometry args={[0.14, 16, 12]} />
+        <meshBasicMaterial color={LANTERN_COLOR} toneMapped={false} />
+      </mesh>
+    </group>
+  );
+}
+
+/**
+ * A jump course: floating keys going up. The cloud course sits over a cloud
+ * sea in daylight; the night course over dark water under stars, where steps
+ * only show — and only hold — while a searchlight is on them.
+ */
+export const CourseScene = memo(function CourseScene({
+  course,
+  pressed,
+}: {
+  course: CourseDef;
+  pressed: ReadonlySet<number>;
+}) {
+  const { platforms, goalIndex, beams } = course;
+  const night = beams !== undefined;
   const clouds = useMemo(
     () =>
       Array.from({ length: 18 }, (_, i) => ({
@@ -96,15 +226,40 @@ export const CourseScene = memo(function CourseScene({ pressed }: { pressed: Rea
       })),
     [],
   );
-  const goal = COURSE[GOAL_INDEX];
-  const platformGroups = useRef<(THREE.Group | null)[]>([]);
+  const beamTexture = useMemo(
+    () =>
+      makeFalloffTexture(
+        (u) => Math.max(0, 1 - Math.abs(u - 0.5) * 2) ** 0.6,
+        (v) => 0.35 + 0.65 * v,
+      ),
+    [],
+  );
+  useEffect(() => () => beamTexture.dispose(), [beamTexture]);
+  const outlines = useMemo(
+    () =>
+      platforms.map((p) => {
+        const box = new THREE.BoxGeometry(p.width, PLATFORM_THICKNESS, p.depth);
+        const edges = new THREE.EdgesGeometry(box);
+        box.dispose();
+        return edges;
+      }),
+    [platforms],
+  );
+  useEffect(() => () => outlines.forEach((g) => g.dispose()), [outlines]);
 
-  // slide, wobble and drop platforms from the same runtime the physics reads
-  useFrame(() => {
+  const goal = platforms[goalIndex];
+  const platformGroups = useRef<(THREE.Group | null)[]>([]);
+  /** smoothed 0–1 visibility per step on the night course */
+  const levels = useRef(platforms.map(() => 0));
+
+  // slide, wobble, drop and light platforms from the same runtime the physics reads
+  useFrame((_, rawDelta) => {
     const t = courseRuntime.time;
+    const fade = 1 - Math.exp(-Math.min(rawDelta, 0.05) * FADE_RATE);
     platformGroups.current.forEach((group, i) => {
       if (!group) return;
-      let x = slideOffset(i, t);
+      const p = platforms[i];
+      let x = slideOffset(course, i, t);
       let y = 0;
       const wobbleSince = courseRuntime.crumbling.get(i);
       if (wobbleSince !== undefined) {
@@ -120,27 +275,74 @@ export const CourseScene = memo(function CourseScene({ pressed }: { pressed: Rea
         group.visible = y > -12; // gone once it's dropped well out of view
       }
       group.position.set(x, y, 0);
+
+      if (!night || alwaysLit(p)) return;
+      // lit: full; in the grace window after the light leaves: half, as a warning; dark: gone
+      const light = Math.max(0, beamLight(course, p.x, t));
+      const want = isSolid(course, i) ? (light > 0 ? 1 : 0.5) : 0;
+      const level = (levels.current[i] += (want - levels.current[i]) * fade);
+      group.children.forEach((child) => {
+        if (!(child instanceof THREE.Mesh)) return; // the outline stays as it is
+        const material = child.material as THREE.MeshStandardMaterial;
+        material.opacity = 0.04 + 0.96 * level;
+        material.depthWrite = level > 0.9;
+        material.emissiveIntensity = (0.15 + light * 0.55) * level;
+      });
     });
   });
   const springRef = useKeySprings(
-    COURSE.length,
-    (i) => COURSE[i].y - PLATFORM_THICKNESS / 2,
-    (i) => (pressed.has(COURSE[i].midi) ? -0.06 : 0),
+    platforms.length,
+    (i) => platforms[i].y - PLATFORM_THICKNESS / 2,
+    (i) => (pressed.has(platforms[i].midi) ? -0.06 : 0),
   );
+
+  const top = goal.y;
 
   return (
     <group>
-      {/* the cloud sea you fall back into */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[140, 80]} />
-        <meshStandardMaterial color="#dbe7f6" roughness={1} />
-      </mesh>
-      {clouds.map((c, i) => (
-        <Cloud key={i} {...c} />
-      ))}
+      {night ? (
+        <>
+          <NightSky />
+          {/* dark water far below */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+            <planeGeometry args={[140, 80]} />
+            <meshStandardMaterial color="#0b1030" roughness={0.9} />
+          </mesh>
+          {beams.map((beam, i) => (
+            <Searchlight key={i} beam={beam} top={top} texture={beamTexture} />
+          ))}
+        </>
+      ) : (
+        <>
+          {/* the cloud sea you fall back into */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+            <planeGeometry args={[140, 80]} />
+            <meshStandardMaterial color="#dbe7f6" roughness={1} />
+          </mesh>
+          {clouds.map((c, i) => (
+            <Cloud key={i} {...c} />
+          ))}
+        </>
+      )}
 
-      {COURSE.map((p, i) => {
+      {platforms.map((p, i) => {
         const isPressed = pressed.has(p.midi);
+        // on the night course, steps that come and go fade with the light
+        const fading = night && !alwaysLit(p);
+        const lantern = night && !fading;
+        const caseColor = p.kind === "goal" ? "#7a5418" : night ? "#151933" : "#2f2b27";
+        const emissive = isPressed
+          ? night
+            ? "#ffe9a8"
+            : "#b9a8ff"
+          : fading
+            ? BEAM_COLOR
+            : lantern
+              ? LANTERN_COLOR
+              : p.kind === "goal"
+                ? "#a06a00"
+                : "#000000";
+        const emissiveIntensity = isPressed ? 0.6 : lantern ? 0.35 : p.kind === "goal" ? 0.3 : 0;
         return (
           <group
             key={i}
@@ -148,25 +350,34 @@ export const CourseScene = memo(function CourseScene({ pressed }: { pressed: Rea
               platformGroups.current[i] = el;
             }}
           >
-            {/* dark case under every step, so it reads against the white sky like a piano key */}
+            {/* dark case under every step, so it reads against the sky like a piano key */}
             <mesh position={[p.x, p.y - PLATFORM_THICKNESS - CASE_THICKNESS / 2, p.z]} castShadow receiveShadow>
               <boxGeometry args={[p.width + 0.16, CASE_THICKNESS, p.depth + 0.16]} />
-              <meshStandardMaterial color={p.kind === "goal" ? "#7a5418" : "#2f2b27"} roughness={0.5} />
+              <meshStandardMaterial color={caseColor} roughness={0.5} transparent={fading} opacity={fading ? 0 : 1} />
             </mesh>
             <mesh ref={springRef(i)} position={[p.x, p.y - PLATFORM_THICKNESS / 2, p.z]} castShadow receiveShadow>
               <boxGeometry args={[p.width, PLATFORM_THICKNESS, p.depth]} />
               <meshStandardMaterial
                 color={p.behavior ? BEHAVIOR_COLORS[p.behavior] : COLORS[p.kind]}
-                emissive={isPressed ? "#b9a8ff" : p.kind === "goal" ? "#a06a00" : "#000000"}
-                emissiveIntensity={isPressed ? 0.6 : p.kind === "goal" ? 0.3 : 0}
+                emissive={emissive}
+                emissiveIntensity={emissiveIntensity}
                 roughness={0.45}
                 metalness={p.kind === "goal" ? 0.3 : 0}
+                transparent={fading}
+                opacity={fading ? 0 : 1}
               />
             </mesh>
+            {fading ? (
+              // a faint outline in the dark, so you can learn the route before the light comes
+              <lineSegments geometry={outlines[i]} position={[p.x, p.y - PLATFORM_THICKNESS / 2, p.z]}>
+                <lineBasicMaterial color="#8fa0ff" transparent opacity={0.3} />
+              </lineSegments>
+            ) : null}
+            {lantern && p.kind === "rest" ? <Lantern x={p.x - p.width / 2 + 0.2} y={p.y} z={p.z - p.depth / 2 + 0.2} /> : null}
           </group>
         );
       })}
-      <Treasure x={goal.x} y={goal.y} z={goal.z} />
+      <Treasure x={goal.x} y={goal.y} z={goal.z} star={night} />
     </group>
   );
 });

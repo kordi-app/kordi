@@ -1,5 +1,5 @@
 import { CASE_H, PRESS_DEPTH, keyAt } from "./layout";
-import { COURSE, courseGround } from "./course";
+import { courseGround } from "./course";
 import type { RegionDef } from "./regions";
 
 /** Walking speed, units per second. */
@@ -107,12 +107,14 @@ export interface Ground {
 
 /** What's underfoot in this region at (x, z), given the current height. */
 export function groundAt(region: RegionDef, x: number, z: number, y: number): Ground {
-  if (region.feature === "course") {
-    const hit = courseGround(x, z, y);
+  const course = region.course;
+  if (course) {
+    const hit = courseGround(course, x, z, y);
+    const platform = hit.index === null ? null : course.platforms[hit.index];
     return {
       height: hit.height,
-      midi: hit.index === null ? null : COURSE[hit.index].midi,
-      black: hit.index !== null && COURSE[hit.index].kind === "black",
+      midi: platform?.midi ?? null,
+      black: platform?.kind === "black",
       platform: hit.index,
     };
   }

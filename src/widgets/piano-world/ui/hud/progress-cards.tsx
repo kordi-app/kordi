@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { midiToNoteName } from "@/shared/lib/music";
-import { GOAL_INDEX } from "../../model/course";
+import { COURSES } from "../../model/course";
 import { formatTime, type CourseRun } from "../../model/course-record";
 import type { PianoWorldCopy } from "../../model/copy";
 import type { Melody } from "../../model/melodies";
@@ -79,14 +79,15 @@ export function CourseCard({ run, copy }: { run: CourseRun; copy: PianoWorldCopy
 
   const elapsed = run.startedAt !== null ? now - run.startedAt : (run.finishedMs ?? 0);
   const justFinished = run.finishedMs !== null && run.startedAt === null;
+  const night = run.course === "night";
 
   return (
     <ProgressCard
-      title={justFinished ? copy.courseDone : copy.courseTitle}
+      title={justFinished ? copy.courseDone : night ? copy.nightTitle : copy.courseTitle}
       value={<span className="text-lg font-semibold tabular-nums text-foreground">{formatTime(elapsed)}</span>}
-      ratio={run.reached / GOAL_INDEX}
-      barClass="bg-[#8f7cff]"
-      hint={run.best !== null ? `${copy.courseBest} ${formatTime(run.best)}` : copy.courseHint}
+      ratio={run.reached / COURSES[run.course].goalIndex}
+      barClass={night ? "bg-[#ffd36a]" : "bg-[#8f7cff]"}
+      hint={run.best !== null ? `${copy.courseBest} ${formatTime(run.best)}` : night ? copy.nightHint : copy.courseHint}
     />
   );
 }

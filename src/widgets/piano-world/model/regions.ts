@@ -1,6 +1,6 @@
 import type { InstrumentId } from "@/shared/lib/audio";
 import { SPAWN, WHITE_L } from "./layout";
-import { COURSE, COURSE_START, GOAL_INDEX } from "./course";
+import { COURSES, type CourseDef } from "./course";
 
 /**
  * The piano world is a hub (the Grand Hall) with portals out to themed
@@ -10,7 +10,7 @@ import { COURSE, COURSE_START, GOAL_INDEX } from "./course";
  * optionally, decor), not a scene change.
  */
 
-export const REGION_IDS = ["hall", "neon", "cathedral", "lounge", "clouds"] as const;
+export const REGION_IDS = ["hall", "neon", "cathedral", "lounge", "clouds", "night"] as const;
 export type RegionId = (typeof REGION_IDS)[number];
 
 export function isRegionId(value: unknown): value is RegionId {
@@ -56,7 +56,7 @@ export interface PortalDef {
  * - springs: black keys bounce you into the air; the floor pulses
  * - echo: steps ripple and the organ rings on after you leave a key
  * - chords: each step plays a jazz seventh chord built on that key
- * - course: a hidden jump climb (no keyboard floor; see course.ts)
+ * - course: a jump climb (no keyboard floor; see course.ts)
  */
 export type RegionFeature = "melody" | "springs" | "echo" | "chords" | "course";
 
@@ -68,6 +68,8 @@ export interface RegionDef {
   camera: [x: number, y: number, z: number];
   theme: RegionTheme;
   portals: PortalDef[];
+  /** The jump course, for course regions */
+  course?: CourseDef;
 }
 
 /** Portals stand well out on the open floor, clear of the keyboard. */
@@ -87,6 +89,16 @@ const DEFAULT_CAMERA: RegionDef["camera"] = [0, 12, 14];
 const homePortal = (color: string): PortalDef[] => [
   { to: "hall", x: SPAWN.x + 5, z: PORTAL_Z, color },
 ];
+
+const CLOUDS = COURSES.clouds;
+const NIGHT = COURSES.night;
+const goalOf = (course: CourseDef) => course.platforms[course.goalIndex];
+
+/** A portal standing on a course's goal; `side` shifts it off-centre so two fit. */
+const goalPortal = (course: CourseDef, to: RegionId, color: string, side = 0): PortalDef => {
+  const goal = goalOf(course);
+  return { to, x: goal.x + side, y: goal.y, z: goal.z - 0.6, color };
+};
 
 export const REGIONS: Record<RegionId, RegionDef> = {
   hall: {
@@ -195,10 +207,12 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     feature: "course",
     camera: [0, 4.5, 12],
     portals: [
-      { to: "hall", x: COURSE_START.x - 3, z: COURSE_START.z, color: "#8f7cff" },
-      // a way home once you've made it to the top
-      { to: "hall", x: COURSE[GOAL_INDEX].x, y: COURSE[GOAL_INDEX].y, z: COURSE[GOAL_INDEX].z - 0.6, color: "#d4a64a" },
+      { to: "hall", x: CLOUDS.start.x - 3, z: CLOUDS.start.z, color: "#8f7cff" },
+      // at the top: home, or on into the night
+      goalPortal(CLOUDS, "hall", "#d4a64a", -0.85),
+      goalPortal(CLOUDS, "night", "#5b6cff", 0.85),
     ],
+    course: CLOUDS,
     theme: {
       background: "#cfe4fb",
       fog: [26, 60],
@@ -218,6 +232,35 @@ export const REGIONS: Record<RegionId, RegionDef> = {
       accent: "#8f7cff",
     },
   },
+  night: {
+    id: "night",
+    instrument: "synth-pad",
+    feature: "course",
+    camera: [0, 4.5, 12],
+    portals: [
+      { to: "clouds", x: NIGHT.start.x - 3, z: NIGHT.start.z, color: "#8f7cff" },
+      goalPortal(NIGHT, "hall", "#ffd36a"),
+    ],
+    course: NIGHT,
+    theme: {
+      background: "#070a1a",
+      fog: [24, 60],
+      floor: "#0d1230",
+      keyboardCase: "#05060f",
+      white: "#e9ecff",
+      whitePressed: "#c8cff8",
+      black: "#1a1d33",
+      blackPressed: "#3a4170",
+      pressedGlow: "#ffe9a8",
+      sky: "#3a4a8a",
+      ground: "#070a1a",
+      ambient: 0.7,
+      sun: 0.45,
+      sunColor: "#9fb0ff",
+      dark: true,
+      accent: "#ffe08a",
+    },
+  },
 };
 
 /** How close (in floor units) you must step to a portal to go through it. */
@@ -225,7 +268,8 @@ export const PORTAL_RADIUS = 0.95;
 
 /** Where you appear in `to` after coming from `from`: just in front of the portal home, facing the keys. */
 export function arrivalPoint(to: RegionId, from: RegionId | null): { x: number; z: number } {
-  if (to === "clouds") return { ...COURSE_START };
+  const course = REGIONS[to].course;
+  if (course) return { ...course.start };
   if (from === null) return { x: SPAWN.x, z: SPAWN.z };
   // Prefer a floor-level portal back to where you came from
   const portal =

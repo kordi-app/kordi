@@ -43,7 +43,7 @@ export default function PianoWorldScene({
 
   const { region, regionRef, arrival, fading, travel } = useRegionTravel();
   const melody = useMelodyGame(bumpCelebrate);
-  const course = useCourseRun(bumpCelebrate);
+  const course = useCourseRun(bumpCelebrate, region.course?.id);
   const { emote, play: playEmote, cancel: cancelEmote, toggle: toggleEmote } = useEmote();
   const { remotes, info: presenceInfo, sendPosition } = useWorldPresence(name, region.id);
 
@@ -75,20 +75,22 @@ export default function PianoWorldScene({
     },
   });
 
+  const { handlePlatform: handleCoursePlatform, enter: enterCourse } = course;
   const handlePortal = useCallback(
     (to: RegionId) =>
       travel(to, (next) => {
         silence();
         resetInteractions();
+        if (next.course) enterCourse(next.course);
         if (isOn()) switchInstrument(next.instrument);
       }),
-    [travel, silence, resetInteractions, isOn, switchInstrument],
+    [travel, silence, resetInteractions, isOn, switchInstrument, enterCourse],
   );
 
-  const { handlePlatform: handleCoursePlatform } = course;
   const handlePlatform = useCallback(
     (index: number | null) => {
-      if (regionRef.current.feature === "course") handleCoursePlatform(index);
+      const active = regionRef.current.course;
+      if (active) handleCoursePlatform(active, index);
     },
     [handleCoursePlatform, regionRef],
   );
@@ -116,7 +118,7 @@ export default function PianoWorldScene({
   const display: WorldDisplay = {
     emote,
     target: region.feature === "melody" ? melody.target : null,
-    crowned: course.crowned,
+    crown: course.crown,
     interaction: interactions.scene,
     celebrate,
   };

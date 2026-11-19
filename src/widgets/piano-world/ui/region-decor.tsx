@@ -18,7 +18,7 @@ export function RegionDecor({
   region: RegionId;
   party?: boolean;
 }) {
-  if (region === "clouds") return null;
+  if (region === "clouds" || region === "night") return null;
   return (
     <group>
       {decorFor(region).map((item) => (

@@ -6,14 +6,12 @@ import * as THREE from "three";
 import { BOUNDS, CASE_H, SPAWN } from "../model/layout";
 import {
   BOUNCE_BOOST,
-  COURSE,
-  COURSE_BOUNDS,
   courseBlocked,
   courseCeiling,
   courseRuntime,
   slideOffset,
+  tickCourse,
   touchCrumble,
-  updateCrumbles,
 } from "../model/course";
 import { interactablesIn, type EmoteId, type InteractableId } from "../model/interactables";
 import { decorColliders } from "../model/decor";
@@ -46,7 +44,7 @@ import type { RemotePlayer } from "../lib/use-world-presence";
 import type { InteractionScene } from "../lib/use-interactions";
 import { CourseScene } from "./course-scene";
 import { EmoteBubble } from "./emote-bubble";
-import { KordiModel, type KordiMotion } from "./kordi-model";
+import { KordiModel, type CrownKind, type KordiMotion } from "./kordi-model";
 import { PianoFloor } from "./piano-floor";
 import { Portal } from "./portal";
 import { RegionDecor } from "./region-decor";
@@ -97,8 +95,8 @@ export interface WorldDisplay {
   emote: EmoteId | null;
   /** melody game: the key to step on next */
   target: number | null;
-  /** finished the hidden course at least once */
-  crowned: boolean;
+  /** reward for finishing a jump course (star = the night one) */
+  crown: CrownKind;
   interaction: InteractionScene;
   /** bump to fire confetti over Kordi */
   celebrate: number;
@@ -124,12 +122,13 @@ interface WorldProps {
  */
 export function World({ region, arrival, input, takeJump, presence, display, events }: WorldProps) {
   const { remotes, others, sendPosition } = presence;
-  const { emote, target, crowned, interaction, celebrate } = display;
+  const { emote, target, crown, interaction, celebrate } = display;
   const camera = useThree((state) => state.camera);
 
   const kordi = useRef<THREE.Group>(null);
   const light = useRef<THREE.DirectionalLight>(null);
   const bubble = useRef<THREE.Group>(null);
+  const lantern = useRef<THREE.Group>(null);
   const fx = useRef<StepEffectsApi>(null);
   const motion = useRef<KordiMotion>({ phase: 0, amount: 0, emote: null, land: 0, stretch: 0, lean: 0, bank: 0 });
   const sim = useRef({
@@ -177,7 +176,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     ],
     [items, region],
   );
-  const course = region.feature === "course";
+  const course = region.course ?? null;
 
   useFrame((state, rawDelta) => {
     const dt = Math.min(rawDelta, 0.05);
@@ -189,10 +188,9 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     if (course) {
       // ride along on a sliding platform (before anything else moves)
       if (!s.airborne && s.platform !== null) {
-        s.pos.x += slideOffset(s.platform, now) - slideOffset(s.platform, courseRuntime.time);
+        s.pos.x += slideOffset(course, s.platform, now) - slideOffset(course, s.platform, courseRuntime.time);
       }
-      courseRuntime.time = now;
-      updateCrumbles(now);
+      tickCourse(course, now);
     }
 
     // --- arrival: cut (don't glide) to the new spot while the screen is faded
@@ -223,14 +221,14 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
 
     const speed = Math.hypot(s.vx, s.vz);
     if (speed > 1e-3) {
-      const bounds = course ? COURSE_BOUNDS : BOUNDS;
+      const bounds = course ? course.bounds : BOUNDS;
       const nextX = THREE.MathUtils.clamp(s.pos.x + s.vx * dt, -bounds.x, bounds.x);
       const nextZ = THREE.MathUtils.clamp(s.pos.z + s.vz * dt, bounds.zMin, bounds.zMax);
       if (course) {
         // Course steps are solid: resolve each axis separately so you slide along a side
-        if (!courseBlocked(nextX, s.pos.z, s.pos.y)) s.pos.x = nextX;
+        if (!courseBlocked(course, nextX, s.pos.z, s.pos.y)) s.pos.x = nextX;
         else s.vx = 0;
-        if (!courseBlocked(s.pos.x, nextZ, s.pos.y)) s.pos.z = nextZ;
+        if (!courseBlocked(course, s.pos.x, nextZ, s.pos.y)) s.pos.z = nextZ;
         else s.vz = 0;
       } else {
         s.pos.x = nextX;
@@ -321,7 +319,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       const cut = s.vy > 0 && !keys.jumpHeld && !s.springing ? JUMP_CUT_GRAVITY : 1;
       s.vy -= GRAVITY * cut * dt;
       const nextY = s.pos.y + s.vy * dt;
-      const ceiling = course && s.vy > 0 ? courseCeiling(s.pos.x, s.pos.z, s.pos.y, nextY) : null;
+      const ceiling = course && s.vy > 0 ? courseCeiling(course, s.pos.x, s.pos.z, s.pos.y, nextY) : null;
       if (ceiling !== null) {
         s.pos.y = ceiling; // bonk: head hit a step's underside
         s.vy = 0;
@@ -340,7 +338,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
           fx.current?.dust(s.pos.x, s.pos.y, s.pos.z);
         }
         // trampoline: land and get flung back up
-        if (course && ground.platform !== null && COURSE[ground.platform].behavior === "bounce") {
+        if (course && ground.platform !== null && course.platforms[ground.platform].behavior === "bounce") {
           s.airborne = true;
           s.jumped = true;
           s.springing = true;
@@ -364,7 +362,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       s.platform = ground.platform;
       events.onPlatform(ground.platform);
     }
-    if (course && !s.airborne && s.platform !== null) touchCrumble(s.platform, now);
+    if (course && !s.airborne && s.platform !== null) touchCrumble(course, s.platform, now);
     if (midi !== s.midi) {
       s.midi = midi;
       events.onStep(midi);
@@ -489,6 +487,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       kordi.current.position.copy(s.pos);
       kordi.current.rotation.y = s.heading;
     }
+    lantern.current?.position.set(s.pos.x + 0.9, s.pos.y + 2.6, s.pos.z + 1.4);
     bubble.current?.position.set(s.pos.x, s.pos.y + EMOTE_BUBBLE_HEIGHT, s.pos.z);
     // The keyboard is 52 keys wide: the sun travels with Kordi so nearby shadows stay crisp
     if (light.current) {
@@ -523,7 +522,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       />
       <hemisphereLight args={[region.theme.sky, region.theme.ground, region.theme.ambient]} />
 
-      {course ? <CourseScene pressed={pressed} /> : <PianoFloor pressed={pressed} theme={region.theme} />}
+      {course ? <CourseScene key={course.id} course={course} pressed={pressed} /> : <PianoFloor pressed={pressed} theme={region.theme} />}
       <RegionDecor region={region.id} party={interaction.party} />
       {items.map((item) => {
         switch (item.id) {
@@ -566,10 +565,16 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       ))}
 
       {/* scaled up so the character reads at a glance against the giant keys */}
-      <KordiModel ref={kordi} motion={motion} scale={KORDI_SCALE} crown={crowned} />
+      <KordiModel ref={kordi} motion={motion} scale={KORDI_SCALE} crown={crown} />
+      {course?.beams ? (
+        // a small lantern Kordi carries through the dark
+        <group ref={lantern}>
+          <pointLight color="#ffd9a0" intensity={14} distance={7} decay={2} />
+        </group>
+      ) : null}
       <group ref={bubble}>{emote ? <EmoteBubble emote={emote} /> : null}</group>
       {others.map((other) => (
-        <RemoteKordi key={other.id} id={other.id} name={other.name} remotes={remotes} course={course} />
+        <RemoteKordi key={other.id} id={other.id} name={other.name} remotes={remotes} course={course !== null} />
       ))}
     </>
   );

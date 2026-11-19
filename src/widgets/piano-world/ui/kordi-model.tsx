@@ -3,7 +3,9 @@
 import { forwardRef, useRef, type MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { CrownMesh } from "./crown-mesh";
+import { CrownMesh, type CrownKind } from "./crown-mesh";
+
+export type { CrownKind };
 import type { EmoteId } from "../model/interactables";
 
 export interface KordiMotion {
@@ -42,8 +44,8 @@ const BODY_DEPTH = 0.9;
  */
 export const KordiModel = forwardRef<
   THREE.Group,
-  { motion: MutableRefObject<KordiMotion>; scale?: number; crown?: boolean }
->(function KordiModel({ motion, scale = 1, crown = false }, ref) {
+  { motion: MutableRefObject<KordiMotion>; scale?: number; crown?: CrownKind }
+>(function KordiModel({ motion, scale = 1, crown = null }, ref) {
   const leftFoot = useRef<THREE.Mesh>(null);
   const rightFoot = useRef<THREE.Mesh>(null);
   const leftArm = useRef<THREE.Mesh>(null);
@@ -191,7 +193,7 @@ export const KordiModel = forwardRef<
 
         {crown ? (
           <group position={[0, 1.33, 0]} rotation={[0, 0, 0.12]} scale={0.95}>
-            <CrownMesh />
+            <CrownMesh kind={crown} />
           </group>
         ) : null}
 
