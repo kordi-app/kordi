@@ -4,9 +4,21 @@ import { useMemo, useRef, useState, type RefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { BOUNDS, CASE_H, SPAWN } from "../model/layout";
-import { COURSE_BOUNDS, courseBlocked, courseCeiling } from "../model/course";
+import {
+  BOUNCE_BOOST,
+  COURSE,
+  COURSE_BOUNDS,
+  courseBlocked,
+  courseCeiling,
+  courseRuntime,
+  slideOffset,
+  touchCrumble,
+  updateCrumbles,
+} from "../model/course";
 import { interactablesIn, type EmoteId, type InteractableId } from "../model/interactables";
 import { decorColliders } from "../model/decor";
+import { BALL_RADIUS, ballSpawns, newBall, stepBall, type Ball } from "../model/ball";
+import { NoteBall } from "./note-ball";
 import {
   AIR_ACCEL,
   BODY_RADIUS,
@@ -64,6 +76,8 @@ export interface WorldEvents {
   onNearby: (id: InteractableId | null) => void;
   /** the key the cat is on, only while it's within earshot */
   onCatStep: (midi: number | null) => void;
+  /** a note ball hit or rolled onto a key */
+  onBallNote: (midi: number, velocity: number) => void;
 }
 
 export interface WorldPresence {
@@ -117,7 +131,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
   const light = useRef<THREE.DirectionalLight>(null);
   const bubble = useRef<THREE.Group>(null);
   const fx = useRef<StepEffectsApi>(null);
-  const motion = useRef<KordiMotion>({ phase: 0, amount: 0, emote: null, land: 0, stretch: 0 });
+  const motion = useRef<KordiMotion>({ phase: 0, amount: 0, emote: null, land: 0, stretch: 0, lean: 0, bank: 0 });
   const sim = useRef({
     pos: new THREE.Vector3(SPAWN.x, CASE_H, SPAWN.z),
     heading: 0, // face the camera on arrival
@@ -131,6 +145,8 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     springing: false,
     sinceGrounded: 0,
     jumpBuffer: 0,
+    lastForward: 0,
+    bumpCooldown: 0,
     midi: null as number | null,
     platform: null as number | null,
   });
@@ -149,6 +165,10 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
   const nearby = useRef<InteractableId | null>(null);
 
   const cameraOffset = useMemo(() => new THREE.Vector3(...region.camera), [region]);
+  const spawns = useMemo(() => ballSpawns(region.id, SPAWN), [region]);
+  const balls = useRef<Ball[]>([]);
+  const ballMeshes = useRef<(THREE.Mesh | null)[]>([]);
+  const ballSpin = useRef({ axis: new THREE.Vector3(), turn: new THREE.Quaternion() });
   const items = useMemo(() => interactablesIn(region.id), [region]);
   const solids = useMemo<CircleCollider[]>(
     () => [
@@ -159,10 +179,21 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
   );
   const course = region.feature === "course";
 
-  useFrame((_, rawDelta) => {
+  useFrame((state, rawDelta) => {
     const dt = Math.min(rawDelta, 0.05);
     const s = sim.current;
     const keys = input.current;
+
+    // the course's moving and crumbling platforms run on the shared clock
+    const now = state.clock.getElapsedTime();
+    if (course) {
+      // ride along on a sliding platform (before anything else moves)
+      if (!s.airborne && s.platform !== null) {
+        s.pos.x += slideOffset(s.platform, now) - slideOffset(s.platform, courseRuntime.time);
+      }
+      courseRuntime.time = now;
+      updateCrumbles(now);
+    }
 
     // --- arrival: cut (don't glide) to the new spot while the screen is faded
     if (placedFor.current !== arrival) {
@@ -174,6 +205,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       portalArmed.current = false;
       camera.position.copy(s.pos).add(cameraOffset);
       lookTarget.current.set(s.pos.x, s.pos.y + 0.6, s.pos.z - 1.2);
+      balls.current = spawns.map((spot) => newBall(spot.x, spot.z));
     }
 
     // --- walking: velocity eases toward the input direction (momentum, weaker in the air)
@@ -217,6 +249,25 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       const shoved = resolveCircles(pushed.x, pushed.z, BODY_RADIUS, nearbyPlayers);
       s.pos.x = THREE.MathUtils.lerp(pushed.x, shoved.x, 1 - Math.exp(-dt * 10)); // soft, not a wall
       s.pos.z = THREE.MathUtils.lerp(pushed.z, shoved.z, 1 - Math.exp(-dt * 10));
+      // Bump: running into someone bounces you back with a little hop. Every
+      // client does this for its own player, so both sides of a collision
+      // bounce — no server physics needed.
+      if (shoved.normal && s.bumpCooldown === 0) {
+        const closing = -(s.vx * shoved.normal.x + s.vz * shoved.normal.z);
+        if (closing > 1) {
+          const kick = closing * 1.4 + 1.5;
+          s.vx += shoved.normal.x * kick;
+          s.vz += shoved.normal.z * kick;
+          if (!s.airborne) {
+            s.airborne = true;
+            s.jumped = true;
+            s.vy = 3.2;
+          }
+          motion.current.land = 0.5;
+          s.bumpCooldown = 0.4;
+        }
+      }
+      s.bumpCooldown = Math.max(0, s.bumpCooldown - dt);
       if (pushed.normal) {
         // stop pushing into the prop, keep sliding along it
         const into = s.vx * pushed.normal.x + s.vz * pushed.normal.z;
@@ -226,11 +277,24 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
         }
       }
     }
+    const previousHeading = s.heading;
     if (speed > 0.3) {
       s.heading = lerpAngle(s.heading, Math.atan2(s.vx, s.vz), 1 - Math.exp(-dt * 12));
     }
 
     const m = motion.current;
+    // body language: acceleration along the facing direction → lean, turn rate → bank
+    const forwardSpeed = s.vx * Math.sin(s.heading) + s.vz * Math.cos(s.heading);
+    const forwardAccel = (forwardSpeed - s.lastForward) / Math.max(dt, 1e-3);
+    s.lastForward = forwardSpeed;
+    const turnRate = lerpAngle(0, s.heading - previousHeading, 1) / Math.max(dt, 1e-3);
+    const ease = 1 - Math.exp(-dt * 8);
+    m.lean = THREE.MathUtils.lerp(m.lean, THREE.MathUtils.clamp(forwardAccel / 20, -1, 1), ease);
+    m.bank = THREE.MathUtils.lerp(
+      m.bank,
+      THREE.MathUtils.clamp((turnRate * speed) / 25, -1, 1),
+      ease,
+    );
     m.amount = THREE.MathUtils.lerp(m.amount, Math.min(speed / SPEED, 1), 1 - Math.exp(-dt * 10));
     m.phase += dt * 11 * m.amount;
     m.emote = emote;
@@ -275,6 +339,14 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
           m.land = Math.min(1, (impact - HARD_LANDING) / 8 + 0.35);
           fx.current?.dust(s.pos.x, s.pos.y, s.pos.z);
         }
+        // trampoline: land and get flung back up
+        if (course && ground.platform !== null && COURSE[ground.platform].behavior === "bounce") {
+          s.airborne = true;
+          s.jumped = true;
+          s.springing = true;
+          s.vy = JUMP_SPEED * BOUNCE_BOOST;
+          m.land = 0.8;
+        }
       }
     } else if (s.pos.y - ground.height > FALL_THRESHOLD) {
       s.airborne = true; // walked off a ledge (coyote time starts now)
@@ -292,6 +364,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       s.platform = ground.platform;
       events.onPlatform(ground.platform);
     }
+    if (course && !s.airborne && s.platform !== null) touchCrumble(s.platform, now);
     if (midi !== s.midi) {
       s.midi = midi;
       events.onStep(midi);
@@ -308,6 +381,35 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       }
     }
     sendPosition(s.pos.x, s.pos.y, s.pos.z, s.heading, midi, emote);
+
+    // --- note balls
+    balls.current.forEach((ball, i) => {
+      const note = stepBall(ball, dt, {
+        ground: (x, z) => {
+          const g = groundAt(region, x, z, 0);
+          return { height: g.height, midi: g.midi };
+        },
+        colliders: solids,
+        bounds: BOUNDS,
+        player: { x: s.pos.x, y: s.pos.y, z: s.pos.z, vx: s.vx, vz: s.vz },
+      });
+      if (note) {
+        events.onBallNote(note.midi, note.velocity);
+        if (note.velocity > 0.3) fx.current?.notes(ball.x, ball.y - BALL_RADIUS, ball.z, region.theme.accent);
+      }
+      const mesh = ballMeshes.current[i];
+      if (mesh) {
+        mesh.position.set(ball.x, ball.y, ball.z);
+        // roll: spin about the horizontal axis perpendicular to travel
+        const travel = Math.hypot(ball.vx, ball.vz);
+        if (travel > 1e-3) {
+          const { axis, turn } = ballSpin.current;
+          axis.set(ball.vz, 0, -ball.vx).normalize();
+          turn.setFromAxisAngle(axis, (travel * dt) / BALL_RADIUS);
+          mesh.quaternion.premultiply(turn);
+        }
+      }
+    });
 
     // --- one-shot effects requested by the page
     if (seen.current.celebrate !== celebrate) {
@@ -453,6 +555,15 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       ))}
       {target !== null ? <TargetBeam midi={target} color={region.theme.accent} /> : null}
       <StepEffects ref={fx} />
+      {spawns.map((_, i) => (
+        <NoteBall
+          key={`${region.id}-${i}`}
+          accent={region.theme.accent}
+          ref={(el) => {
+            ballMeshes.current[i] = el;
+          }}
+        />
+      ))}
 
       {/* scaled up so the character reads at a glance against the giant keys */}
       <KordiModel ref={kordi} motion={motion} scale={KORDI_SCALE} crown={crowned} />

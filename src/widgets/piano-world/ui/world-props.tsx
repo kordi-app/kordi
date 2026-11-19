@@ -37,7 +37,7 @@ export function ChordCardStand({ item }: { item: InteractableDef }) {
 
 /** A Kordi in round glasses with a music stand — dispenses chord tips. */
 export function Teacher({ item }: { item: InteractableDef }) {
-  const motion = useRef<KordiMotion>({ phase: 0, amount: 0, emote: null, land: 0, stretch: 0 });
+  const motion = useRef<KordiMotion>({ phase: 0, amount: 0, emote: null, land: 0, stretch: 0, lean: 0, bank: 0 });
   const group = useRef<THREE.Group>(null);
   useFrame(({ clock }, dt) => {
     // a gentle idle sway so the NPC reads as alive

@@ -98,18 +98,19 @@ export default function PianoWorldScene({
     setName(`${pick(copy.nameAdjectives)} ${pick(copy.nameNouns)}`);
   }, [copy]);
 
-  const { handleStep, handleRemoteStep, handleCatStep } = audio;
+  const { handleStep, handleRemoteStep, handleCatStep, handleBallNote } = audio;
   const events: WorldEvents = useMemo(
     () => ({
       onStep: handleStep,
       onRemoteStep: handleRemoteStep,
       onCatStep: handleCatStep,
+      onBallNote: handleBallNote,
       onPlatform: handlePlatform,
       onPortal: handlePortal,
       onEmoteCancel: cancelEmote,
       onNearby: setNearby,
     }),
-    [handleStep, handleRemoteStep, handleCatStep, handlePlatform, handlePortal, cancelEmote, setNearby],
+    [handleStep, handleRemoteStep, handleCatStep, handleBallNote, handlePlatform, handlePortal, cancelEmote, setNearby],
   );
 
   const display: WorldDisplay = {

@@ -22,7 +22,29 @@ export interface Platform {
   /** note played on landing; climbing plays a rising scale */
   midi: number;
   kind: "white" | "black" | "rest" | "goal";
+  /**
+   * Terrain that does something:
+   * - slide: drifts side to side (you ride along while standing on it)
+   * - crumble: wobbles when stood on, then drops away for a few seconds
+   * - bounce: a trampoline that launches you on landing
+   */
+  behavior?: "slide" | "crumble" | "bounce";
 }
+
+const BEHAVIORS: Record<number, Platform["behavior"]> = {
+  5: "slide",
+  13: "slide",
+  21: "slide",
+  10: "crumble",
+  18: "crumble",
+  12: "bounce",
+};
+
+export const SLIDE_AMPLITUDE = 0.45;
+const SLIDE_PERIOD = 3.2;
+export const CRUMBLE_DELAY = 0.7;
+export const CRUMBLE_DOWN_TIME = 3;
+export const BOUNCE_BOOST = 1.6;
 
 const C_MAJOR = [0, 2, 4, 5, 7, 9, 11];
 const STEPS = 26;
@@ -58,6 +80,7 @@ function buildCourse(): Platform[] {
       depth: kind === "rest" ? BACK_Z * -1 + 1.6 : kind === "black" ? 1.2 : 1.6,
       midi: scaleNote(i),
       kind,
+      behavior: BEHAVIORS[i],
     });
   }
   const last = platforms[platforms.length - 1];
@@ -92,10 +115,54 @@ const STEP_UP = 0.35;
 /** You can stand with part of your feet over the edge */
 const FOOT_RADIUS = PLAYER_RADIUS * 0.6;
 
+/**
+ * Live state of the (single) course scene: the clock that drives sliding
+ * platforms and which crumbling ones are down. Written by the scene's frame
+ * loop, read by collision here and by the renderer — one source of truth.
+ */
+export const courseRuntime = {
+  time: 0,
+  /** index → time it started wobbling */
+  crumbling: new Map<number, number>(),
+  /** index → time it comes back */
+  fallenUntil: new Map<number, number>(),
+};
+
+/** Sliding offset of platform `i` at time `t` (0 for platforms that don't move). */
+export function slideOffset(i: number, t: number = courseRuntime.time) {
+  if (COURSE[i].behavior !== "slide") return 0;
+  return Math.sin((t / SLIDE_PERIOD) * Math.PI * 2 + i) * SLIDE_AMPLITUDE;
+}
+
+/** Advance crumbles: wobbling ones fall after the delay, fallen ones return. */
+export function updateCrumbles(t: number) {
+  for (const [i, since] of courseRuntime.crumbling) {
+    if (t - since > CRUMBLE_DELAY) {
+      courseRuntime.crumbling.delete(i);
+      courseRuntime.fallenUntil.set(i, t + CRUMBLE_DOWN_TIME);
+    }
+  }
+  for (const [i, until] of courseRuntime.fallenUntil) {
+    if (t > until) courseRuntime.fallenUntil.delete(i);
+  }
+}
+
+/** Standing on a crumbling platform sets it wobbling (once). */
+export function touchCrumble(i: number, t: number) {
+  if (COURSE[i].behavior !== "crumble") return;
+  if (courseRuntime.crumbling.has(i) || courseRuntime.fallenUntil.has(i)) return;
+  courseRuntime.crumbling.set(i, t);
+}
+
+const isDown = (i: number) => courseRuntime.fallenUntil.has(i);
+
 const bottomOf = (p: Platform) => p.y - SOLID_DEPTH;
 
-function overlaps(p: Platform, x: number, z: number, radius: number) {
-  return Math.abs(x - p.x) < p.width / 2 + radius && Math.abs(z - p.z) < p.depth / 2 + radius;
+function overlaps(i: number, x: number, z: number, radius: number) {
+  const p = COURSE[i];
+  return (
+    Math.abs(x - (p.x + slideOffset(i))) < p.width / 2 + radius && Math.abs(z - p.z) < p.depth / 2 + radius
+  );
 }
 
 /**
@@ -105,7 +172,8 @@ function overlaps(p: Platform, x: number, z: number, radius: number) {
 export function courseGround(x: number, z: number, y: number): { height: number; index: number | null } {
   let best = { height: 0, index: null as number | null };
   COURSE.forEach((p, index) => {
-    if (overlaps(p, x, z, FOOT_RADIUS) && p.y <= y + STEP_UP && p.y > best.height) {
+    if (isDown(index)) return;
+    if (overlaps(index, x, z, FOOT_RADIUS) && p.y <= y + STEP_UP && p.y > best.height) {
       best = { height: p.y, index };
     }
   });
@@ -115,8 +183,9 @@ export function courseGround(x: number, z: number, y: number): { height: number;
 /** Would a body at (x, y, z) intersect a platform it can't simply step onto? */
 export function courseBlocked(x: number, z: number, y: number): boolean {
   return COURSE.some(
-    (p) =>
-      overlaps(p, x, z, PLAYER_RADIUS) &&
+    (p, i) =>
+      !isDown(i) &&
+      overlaps(i, x, z, PLAYER_RADIUS) &&
       p.y > y + STEP_UP && // too high to step onto
       y + PLAYER_HEIGHT > bottomOf(p), // and not entirely above our head
   );
@@ -128,8 +197,9 @@ export function courseBlocked(x: number, z: number, y: number): boolean {
  */
 export function courseCeiling(x: number, z: number, fromY: number, toY: number): number | null {
   let limit: number | null = null;
-  for (const p of COURSE) {
-    if (!overlaps(p, x, z, PLAYER_RADIUS * 0.8)) continue;
+  for (let i = 0; i < COURSE.length; i++) {
+    const p = COURSE[i];
+    if (isDown(i) || !overlaps(i, x, z, PLAYER_RADIUS * 0.8)) continue;
     const headroom = bottomOf(p) - PLAYER_HEIGHT;
     if (headroom >= fromY - 1e-3 && headroom < toY && (limit === null || headroom < limit)) {
       limit = headroom;

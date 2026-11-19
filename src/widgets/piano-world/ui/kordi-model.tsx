@@ -17,7 +17,15 @@ export interface KordiMotion {
   land: number;
   /** -0.4–1: vertical speed while airborne → stretch when rising */
   stretch: number;
+  /** -1–1: forward acceleration → lean into it (negative: braking, lean back) */
+  lean: number;
+  /** -1–1: turning while moving → bank into the turn */
+  bank: number;
 }
+
+/** Arms trail the body: a soft spring on how far they're swept back. */
+const ARM_STIFFNESS = 90;
+const ARM_DAMPING = 9;
 
 const CREAM = "#f4efe6";
 const INK = "#221d19";
@@ -43,6 +51,7 @@ export const KordiModel = forwardRef<
   const body = useRef<THREE.Group>(null);
   const squash = useRef<THREE.Group>(null);
   const emoteClock = useRef<{ emote: EmoteId | null; time: number }>({ emote: null, time: 0 });
+  const armTrail = useRef({ angle: 0, velocity: 0 });
 
   useFrame((_, dt) => {
     const m = motion.current;
@@ -92,11 +101,25 @@ export const KordiModel = forwardRef<
 
     if (leftFoot.current) leftFoot.current.position.z = 0.04 + swing * 0.12 + feetForward;
     if (rightFoot.current) rightFoot.current.position.z = 0.04 - swing * 0.12 + feetForward;
+    // arms sweep back when you speed up and swing forward when you brake,
+    // overshooting a little and settling — follow-through
+    const trail = armTrail.current;
+    const step = Math.min(dt, 1 / 30);
+    trail.velocity += (-ARM_STIFFNESS * (trail.angle - m.lean * 0.9) - ARM_DAMPING * trail.velocity) * step;
+    trail.angle += trail.velocity * step;
+    if (!m.emote) {
+      leftArmX += trail.angle;
+      rightArmX += trail.angle;
+    }
+
     if (leftArm.current) leftArm.current.rotation.set(leftArmX, 0, leftArmZ);
     if (rightArm.current) rightArm.current.rotation.set(rightArmX, 0, rightArmZ);
     if (body.current) {
       body.current.position.y = bodyY;
-      body.current.rotation.set(0, bodyRotY, bodyRotZ);
+      // lean into acceleration and bank into turns (emotes keep their own posture)
+      const lean = m.emote ? 0 : m.lean * 0.22;
+      const bank = m.emote ? 0 : -m.bank * 0.18;
+      body.current.rotation.set(lean, bodyRotY, bodyRotZ + bank);
     }
     // squash on landing, stretch on the way up — volume roughly preserved
     if (squash.current) {

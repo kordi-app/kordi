@@ -182,6 +182,12 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
   /** read synchronously in event handlers */
   const isOn = useCallback(() => audioRef.current === "on", []);
 
+  /** The note ball hit (or rolled onto) a key. */
+  const handleBallNote = useCallback(
+    (midi: number, velocity: number) => chime([midi], velocity, 0, 450),
+    [chime],
+  );
+
   return {
     audio,
     isOn,
@@ -192,6 +198,7 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
     handleStep,
     handleRemoteStep,
     handleCatStep,
+    handleBallNote,
     chime,
   };
 }

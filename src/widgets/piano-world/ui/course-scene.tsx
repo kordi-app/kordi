@@ -3,7 +3,17 @@
 import { memo, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { CASE_THICKNESS, COURSE, GOAL_INDEX, PLATFORM_THICKNESS, type Platform } from "../model/course";
+import {
+  CASE_THICKNESS,
+  COURSE,
+  CRUMBLE_DELAY,
+  CRUMBLE_DOWN_TIME,
+  GOAL_INDEX,
+  PLATFORM_THICKNESS,
+  courseRuntime,
+  slideOffset,
+  type Platform,
+} from "../model/course";
 import { CrownMesh } from "./crown-mesh";
 import { useKeySprings } from "../lib/use-key-springs";
 
@@ -13,6 +23,15 @@ const COLORS: Record<Platform["kind"], string> = {
   rest: "#f1e7d2",
   goal: "#e3b341",
 };
+
+/** Terrain with a behavior gets its own colour so you can read it before stepping on it. */
+const BEHAVIOR_COLORS: Record<NonNullable<Platform["behavior"]>, string> = {
+  slide: "#cfe2ff", // airy blue: it moves
+  crumble: "#e8cfa6", // sandy: it won't hold
+  bounce: "#ff9ec0", // rubbery pink: it springs
+};
+
+const FALL_SPEED = 6;
 
 /** Deterministic noise so clouds stay put between renders. */
 function hash(i: number, salt: number) {
@@ -78,6 +97,31 @@ export const CourseScene = memo(function CourseScene({ pressed }: { pressed: Rea
     [],
   );
   const goal = COURSE[GOAL_INDEX];
+  const platformGroups = useRef<(THREE.Group | null)[]>([]);
+
+  // slide, wobble and drop platforms from the same runtime the physics reads
+  useFrame(() => {
+    const t = courseRuntime.time;
+    platformGroups.current.forEach((group, i) => {
+      if (!group) return;
+      let x = slideOffset(i, t);
+      let y = 0;
+      const wobbleSince = courseRuntime.crumbling.get(i);
+      if (wobbleSince !== undefined) {
+        // shake harder the closer it is to giving way
+        const urgency = Math.min(1, (t - wobbleSince) / CRUMBLE_DELAY);
+        x += Math.sin(t * 60) * 0.04 * urgency;
+      }
+      const backAt = courseRuntime.fallenUntil.get(i);
+      group.visible = true;
+      if (backAt !== undefined) {
+        const fallen = t - (backAt - CRUMBLE_DOWN_TIME);
+        y = -fallen * fallen * FALL_SPEED;
+        group.visible = y > -12; // gone once it's dropped well out of view
+      }
+      group.position.set(x, y, 0);
+    });
+  });
   const springRef = useKeySprings(
     COURSE.length,
     (i) => COURSE[i].y - PLATFORM_THICKNESS / 2,
@@ -98,7 +142,12 @@ export const CourseScene = memo(function CourseScene({ pressed }: { pressed: Rea
       {COURSE.map((p, i) => {
         const isPressed = pressed.has(p.midi);
         return (
-          <group key={i}>
+          <group
+            key={i}
+            ref={(el) => {
+              platformGroups.current[i] = el;
+            }}
+          >
             {/* dark case under every step, so it reads against the white sky like a piano key */}
             <mesh position={[p.x, p.y - PLATFORM_THICKNESS - CASE_THICKNESS / 2, p.z]} castShadow receiveShadow>
               <boxGeometry args={[p.width + 0.16, CASE_THICKNESS, p.depth + 0.16]} />
@@ -107,7 +156,7 @@ export const CourseScene = memo(function CourseScene({ pressed }: { pressed: Rea
             <mesh ref={springRef(i)} position={[p.x, p.y - PLATFORM_THICKNESS / 2, p.z]} castShadow receiveShadow>
               <boxGeometry args={[p.width, PLATFORM_THICKNESS, p.depth]} />
               <meshStandardMaterial
-                color={COLORS[p.kind]}
+                color={p.behavior ? BEHAVIOR_COLORS[p.behavior] : COLORS[p.kind]}
                 emissive={isPressed ? "#b9a8ff" : p.kind === "goal" ? "#a06a00" : "#000000"}
                 emissiveIntensity={isPressed ? 0.6 : p.kind === "goal" ? 0.3 : 0}
                 roughness={0.45}
