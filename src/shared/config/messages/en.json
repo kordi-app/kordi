@@ -16,8 +16,7 @@
   "sidebar": {
     "groups": {
       "practice": "Practice",
-      "community": "Community",
-      "account": "Account"
+      "community": "Community"
     },
     "nav": {
       "piano": "Free Play",
@@ -116,9 +115,10 @@
     }
   },
   "login": {
-    "subtitle": "Start your piano practice",
-    "googleLogin": "Sign in with Google",
-    "tagline": "PIANO MASTER · SINCE 2024"
+    "title": "Sign in",
+    "subtitle": "Sign in to save scores, join the ranking and add friends.",
+    "googleLogin": "Continue with Google",
+    "tryWithoutLogin": "Try free play without signing in"
   },
   "instruments": {
     "grandPiano": "Grand Piano",
@@ -128,57 +128,60 @@
     "brightSynth": "Bright Synth"
   },
   "home": {
-    "subtitle": "Piano practice web service",
-    "freePlay": "Free Play",
-    "freePlayDesc": "Play piano freely",
-    "chordPractice": "Chord Practice",
-    "chordPracticeDesc": "Practice with random chord flash cards",
-    "chordQuiz": "Chord Quiz",
-    "chordQuizDesc": "Challenge yourself with timed chord quizzes",
-    "ranking": "Ranking",
-    "myPage": "My Page",
-    "brand": "KORDI",
-    "brandTagline": "PIANO MASTER",
     "hero": {
-      "title": "Piano chord practice",
-      "cta": "Start practicing"
-    },
-    "card": {
-      "practice": {
-        "title": "Practice"
-      },
-      "quiz": {
-        "title": "Quiz"
-      }
+      "title": "Learn chords at the keys",
+      "description": "Play a chord on your computer keyboard or MIDI piano and get told right away whether it's correct."
     },
     "daily": {
       "title": "Chord of the day",
-      "subtitle": "Major seventh",
-      "diagram": "C MAJOR 7"
+      "cta": "Try it in free play",
+      "quality": {
+        "major": "Major",
+        "minor": "Minor",
+        "dominant7": "Dominant 7th",
+        "major7": "Major 7th",
+        "minor7": "Minor 7th",
+        "sus4": "Suspended 4th",
+        "diminished": "Diminished",
+        "halfDiminished": "Half-diminished"
+      }
     },
-    "nav": {
-      "piano": "Free Play",
-      "practice": "Chord Practice",
-      "quiz": "Chord Quiz",
-      "profile": "My Profile",
-      "friends": "Friends",
-      "ranking": "Ranking"
+    "modes": {
+      "title": "Practice modes",
+      "freePlay": {
+        "title": "Free play",
+        "description": "Names the chord as you play. Full 88 keys, with MIDI piano support."
+      },
+      "practice": {
+        "title": "Chord practice",
+        "description": "Play randomly drawn chords — at your own pace, or against a metronome."
+      },
+      "quiz": {
+        "title": "Chord quiz",
+        "description": "10 questions, 20 seconds each. Faster answers score higher and reach the ranking."
+      }
     }
   },
   "piano": {
     "title": "Piano",
-    "clickToStart": "Click to Start",
-    "audioDescription": "Play with your keyboard or connect a MIDI piano",
+    "clickToStart": "Turn on sound to start",
+    "audioDescription": "Browsers need one click before they can play audio",
     "loadingSamples": "Loading piano samples...",
     "noMidiDevice": "No MIDI Device",
-    "instructions": "Use your keyboard (A-J, W/E/T/Y/U) or connect a MIDI device to play",
+    "instructions": "A–J white keys · W E T Y U black keys · MIDI pianos are detected automatically",
     "key": "Key",
-    "autoKey": "Auto"
+    "autoKey": "Auto",
+    "playHint": "Press some keys — the chord name shows up here.",
+    "octave": "Octave",
+    "velocity": "Velocity",
+    "sustain": "Sustain",
+    "soundOn": "Mute",
+    "soundOff": "Unmute"
   },
   "chordPractice": {
     "title": "Chord Practice",
-    "clickToStart": "Click to Start",
-    "audioDescription": "Audio requires user interaction to begin",
+    "clickToStart": "Turn on sound to start",
+    "audioDescription": "Browsers need one click before they can play audio",
     "loadingSamples": "Loading piano samples...",
     "noMidiDevice": "No MIDI Device",
     "gameMode": "Game Mode",
@@ -211,8 +214,8 @@
   },
   "chordQuiz": {
     "title": "Chord Quiz",
-    "clickToStart": "Click to Start",
-    "audioDescription": "Audio requires user interaction to begin",
+    "clickToStart": "Turn on sound to start",
+    "audioDescription": "Browsers need one click before they can play audio",
     "loadingSamples": "Loading piano samples...",
     "noMidiDevice": "No MIDI Device",
     "selectDifficulty": "Select Difficulty",

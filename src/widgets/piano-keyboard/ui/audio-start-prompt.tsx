@@ -1,34 +1,54 @@
 "use client";
 
-import { Piano } from "lucide-react";
+import { Volume2 } from "lucide-react";
 
 interface AudioStartPromptProps {
   title: string;
   description: string;
   onStart: () => void;
+  /**
+   * `page` replaces the whole view. `overlay` sits on top of an already
+   * rendered keyboard (parent must be `relative`), so the visitor sees the
+   * instrument before the browser's audio gesture is collected.
+   */
+  variant?: "page" | "overlay";
 }
 
 export function AudioStartPrompt({
   title,
   description,
   onStart,
+  variant = "page",
 }: AudioStartPromptProps) {
+  const button = (
+    <button
+      type="button"
+      onClick={onStart}
+      className="group flex items-center gap-4 rounded-xl border border-border bg-card px-6 py-4 text-left shadow-[0_4px_12px_rgba(42,37,33,0.08)] transition-colors hover:bg-muted"
+    >
+      <span className="btn-inset flex size-10 shrink-0 items-center justify-center rounded-full">
+        <Volume2 className="size-[18px]" />
+      </span>
+      <span>
+        <span className="block text-[15px] font-semibold text-foreground">
+          {title}
+        </span>
+        <span className="mt-0.5 block text-sm text-muted-foreground">
+          {description}
+        </span>
+      </span>
+    </button>
+  );
+
+  if (variant === "overlay") {
+    return (
+      <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/35">
+        {button}
+      </div>
+    );
+  }
+
   return (
-    <main className="flex flex-1 items-center justify-center p-6">
-      <button
-        onClick={onStart}
-        className="flex flex-col items-center gap-4 rounded-lg border border-border bg-card px-12 py-10 transition-all hover:bg-muted"
-      >
-        <div className="flex size-16 items-center justify-center rounded-lg border border-border bg-primary text-primary-foreground">
-          <Piano className="size-8" />
-        </div>
-        <div className="text-center">
-          <p className="font-heading text-lg font-semibold -tracking-[0.01em]">
-            {title}
-          </p>
-          <p className="mt-1 text-sm opacity-70">{description}</p>
-        </div>
-      </button>
-    </main>
+    <main className="flex flex-1 items-center justify-center p-6">{button}</main>
   );
 }

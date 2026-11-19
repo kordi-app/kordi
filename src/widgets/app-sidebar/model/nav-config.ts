@@ -1,10 +1,9 @@
 import {
+  KeyboardMusic,
   Piano,
-  Dumbbell,
-  HelpCircle,
-  User,
-  Users,
+  Timer,
   Trophy,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { ROUTES } from "@/shared/config/routes";
@@ -27,14 +26,10 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: ROUTES.PIANO, icon: Piano, labelKey: "sidebar.nav.piano" },
       {
         href: ROUTES.CHORD_PRACTICE,
-        icon: Dumbbell,
+        icon: KeyboardMusic,
         labelKey: "sidebar.nav.practice",
       },
-      {
-        href: ROUTES.CHORD_QUIZ,
-        icon: HelpCircle,
-        labelKey: "sidebar.nav.quiz",
-      },
+      { href: ROUTES.CHORD_QUIZ, icon: Timer, labelKey: "sidebar.nav.quiz" },
     ],
   },
   {
@@ -42,12 +37,6 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: ROUTES.RANKING, icon: Trophy, labelKey: "sidebar.nav.ranking" },
       { href: ROUTES.FRIENDS, icon: Users, labelKey: "sidebar.nav.friends" },
-    ],
-  },
-  {
-    labelKey: "sidebar.groups.account",
-    items: [
-      { href: ROUTES.ME, icon: User, labelKey: "sidebar.nav.profile" },
     ],
   },
 ];

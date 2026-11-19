@@ -17,7 +17,13 @@ export {
 
 export { detectChord } from "./chord-detection";
 
-export { toDisplayChordName, rootLabel, bassLabel } from "./note-names";
+export {
+  toDisplayChordName,
+  rootLabel,
+  bassLabel,
+  displaySuffix,
+  chordToneLabel,
+} from "./note-names";
 
 export {
   CHORD_TEMPLATES,

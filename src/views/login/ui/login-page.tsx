@@ -1,30 +1,41 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { ArrowRight } from "lucide-react";
 import { KordiLogo } from "@/shared/ui/illustrations/kordi-logo";
+import { Link } from "@/shared/config/i18n/navigation";
+import { ROUTES } from "@/shared/config/routes";
 import { GoogleLoginButton } from "@/features/auth";
-import { MonoCard } from "@/shared/ui/mono-card";
 
 export function LoginPage() {
   const t = useTranslations("login");
 
   return (
-    <div className="flex flex-1 items-center justify-center bg-card px-4 text-foreground">
-      <div style={{ width: "100%", maxWidth: "24rem" }}>
-        <MonoCard className="p-10 text-center">
-          <div className="mb-6 flex justify-center">
-            <KordiLogo size={64} />
-          </div>
-          <h1 className="font-heading mb-2 text-3xl font-semibold -tracking-[0.03em]">
-            Kordi
-          </h1>
-          <p className="mb-8 text-sm leading-relaxed">{t("subtitle")}</p>
+    <main className="flex flex-1 flex-col items-center justify-center px-6 py-16">
+      <div className="w-full max-w-sm">
+        <Link
+          href={ROUTES.HOME}
+          className="mb-10 flex items-center gap-2.5 text-foreground"
+        >
+          <KordiLogo size={28} />
+          <span className="text-xl font-semibold -tracking-[0.02em]">Kordi</span>
+        </Link>
+
+        <h1 className="text-headline-lg text-foreground">{t("title")}</h1>
+        <p className="mt-2 text-body-md text-muted-foreground">{t("subtitle")}</p>
+
+        <div className="mt-8">
           <GoogleLoginButton label={t("googleLogin")} />
-        </MonoCard>
-        <p className="mt-6 text-center text-[11px] font-semibold uppercase opacity-60">
-          {t("tagline")}
-        </p>
+        </div>
+
+        <Link
+          href={ROUTES.PIANO}
+          className="group mt-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          {t("tryWithoutLogin")}
+          <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+        </Link>
       </div>
-    </div>
+    </main>
   );
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { cn } from "@/shared/lib/utils";
+
 interface MidiDeviceOption {
   id: string;
   name: string;
@@ -11,47 +13,64 @@ interface MidiStatusProps {
   devices?: MidiDeviceOption[];
   selectedDeviceId?: string | null;
   onSelectDevice?: (id: string) => void;
+  /**
+   * Inline renders just the pill, for callers that place it in their own
+   * toolbar. The default wraps it in a right-aligned row.
+   */
+  inline?: boolean;
 }
 
+const PILL =
+  "flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs text-foreground";
+
+/** Connection indicator. Green only when a device is live — the one place the success colour means "online". */
 export function MidiStatus({
   midiName,
   fallback,
   devices,
   selectedDeviceId,
   onSelectDevice,
+  inline = false,
 }: MidiStatusProps) {
   const showSelector =
     devices && devices.length > 1 && onSelectDevice !== undefined;
+  const connected = Boolean(midiName) || Boolean(showSelector);
 
-  return (
-    <div className="mb-2 flex w-full max-w-4xl justify-end">
-      {showSelector ? (
-        <label className="flex items-center gap-1.5 rounded-full border border-border bg-primary px-3 py-1 text-xs font-semibold uppercase text-primary-foreground">
-          <span className="size-1.5 rounded-full bg-card" />
-          <select
-            value={selectedDeviceId ?? ""}
-            onChange={(e) => onSelectDevice(e.target.value)}
-            className="cursor-pointer appearance-none bg-primary text-xs font-semibold uppercase text-primary-foreground outline-none"
-            aria-label="MIDI device"
-          >
-            {devices.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : midiName ? (
-        <span className="flex items-center gap-1.5 rounded-full border border-border bg-primary px-3 py-1 text-xs font-semibold uppercase text-primary-foreground">
-          <span className="size-1.5 rounded-full bg-card" />
-          {midiName}
-        </span>
-      ) : (
-        <span className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold uppercase text-foreground">
-          <span className="size-1.5 rounded-full bg-primary opacity-40" />
-          {fallback}
-        </span>
+  const dot = (
+    <span
+      className={cn(
+        "size-1.5 shrink-0 rounded-full",
+        connected ? "bg-success" : "bg-foreground/25",
       )}
-    </div>
+    />
   );
+
+  const pill = showSelector ? (
+    <label className={PILL}>
+      {dot}
+      <select
+        value={selectedDeviceId ?? ""}
+        onChange={(e) => onSelectDevice(e.target.value)}
+        className="cursor-pointer appearance-none bg-transparent font-medium outline-none"
+        aria-label="MIDI device"
+      >
+        {devices.map((d) => (
+          <option key={d.id} value={d.id}>
+            {d.name}
+          </option>
+        ))}
+      </select>
+    </label>
+  ) : (
+    <span className={cn(PILL, !connected && "text-muted-foreground")}>
+      {dot}
+      <span className={connected ? "font-medium" : undefined}>
+        {midiName ?? fallback}
+      </span>
+    </span>
+  );
+
+  if (inline) return pill;
+
+  return <div className="mb-2 flex w-full max-w-4xl justify-end">{pill}</div>;
 }

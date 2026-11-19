@@ -16,8 +16,7 @@
   "sidebar": {
     "groups": {
       "practice": "연습",
-      "community": "커뮤니티",
-      "account": "계정"
+      "community": "커뮤니티"
     },
     "nav": {
       "piano": "자유 연주",
@@ -116,9 +115,10 @@
     }
   },
   "login": {
-    "subtitle": "피아노 연습을 시작하세요",
-    "googleLogin": "Google로 로그인",
-    "tagline": "PIANO MASTER · SINCE 2024"
+    "title": "로그인",
+    "subtitle": "점수 기록과 랭킹, 친구 기능을 쓰려면 로그인하세요.",
+    "googleLogin": "Google로 계속하기",
+    "tryWithoutLogin": "로그인 없이 자유 연주 해보기"
   },
   "instruments": {
     "grandPiano": "그랜드 피아노",
@@ -128,57 +128,60 @@
     "brightSynth": "브라이트 신스"
   },
   "home": {
-    "subtitle": "피아노 연습 웹 서비스",
-    "freePlay": "자유 연주",
-    "freePlayDesc": "피아노를 자유롭게 연주하세요",
-    "chordPractice": "코드 연습",
-    "chordPracticeDesc": "랜덤 코드를 맞춰보세요",
-    "chordQuiz": "코드 퀴즈",
-    "chordQuizDesc": "난이도별 코드 퀴즈에 도전하세요",
-    "ranking": "랭킹",
-    "myPage": "내 정보",
-    "brand": "KORDI",
-    "brandTagline": "PIANO MASTER",
     "hero": {
-      "title": "피아노 코드 연습",
-      "cta": "연습 시작"
-    },
-    "card": {
-      "practice": {
-        "title": "연습"
-      },
-      "quiz": {
-        "title": "퀴즈"
-      }
+      "title": "건반 위에서 코드를 익혀요",
+      "description": "컴퓨터 키보드나 MIDI 피아노로 코드를 누르면, 맞았는지 바로 알려드려요."
     },
     "daily": {
       "title": "오늘의 코드",
-      "subtitle": "메이저 세븐스",
-      "diagram": "C MAJOR 7"
+      "cta": "자유 연주에서 쳐보기",
+      "quality": {
+        "major": "메이저",
+        "minor": "마이너",
+        "dominant7": "도미넌트 세븐스",
+        "major7": "메이저 세븐스",
+        "minor7": "마이너 세븐스",
+        "sus4": "서스포",
+        "diminished": "디미니시",
+        "halfDiminished": "하프 디미니시"
+      }
     },
-    "nav": {
-      "piano": "자유 연주",
-      "practice": "코드 연습",
-      "quiz": "코드 퀴즈",
-      "profile": "내 프로필",
-      "friends": "친구",
-      "ranking": "랭킹"
+    "modes": {
+      "title": "연습 모드",
+      "freePlay": {
+        "title": "자유 연주",
+        "description": "누르는 대로 코드 이름을 읽어줘요. 88건반 전체와 MIDI 피아노를 지원해요."
+      },
+      "practice": {
+        "title": "코드 연습",
+        "description": "랜덤으로 나오는 코드를 쳐요. 내 속도대로, 또는 메트로놈에 맞춰 타임어택으로."
+      },
+      "quiz": {
+        "title": "코드 퀴즈",
+        "description": "10문제, 문제당 20초. 빨리 맞힐수록 점수가 높고 랭킹에 올라가요."
+      }
     }
   },
   "piano": {
     "title": "피아노",
-    "clickToStart": "클릭하여 시작",
-    "audioDescription": "키보드 또는 MIDI 피아노를 연결하여 연주할 수 있습니다",
+    "clickToStart": "소리 켜고 시작하기",
+    "audioDescription": "브라우저 정책상 한 번 눌러야 소리가 나요",
     "loadingSamples": "피아노 샘플 로딩 중...",
     "noMidiDevice": "MIDI 장치 없음",
-    "instructions": "키보드 (A~J, W/E/T/Y/U) 또는 MIDI 장치를 연결하여 연주하세요",
+    "instructions": "A–J 흰 건반 · W E T Y U 검은 건반 · MIDI 피아노를 연결하면 자동으로 인식해요",
     "key": "조성",
-    "autoKey": "자동"
+    "autoKey": "자동",
+    "playHint": "건반을 눌러보세요. 코드 이름이 여기에 나와요.",
+    "octave": "옥타브",
+    "velocity": "세기",
+    "sustain": "서스테인",
+    "soundOn": "소리 끄기",
+    "soundOff": "소리 켜기"
   },
   "chordPractice": {
     "title": "코드 연습",
-    "clickToStart": "클릭하여 시작",
-    "audioDescription": "오디오를 시작하려면 클릭이 필요합니다",
+    "clickToStart": "소리 켜고 시작하기",
+    "audioDescription": "브라우저 정책상 한 번 눌러야 소리가 나요",
     "loadingSamples": "피아노 샘플 로딩 중...",
     "noMidiDevice": "MIDI 장치 없음",
     "gameMode": "게임 모드",
@@ -211,8 +214,8 @@
   },
   "chordQuiz": {
     "title": "코드 퀴즈",
-    "clickToStart": "클릭하여 시작",
-    "audioDescription": "오디오를 시작하려면 클릭이 필요합니다",
+    "clickToStart": "소리 켜고 시작하기",
+    "audioDescription": "브라우저 정책상 한 번 눌러야 소리가 나요",
     "loadingSamples": "피아노 샘플 로딩 중...",
     "noMidiDevice": "MIDI 장치 없음",
     "selectDifficulty": "난이도를 선택하세요",

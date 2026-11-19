@@ -10,9 +10,16 @@ interface ChordDisplayProps {
   ringingNotes?: number[];
   /** Spells detected chords in this key; null uses chart-default spellings */
   musicKey?: KeySignature | null;
+  /** Shown while nothing is pressed. */
+  placeholder?: string;
 }
 
-export function ChordDisplay({ activeNotes, ringingNotes, musicKey = null }: ChordDisplayProps) {
+export function ChordDisplay({
+  activeNotes,
+  ringingNotes,
+  musicKey = null,
+  placeholder,
+}: ChordDisplayProps) {
   const chord = useMemo(
     () =>
       detectChord([
@@ -25,17 +32,19 @@ export function ChordDisplay({ activeNotes, ringingNotes, musicKey = null }: Cho
   if (!chord) {
     return (
       <div className="flex h-20 items-center justify-center">
-        <span className="text-lg opacity-40">-</span>
+        <span className="text-body-md text-muted-foreground">
+          {placeholder ?? "–"}
+        </span>
       </div>
     );
   }
 
   return (
     <div className="flex h-20 flex-col items-center justify-center">
-      <span className="font-heading text-5xl font-semibold tabular-nums text-foreground">
+      <span className="text-6xl font-semibold -tracking-[0.03em] tabular-nums text-foreground">
         {chord.primary}
       </span>
-      <span className="h-5 text-sm font-semibold tabular-nums opacity-50">
+      <span className="mt-1 h-5 text-sm tabular-nums text-muted-foreground">
         {chord.secondary ?? ""}
       </span>
     </div>
