@@ -21,8 +21,6 @@ export async function HomePage() {
       <PianoWorld
         playerName={playerName}
         copy={{
-          title: t("title"),
-          hint: t("hint"),
           soundOff: t("soundOff"),
           soundLoading: t("soundLoading"),
           soundOn: t("soundOn"),

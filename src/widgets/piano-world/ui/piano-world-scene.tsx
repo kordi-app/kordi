@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ChevronsUp } from "lucide-react";
 import {
   ensureAudioStarted,
   getSampler,
@@ -23,7 +23,13 @@ import { PianoFloor } from "./piano-floor";
 import { RemoteKordi } from "./remote-kordi";
 
 type Direction = "up" | "down" | "left" | "right";
-type InputState = Record<Direction, boolean>;
+type InputState = Record<Direction, boolean> & {
+  /** set on Space / jump button; consumed by the next frame on the ground */
+  jump: boolean;
+};
+
+const JUMP_SPEED = 7.5;
+const GRAVITY = 22;
 
 const SPEED = 4.2;
 const CAMERA_OFFSET = new THREE.Vector3(0, 12, 14);
@@ -39,8 +45,6 @@ const KEY_TO_DIRECTION: Record<string, Direction> = {
 };
 
 export interface PianoWorldCopy {
-  title: string;
-  hint: string;
   soundOff: string;
   soundLoading: string;
   soundOn: string;
@@ -67,8 +71,11 @@ function World({
   others,
   sendPosition,
   onRemoteNote,
+  takeJump,
 }: {
   input: React.RefObject<InputState>;
+  /** true once per jump press (reads and clears it) */
+  takeJump: () => boolean;
   onKeyChange: (midi: number | null) => void;
   remotes: React.RefObject<Map<string, RemotePlayer>>;
   others: { id: string; name: string }[];
@@ -82,6 +89,8 @@ function World({
     pos: new THREE.Vector3(SPAWN.x, CASE_H, SPAWN.z),
     heading: 0, // face the camera on arrival
     current: null as number | null,
+    vy: 0,
+    airborne: false,
   });
   const lookTarget = useRef(new THREE.Vector3(SPAWN.x, 0.6, SPAWN.z - 1.2));
   const remoteNotes = useRef(new Map<string, number | null>());
@@ -111,15 +120,33 @@ function World({
     m.amount = THREE.MathUtils.lerp(m.amount, moving ? 1 : 0, 1 - Math.exp(-dt * 10));
     m.phase += dt * 11 * m.amount;
 
-    // Which key is underfoot decides both the sound and the standing height
     const key = keyAt(s.pos.x, s.pos.z);
-    const midi = key?.midi ?? null;
+    const surface = key ? CASE_H + key.height - PRESS_DEPTH : 0;
+
+    if (takeJump()) {
+      if (!s.airborne) {
+        s.airborne = true;
+        s.vy = JUMP_SPEED;
+      }
+    }
+    if (s.airborne) {
+      s.vy -= GRAVITY * dt;
+      s.pos.y += s.vy * dt;
+      if (s.vy < 0 && s.pos.y <= surface) {
+        s.pos.y = surface; // landing re-strikes the key below
+        s.airborne = false;
+        s.vy = 0;
+      }
+    } else {
+      s.pos.y = THREE.MathUtils.lerp(s.pos.y, surface, 1 - Math.exp(-dt * 18));
+    }
+
+    // The key underfoot sounds — nothing is pressed while in the air
+    const midi = s.airborne ? null : (key?.midi ?? null);
     if (midi !== s.current) {
       s.current = midi;
       onKeyChange(midi);
     }
-    const surface = key ? CASE_H + key.height - PRESS_DEPTH : 0;
-    s.pos.y = THREE.MathUtils.lerp(s.pos.y, surface, 1 - Math.exp(-dt * 18));
     sendPosition(s.pos.x, s.pos.z, s.heading, midi);
 
     // Keys held down by me and by everyone else in the channel
@@ -271,7 +298,13 @@ export default function PianoWorldScene({
 }) {
   const { remotes, info, sendPosition } = useWorldPresence(playerName);
   const containerRef = useRef<HTMLDivElement>(null);
-  const input = useRef<InputState>({ up: false, down: false, left: false, right: false });
+  const input = useRef<InputState>({
+    up: false,
+    down: false,
+    left: false,
+    right: false,
+    jump: false,
+  });
   // Assume visible until the observer reports otherwise, so the first frame always draws
   const visibleRef = useRef(true);
   const [visible, setVisible] = useState(true);
@@ -312,6 +345,12 @@ export default function PianoWorldScene({
     if (midi !== null && audioRef.current === "on") playNoteOn(midi, 0.75);
   }, []);
 
+  const takeJump = useCallback(() => {
+    const requested = input.current.jump;
+    input.current.jump = false;
+    return requested;
+  }, []);
+
   // Other people's footsteps play too, quieter than your own
   const remoteSounding = useRef(new Map<string, number>());
   const handleRemoteNote = useCallback((id: string, midi: number | null) => {
@@ -344,6 +383,12 @@ export default function PianoWorldScene({
       (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
 
     const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Space" && visibleRef.current && !isTyping(e.target)) {
+        e.preventDefault(); // Space would otherwise scroll the page
+        if (!e.repeat) input.current.jump = true;
+        startAudio();
+        return;
+      }
       const direction = KEY_TO_DIRECTION[e.code];
       if (!direction || !visibleRef.current || isTyping(e.target) || e.metaKey || e.ctrlKey) return;
       e.preventDefault(); // arrows would otherwise scroll the page
@@ -355,7 +400,7 @@ export default function PianoWorldScene({
       if (direction) input.current[direction] = false;
     };
     const releaseAll = () => {
-      input.current = { up: false, down: false, left: false, right: false };
+      input.current = { up: false, down: false, left: false, right: false, jump: false };
     };
 
     window.addEventListener("keydown", onKeyDown);
@@ -402,17 +447,12 @@ export default function PianoWorldScene({
           others={info.others}
           sendPosition={sendPosition}
           onRemoteNote={handleRemoteNote}
+          takeJump={takeJump}
         />
       </Canvas>
 
       {/* HUD */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-4 p-5 md:p-6">
-        <div className="max-w-sm">
-          <h1 className="text-[22px] font-semibold leading-tight -tracking-[0.02em] text-foreground md:text-headline-lg">
-            {copy.title}
-          </h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">{copy.hint}</p>
-        </div>
+      <div className="pointer-events-none absolute right-0 top-0 p-5 md:p-6">
         <div
           aria-live="polite"
           className={cn(
@@ -437,7 +477,19 @@ export default function PianoWorldScene({
       </div>
       </div>
 
-      {/* touch pad */}
+      {/* touch controls */}
+      <button
+        type="button"
+        aria-label="jump"
+        onPointerDown={() => {
+          input.current.jump = true;
+          startAudio();
+        }}
+        onContextMenu={(e) => e.preventDefault()}
+        className="absolute bottom-6 right-48 hidden size-14 touch-none select-none items-center justify-center rounded-full border border-border bg-card/90 text-foreground shadow-sm active:bg-muted pointer-coarse:flex"
+      >
+        <ChevronsUp className="size-6" />
+      </button>
       <div className="absolute bottom-4 right-4 hidden grid-cols-3 gap-1.5 pointer-coarse:grid">
         <span />
         <DirectionButton direction="up" onPress={handlePadPress}>

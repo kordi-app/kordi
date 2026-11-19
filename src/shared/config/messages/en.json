@@ -129,8 +129,6 @@
   },
   "home": {
     "world": {
-      "title": "Take a walk on the keys",
-      "hint": "Move Kordi with the arrow keys or WASD — every key you step on sounds, and so do the steps of others in your channel.",
       "soundOff": "Sound starts on your first key press",
       "soundLoading": "Loading piano sounds…",
       "soundOn": "Sound on",

@@ -16,6 +16,8 @@ const KEY_WHITE = "#fbf8f2";
 const INK = "#221d19";
 const CHEEK = "#f2aaa2";
 const FOOT = "#b48c5c";
+/** Front-to-back squash of the body capsule; face parts are placed on this surface. */
+const BODY_DEPTH = 0.9;
 
 /**
  * Kordi built from primitives to match the 2D mascot: a soft bean body,
@@ -60,7 +62,7 @@ export const KordiModel = forwardRef<
 
       <group ref={body}>
         {/* body: a capsule squashed front-to-back reads as the mascot's bean */}
-        <mesh position={[0, 0.72, 0]} scale={[1, 1, 0.82]} castShadow>
+        <mesh position={[0, 0.72, 0]} scale={[1, 1, BODY_DEPTH]} castShadow>
           <capsuleGeometry args={[0.5, 0.42, 12, 32]} />
           <meshStandardMaterial color={CREAM} roughness={0.42} />
         </mesh>
@@ -75,32 +77,34 @@ export const KordiModel = forwardRef<
           <meshStandardMaterial color={CREAM} roughness={0.42} />
         </mesh>
 
-        {/* face */}
+        {/* face — eyes are flattened discs set into the curve of the head,
+            so they read as painted on (like the mascot) rather than as
+            marbles sticking out in profile */}
         {[-0.17, 0.17].map((x) => (
-          <group key={x} position={[x, 0.98, 0.39]}>
-            <mesh>
+          <group key={x} position={[x, 0.98, 0.405]}>
+            <mesh scale={[1, 1, 0.35]}>
               <sphereGeometry args={[0.065, 20, 16]} />
               <meshStandardMaterial color={INK} roughness={0.25} />
             </mesh>
-            <mesh position={[0.02, 0.022, 0.05]}>
+            <mesh position={[0.02, 0.022, 0.02]} scale={[1, 1, 0.4]}>
               <sphereGeometry args={[0.018, 12, 8]} />
               <meshBasicMaterial color="#ffffff" />
             </mesh>
           </group>
         ))}
         {[-0.31, 0.31].map((x) => (
-          <mesh key={x} position={[x, 0.88, 0.33]} rotation={[0, x > 0 ? 0.6 : -0.6, 0]} scale={[0.075, 0.05, 0.02]}>
+          <mesh key={x} position={[x, 0.88, 0.345]} rotation={[0, x > 0 ? 0.6 : -0.6, 0]} scale={[0.075, 0.05, 0.02]}>
             <sphereGeometry args={[1, 16, 12]} />
             <meshStandardMaterial color={CHEEK} roughness={0.6} />
           </mesh>
         ))}
-        <mesh position={[0, 0.93, 0.405]} rotation={[0, 0, Math.PI]}>
+        <mesh position={[0, 0.93, 0.445]} rotation={[0, 0, Math.PI]}>
           <torusGeometry args={[0.055, 0.011, 8, 24, Math.PI]} />
           <meshStandardMaterial color={INK} roughness={0.4} />
         </mesh>
 
         {/* belly keyboard: three white keys with two black keys on top */}
-        <group position={[0, 0.5, 0.385]}>
+        <group position={[0, 0.5, 0.43]}>
           {[-0.17, 0, 0.17].map((x) => (
             <mesh key={x} position={[x, 0, 0]} castShadow>
               <boxGeometry args={[0.16, 0.34, 0.06]} />
