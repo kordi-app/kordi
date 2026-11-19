@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { WORLD_SOCKET_URL } from "@/shared/config/api";
-import type { EmoteId } from "./interactables";
+import type { EmoteId } from "../model/interactables";
 
 /** Wire format shared with the server (WorldPlayer / WorldMove). */
 export interface RemotePlayer {

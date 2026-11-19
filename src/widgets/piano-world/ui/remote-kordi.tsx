@@ -3,7 +3,7 @@
 import { useRef, useState, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import type { RemotePlayer } from "../model/use-world-presence";
+import type { RemotePlayer } from "../lib/use-world-presence";
 import { CASE_H, PRESS_DEPTH, keyAt } from "../model/layout";
 import { KordiModel, type KordiMotion } from "./kordi-model";
 import { useLabelTexture } from "./label-texture";

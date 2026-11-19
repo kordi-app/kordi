@@ -144,7 +144,15 @@ export function DiscoBall({ item, party }: { item: InteractableDef; party: boole
       </mesh>
       <mesh ref={ball} position={[0, 4.3, 0]} castShadow>
         <icosahedronGeometry args={[0.55, 2]} />
-        <meshStandardMaterial color="#ddd" metalness={1} roughness={0.15} flatShading emissive={party ? "#ff4fd8" : "#000"} emissiveIntensity={party ? 0.5 : 0} />
+        {/* no environment map to reflect, so full metalness would render black: keep it bright */}
+        <meshStandardMaterial
+          color="#e8e6f0"
+          metalness={0.35}
+          roughness={0.2}
+          flatShading
+          emissive={party ? "#ff4fd8" : "#6b5cff"}
+          emissiveIntensity={party ? 0.7 : 0.25}
+        />
       </mesh>
       {/* floor button you stand next to */}
       <mesh position={[0, 0.06, 0]}>

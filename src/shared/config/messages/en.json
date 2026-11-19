@@ -238,7 +238,12 @@
       "wishNote": "What you write isn't saved anywhere. Send it and it rises as light.",
       "wishSend": "Send it with the music box",
       "wishSent": "Your wish rises as light",
-      "jukeboxNowPlaying": "Beethoven, Für Elise (public domain)"
+      "jukeboxNowPlaying": "Beethoven, Für Elise (public domain)",
+      "features": {
+        "springs": "Black keys are springs — step on one to bounce",
+        "echo": "Every step ripples, and notes ring on",
+        "chords": "Each key plays a jazz chord"
+      }
     }
   },
   "piano": {

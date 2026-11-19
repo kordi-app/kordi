@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 import type { ChordCard } from "../model/chord-cards";
-import type { PianoWorldCopy } from "./piano-world-scene";
+import type { PianoWorldCopy } from "../model/copy";
 
 function PanelShell({
   title,
