@@ -128,39 +128,6 @@
     "brightSynth": "브라이트 신스"
   },
   "home": {
-    "hero": {
-      "title": "건반 위에서 코드를 익혀요",
-      "description": "컴퓨터 키보드나 MIDI 피아노로 코드를 누르면, 맞았는지 바로 알려드려요."
-    },
-    "daily": {
-      "title": "오늘의 코드",
-      "cta": "자유 연주에서 쳐보기",
-      "quality": {
-        "major": "메이저",
-        "minor": "마이너",
-        "dominant7": "도미넌트 세븐스",
-        "major7": "메이저 세븐스",
-        "minor7": "마이너 세븐스",
-        "sus4": "서스포",
-        "diminished": "디미니시",
-        "halfDiminished": "하프 디미니시"
-      }
-    },
-    "modes": {
-      "title": "연습 모드",
-      "freePlay": {
-        "title": "자유 연주",
-        "description": "누르는 대로 코드 이름을 읽어줘요. 88건반 전체와 MIDI 피아노를 지원해요."
-      },
-      "practice": {
-        "title": "코드 연습",
-        "description": "랜덤으로 나오는 코드를 쳐요. 내 속도대로, 또는 메트로놈에 맞춰 타임어택으로."
-      },
-      "quiz": {
-        "title": "코드 퀴즈",
-        "description": "10문제, 문제당 20초. 빨리 맞힐수록 점수가 높고 랭킹에 올라가요."
-      }
-    },
     "world": {
       "title": "건반 위를 걸어보세요",
       "hint": "방향키나 WASD로 코르디를 움직이면, 밟은 건반 소리가 나요.",

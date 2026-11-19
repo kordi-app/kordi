@@ -128,39 +128,6 @@
     "brightSynth": "Bright Synth"
   },
   "home": {
-    "hero": {
-      "title": "Learn chords at the keys",
-      "description": "Play a chord on your computer keyboard or MIDI piano and get told right away whether it's correct."
-    },
-    "daily": {
-      "title": "Chord of the day",
-      "cta": "Try it in free play",
-      "quality": {
-        "major": "Major",
-        "minor": "Minor",
-        "dominant7": "Dominant 7th",
-        "major7": "Major 7th",
-        "minor7": "Minor 7th",
-        "sus4": "Suspended 4th",
-        "diminished": "Diminished",
-        "halfDiminished": "Half-diminished"
-      }
-    },
-    "modes": {
-      "title": "Practice modes",
-      "freePlay": {
-        "title": "Free play",
-        "description": "Names the chord as you play. Full 88 keys, with MIDI piano support."
-      },
-      "practice": {
-        "title": "Chord practice",
-        "description": "Play randomly drawn chords — at your own pace, or against a metronome."
-      },
-      "quiz": {
-        "title": "Chord quiz",
-        "description": "10 questions, 20 seconds each. Faster answers score higher and reach the ranking."
-      }
-    },
     "world": {
       "title": "Take a walk on the keys",
       "hint": "Move Kordi with the arrow keys or WASD — every key you step on sounds.",
