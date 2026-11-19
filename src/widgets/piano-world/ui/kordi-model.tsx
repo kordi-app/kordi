@@ -136,30 +136,34 @@ export const KordiModel = forwardRef<
           <meshStandardMaterial color={CREAM} roughness={0.42} />
         </mesh>
 
-        {/* face — eyes are flattened discs set into the curve of the head,
-            so they read as painted on (like the mascot) rather than as
-            marbles sticking out in profile */}
-        {[-0.17, 0.17].map((x) => (
-          <group key={x} position={[x, 0.98, 0.405]}>
-            <mesh scale={[1, 1, 0.35]}>
-              <sphereGeometry args={[0.068, 24, 16]} />
-              <meshStandardMaterial color={INK} roughness={0.25} />
+        {/* face — big glossy eyes like the mascot. Each is a shallow dome set
+            into the head's curve (surface z ≈ 0.416 at x ±0.19), so it shines
+            from the front without poking out in profile. */}
+        {[-0.19, 0.19].map((x) => (
+          <group key={x} position={[x, 0.95, 0.396]}>
+            <mesh scale={[1, 1.08, 0.45]}>
+              <sphereGeometry args={[0.085, 28, 20]} />
+              <meshStandardMaterial color={INK} roughness={0.12} metalness={0.1} />
             </mesh>
-            {/* highlight mirrored per eye (upper-outer), so the pair reads symmetric */}
-            <mesh position={[Math.sign(x) * 0.02, 0.024, 0.02]} scale={[1, 1, 0.4]}>
-              <sphereGeometry args={[0.019, 12, 8]} />
+            {/* main catchlight up and to the outside, a small one low on the inside */}
+            <mesh position={[Math.sign(x) * 0.028, 0.034, 0.036]} scale={[1, 1, 0.4]}>
+              <sphereGeometry args={[0.03, 14, 10]} />
+              <meshBasicMaterial color="#ffffff" />
+            </mesh>
+            <mesh position={[-Math.sign(x) * 0.026, -0.032, 0.034]} scale={[1, 1, 0.4]}>
+              <sphereGeometry args={[0.013, 10, 8]} />
               <meshBasicMaterial color="#ffffff" />
             </mesh>
           </group>
         ))}
-        {[-0.31, 0.31].map((x) => (
-          <mesh key={x} position={[x, 0.88, 0.345]} rotation={[0, x > 0 ? 0.6 : -0.6, 0]} scale={[0.075, 0.05, 0.02]}>
+        {[-0.32, 0.32].map((x) => (
+          <mesh key={x} position={[x, 0.85, 0.345]} rotation={[0, x > 0 ? 0.6 : -0.6, 0]} scale={[0.09, 0.058, 0.02]}>
             <sphereGeometry args={[1, 16, 12]} />
             <meshStandardMaterial color={CHEEK} roughness={0.6} />
           </mesh>
         ))}
-        <mesh position={[0, 0.93, 0.445]} rotation={[0, 0, Math.PI]}>
-          <torusGeometry args={[0.055, 0.011, 8, 24, Math.PI]} />
+        <mesh position={[0, 0.9, 0.447]} rotation={[0, 0, Math.PI]}>
+          <torusGeometry args={[0.05, 0.011, 8, 24, Math.PI]} />
           <meshStandardMaterial color={INK} roughness={0.4} />
         </mesh>
 
