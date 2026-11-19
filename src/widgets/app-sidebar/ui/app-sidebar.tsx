@@ -31,7 +31,7 @@ export function AppSidebar() {
   const pathname = usePathname();
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" className="[&>[data-sidebar=sidebar]]:bg-card">
       <SidebarHeader className="h-14 shrink-0 justify-center px-4 group-data-[collapsible=icon]:px-0">
         <Link
           href={ROUTES.HOME}
@@ -101,7 +101,7 @@ function NavLink({
         render={<Link href={href} />}
         // The mobile sheet stays open after client-side navigation otherwise
         onClick={() => isMobile && setOpenMobile(false)}
-        className="h-9 gap-3 rounded-md px-3 text-sm text-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-foreground data-[active=true]:bg-card data-[active=true]:font-medium data-[active=true]:text-foreground data-[active=true]:shadow-[0_0_0_1px_var(--border),0_1px_2px_rgba(42,37,33,0.06)]"
+        className="h-9 gap-3 rounded-md px-3 text-sm text-foreground/70 transition-colors hover:bg-muted hover:text-foreground data-[active=true]:bg-accent data-[active=true]:font-medium data-[active=true]:text-foreground"
       >
         <Icon className="size-[18px] shrink-0" />
         <span className="truncate">{label}</span>

@@ -23,11 +23,11 @@ export default async function RoutesLayout({
       style={{ "--sidebar-width": "14rem" } as React.CSSProperties}
     >
       <AppSidebar />
-      <SidebarInset className="h-svh overflow-hidden">
+      <SidebarInset className="h-svh overflow-hidden bg-card">
         <div className="flex flex-1 flex-col overflow-y-auto">
           {/* One toggle for both worlds: collapses the rail on desktop, opens
               the sheet on mobile (where the sidebar is otherwise unreachable). */}
-          <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 bg-background/90 px-3 backdrop-blur md:px-4">
+          <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 bg-card/90 px-3 backdrop-blur md:px-4">
             <SidebarTrigger className="size-9 text-foreground/70 hover:text-foreground" />
             <Link
               href={ROUTES.HOME}
