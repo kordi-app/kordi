@@ -19,10 +19,13 @@ export function RemoteKordi({
   id,
   name,
   remotes,
+  course,
 }: {
   id: string;
   name: string;
   remotes: RefObject<Map<string, RemotePlayer>>;
+  /** on the jump course the floor is platforms, not keys */
+  course: boolean;
 }) {
   const group = useRef<THREE.Group>(null);
   const motion = useRef<KordiMotion>({ phase: 0, amount: 0 });
@@ -40,9 +43,14 @@ export function RemoteKordi({
     const before = pos.current.clone();
     pos.current.x = THREE.MathUtils.lerp(pos.current.x, target.x, ease);
     pos.current.z = THREE.MathUtils.lerp(pos.current.z, target.z, ease);
-    const key = keyAt(pos.current.x, pos.current.z);
-    const surface = key ? CASE_H + key.height - PRESS_DEPTH : 0;
-    pos.current.y = THREE.MathUtils.lerp(pos.current.y, surface, 1 - Math.exp(-dt * 18));
+    // Use the reported height when the server relays it (jumps, the climb);
+    // otherwise stand on whatever is underfoot
+    let targetY = target.y;
+    if (targetY === undefined) {
+      const key = course ? null : keyAt(pos.current.x, pos.current.z);
+      targetY = key ? CASE_H + key.height - PRESS_DEPTH : 0;
+    }
+    pos.current.y = THREE.MathUtils.lerp(pos.current.y, targetY, 1 - Math.exp(-dt * 18));
 
     const delta = ((target.h - heading.current + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
     heading.current += delta * ease;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ChevronsUp } from "lucide-react";
@@ -25,6 +25,8 @@ import { KordiModel, type KordiMotion } from "./kordi-model";
 import { PianoFloor } from "./piano-floor";
 import { RemoteKordi } from "./remote-kordi";
 import { Portal } from "./portal";
+import { CourseScene } from "./course-scene";
+import { COURSE, COURSE_BOUNDS, GOAL_INDEX, courseGround } from "../model/course";
 import { StepEffects, type StepEffectsApi } from "./step-effects";
 import { TargetBeam } from "./target-beam";
 import { MELODIES } from "../model/melodies";
@@ -36,7 +38,6 @@ import {
   arrivalPoint,
   isRegionId,
   type RegionDef,
-  type RegionFeature,
   type RegionId,
 } from "../model/regions";
 
@@ -50,7 +51,37 @@ const JUMP_SPEED = 7.5;
 const GRAVITY = 22;
 
 const SPEED = 4.2;
-const CAMERA_OFFSET = new THREE.Vector3(0, 12, 14);
+/** Below this, an unsupported player starts to fall rather than glide down. */
+const FALL_THRESHOLD = 0.4;
+
+interface Ground {
+  height: number;
+  /** note to sound, if standing on something playable */
+  midi: number | null;
+  black: boolean;
+  /** course platform index, for progress tracking */
+  platform: number | null;
+}
+
+/** What's underfoot in this region at (x, z), given the current height. */
+function groundAt(region: RegionDef, x: number, z: number, y: number): Ground {
+  if (region.feature === "course") {
+    const hit = courseGround(x, z, y);
+    return {
+      height: hit.height,
+      midi: hit.index === null ? null : COURSE[hit.index].midi,
+      black: hit.index !== null && COURSE[hit.index].kind === "black",
+      platform: hit.index,
+    };
+  }
+  const key = keyAt(x, z);
+  return {
+    height: key ? CASE_H + key.height - PRESS_DEPTH : 0,
+    midi: key?.midi ?? null,
+    black: key?.black ?? false,
+    platform: null,
+  };
+}
 const KEY_TO_DIRECTION: Record<string, Direction> = {
   ArrowUp: "up",
   ArrowDown: "down",
@@ -64,12 +95,15 @@ const KEY_TO_DIRECTION: Record<string, Direction> = {
 
 export interface PianoWorldCopy {
   regions: Record<RegionId, string>;
-  features: Record<Exclude<RegionFeature, "melody">, string>;
   melodies: Record<(typeof MELODIES)[number]["key"], string>;
   melodyNext: string;
   melodyHint: string;
   melodyDone: string;
   melodyNextSong: string;
+  courseTitle: string;
+  courseHint: string;
+  courseBest: string;
+  courseDone: string;
   soundOff: string;
   soundLoading: string;
   soundOn: string;
@@ -110,7 +144,13 @@ function World({
   onPortal,
   targetMidi,
   celebrate,
+  onPlatform,
+  crowned,
 }: {
+  /** course: the platform now underfoot (null = cloud floor / not a course) */
+  onPlatform: (index: number | null) => void;
+  /** finished the hidden course at least once */
+  crowned: boolean;
   /** melody game: the key to step on next */
   targetMidi: number | null;
   /** bump to fire confetti over Kordi */
@@ -125,7 +165,7 @@ function World({
   onKeyChange: (midi: number | null) => void;
   remotes: React.RefObject<Map<string, RemotePlayer>>;
   others: { id: string; name: string }[];
-  sendPosition: (x: number, z: number, h: number, m: number | null) => void;
+  sendPosition: (x: number, y: number, z: number, h: number, m: number | null) => void;
   onRemoteNote: (id: string, midi: number | null) => void;
 }) {
   const kordi = useRef<THREE.Group>(null);
@@ -137,7 +177,9 @@ function World({
     current: null as number | null,
     vy: 0,
     airborne: false,
+    platform: null as number | null,
   });
+  const cameraOffset = useMemo(() => new THREE.Vector3(...region.camera), [region]);
   const lookTarget = useRef(new THREE.Vector3(SPAWN.x, 0.6, SPAWN.z - 1.2));
   const remoteNotes = useRef(new Map<string, number | null>());
   const [pressed, setPressed] = useState<ReadonlySet<number>>(() => new Set());
@@ -156,14 +198,14 @@ function World({
 
     if (placedFor.current !== arrival) {
       placedFor.current = arrival;
-      s.pos.set(arrival.x, CASE_H, arrival.z);
+      s.pos.set(arrival.x, groundAt(region, arrival.x, arrival.z, 0).height, arrival.z);
       s.heading = 0;
       s.vy = 0;
       s.airborne = false;
       portalArmed.current = false;
       // Cut, don't glide, to the new spot — the screen is faded out meanwhile
-      camera.position.copy(s.pos).setY(0).add(CAMERA_OFFSET);
-      lookTarget.current.set(s.pos.x, 0.6, s.pos.z - 1.2);
+      camera.position.copy(s.pos).add(cameraOffset);
+      lookTarget.current.set(s.pos.x, s.pos.y + 0.6, s.pos.z - 1.2);
     }
 
     let dx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
@@ -174,8 +216,9 @@ function World({
       const length = Math.hypot(dx, dz);
       dx /= length;
       dz /= length;
-      s.pos.x = THREE.MathUtils.clamp(s.pos.x + dx * SPEED * dt, -BOUNDS.x, BOUNDS.x);
-      s.pos.z = THREE.MathUtils.clamp(s.pos.z + dz * SPEED * dt, BOUNDS.zMin, BOUNDS.zMax);
+      const bounds = region.feature === "course" ? COURSE_BOUNDS : BOUNDS;
+      s.pos.x = THREE.MathUtils.clamp(s.pos.x + dx * SPEED * dt, -bounds.x, bounds.x);
+      s.pos.z = THREE.MathUtils.clamp(s.pos.z + dz * SPEED * dt, bounds.zMin, bounds.zMax);
       s.heading = lerpAngle(s.heading, Math.atan2(dx, dz), 1 - Math.exp(-dt * 12));
     }
 
@@ -183,8 +226,8 @@ function World({
     m.amount = THREE.MathUtils.lerp(m.amount, moving ? 1 : 0, 1 - Math.exp(-dt * 10));
     m.phase += dt * 11 * m.amount;
 
-    const key = keyAt(s.pos.x, s.pos.z);
-    const surface = key ? CASE_H + key.height - PRESS_DEPTH : 0;
+    const ground = groundAt(region, s.pos.x, s.pos.z, s.pos.y);
+    const surface = ground.height;
 
     if (takeJump()) {
       if (!s.airborne) {
@@ -200,21 +243,29 @@ function World({
         s.airborne = false;
         s.vy = 0;
       }
+    } else if (s.pos.y - surface > FALL_THRESHOLD) {
+      // walked off a ledge
+      s.airborne = true;
+      s.vy = 0;
     } else {
       s.pos.y = THREE.MathUtils.lerp(s.pos.y, surface, 1 - Math.exp(-dt * 18));
     }
 
     // The key underfoot sounds — nothing is pressed while in the air
-    const midi = s.airborne ? null : (key?.midi ?? null);
+    const midi = s.airborne ? null : ground.midi;
+    if (!s.airborne && ground.platform !== s.platform) {
+      s.platform = ground.platform;
+      onPlatform(ground.platform);
+    }
     if (midi !== s.current) {
       s.current = midi;
       onKeyChange(midi);
-      if (midi !== null && key) {
+      if (midi !== null) {
         const accent = region.theme.accent;
         fx.current?.notes(s.pos.x, s.pos.y, s.pos.z, accent);
         if (region.feature === "echo") fx.current?.ripple(s.pos.x, s.pos.y, s.pos.z, accent);
         // Neon: black keys are springs
-        if (region.feature === "springs" && key.black) {
+        if (region.feature === "springs" && ground.black) {
           s.airborne = true;
           s.vy = JUMP_SPEED * 1.75;
         }
@@ -224,10 +275,12 @@ function World({
       celebrated.current = celebrate;
       fx.current?.confetti(s.pos.x, s.pos.y, s.pos.z);
     }
-    sendPosition(s.pos.x, s.pos.z, s.heading, midi);
+    sendPosition(s.pos.x, s.pos.y, s.pos.z, s.heading, midi);
 
     const inside = region.portals.find(
-      (portal) => Math.hypot(s.pos.x - portal.x, s.pos.z - portal.z) < PORTAL_RADIUS,
+      (portal) =>
+        Math.hypot(s.pos.x - portal.x, s.pos.z - portal.z) < PORTAL_RADIUS &&
+        Math.abs(s.pos.y - (portal.y ?? 0)) < 1.2,
     );
     if (!inside) {
       portalArmed.current = true;
@@ -265,17 +318,20 @@ function World({
 
     // The keyboard is 52 keys wide: the sun travels with Kordi so shadows stay crisp nearby
     if (light.current) {
-      light.current.position.set(s.pos.x + 6, 12, s.pos.z + 6);
-      light.current.target.position.set(s.pos.x, 0, s.pos.z);
+      light.current.position.set(s.pos.x + 6, s.pos.y + 12, s.pos.z + 6);
+      light.current.target.position.set(s.pos.x, s.pos.y, s.pos.z);
       light.current.target.updateMatrixWorld();
     }
 
     const follow = 1 - Math.exp(-dt * 4);
+    // Keyboard regions keep the camera level (jumps don't bob the view);
+    // the course climbs, so the camera climbs with you
+    const cameraY = region.feature === "course" ? s.pos.y : 0;
     camera.position.lerp(
-      new THREE.Vector3().copy(s.pos).setY(0).add(CAMERA_OFFSET),
+      new THREE.Vector3(s.pos.x, cameraY, s.pos.z).add(cameraOffset),
       follow,
     );
-    lookTarget.current.lerp(new THREE.Vector3(s.pos.x, 0.6, s.pos.z - 1.2), follow);
+    lookTarget.current.lerp(new THREE.Vector3(s.pos.x, cameraY + 0.6, s.pos.z - 1.2), follow);
     camera.lookAt(lookTarget.current);
   });
 
@@ -295,19 +351,102 @@ function World({
         shadow-bias={-0.0005}
       />
       <hemisphereLight args={[region.theme.sky, region.theme.ground, region.theme.ambient]} />
-      <PianoFloor pressed={pressed} theme={region.theme} />
+      {region.feature === "course" ? (
+        <CourseScene pressed={pressed} />
+      ) : (
+        <PianoFloor pressed={pressed} theme={region.theme} />
+      )}
       <RegionDecor region={region.id} />
       {region.portals.map((portal) => (
-        <Portal key={portal.to} portal={portal} glow={region.theme.dark} />
+        <Portal key={`${portal.to}-${portal.x}`} portal={portal} glow={region.theme.dark} />
       ))}
       {targetMidi !== null ? <TargetBeam midi={targetMidi} color={region.theme.accent} /> : null}
       <StepEffects ref={fx} />
       {/* scaled up so the character reads at a glance against the giant keys */}
-      <KordiModel ref={kordi} motion={motion} scale={1.6} />
+      <KordiModel ref={kordi} motion={motion} scale={1.6} crown={crowned} />
       {others.map((other) => (
-        <RemoteKordi key={other.id} id={other.id} name={other.name} remotes={remotes} />
+        <RemoteKordi
+          key={other.id}
+          id={other.id}
+          name={other.name}
+          remotes={remotes}
+          course={region.feature === "course"}
+        />
       ))}
     </>
+  );
+}
+
+interface CourseRun {
+  /** performance.now() when the climb began; null when not climbing */
+  startedAt: number | null;
+  /** highest platform index reached this attempt */
+  reached: number;
+  /** time of the run that just finished */
+  finishedMs: number | null;
+  best: number | null;
+}
+
+const COURSE_BEST_KEY = "kordi.world.course-best.v1";
+
+/** Best time lives only in this browser; storage can be unavailable, so never throw. */
+function readCourseBest(): number | null {
+  try {
+    const raw = window.localStorage.getItem(COURSE_BEST_KEY);
+    const value = raw === null ? NaN : Number(raw);
+    return Number.isFinite(value) && value > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCourseBest(ms: number) {
+  try {
+    window.localStorage.setItem(COURSE_BEST_KEY, String(Math.round(ms)));
+  } catch {
+    // private mode etc. — the crown just won't persist
+  }
+}
+
+function formatTime(ms: number) {
+  const total = ms / 1000;
+  const minutes = Math.floor(total / 60);
+  const seconds = (total % 60).toFixed(1).padStart(4, "0");
+  return `${minutes}:${seconds}`;
+}
+
+function CourseCard({ run, copy }: { run: CourseRun; copy: PianoWorldCopy }) {
+  const [now, setNow] = useState(() => performance.now());
+  useEffect(() => {
+    if (run.startedAt === null) return;
+    const timer = setInterval(() => setNow(performance.now()), 100);
+    return () => clearInterval(timer);
+  }, [run.startedAt]);
+
+  const elapsed =
+    run.startedAt !== null ? now - run.startedAt : (run.finishedMs ?? 0);
+  const progress = run.reached / GOAL_INDEX;
+
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-5 w-[min(20rem,calc(100%-2rem))] -translate-x-1/2 rounded-xl border border-border bg-card/90 px-4 py-3 shadow-sm md:top-6">
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-sm font-semibold text-foreground">
+          {run.finishedMs !== null && run.startedAt === null ? copy.courseDone : copy.courseTitle}
+        </p>
+        <p className="shrink-0 text-lg font-semibold tabular-nums text-foreground">
+          {formatTime(elapsed)}
+        </p>
+      </div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full bg-[#8f7cff] transition-[width] duration-300"
+          style={{ width: `${Math.min(progress, 1) * 100}%` }}
+        />
+      </div>
+      <p className="mt-2 text-xs text-muted-foreground">
+        {run.best !== null ? `${copy.courseBest} ${formatTime(run.best)}` : copy.courseHint}
+      </p>
+    </div>
   );
 }
 
@@ -553,9 +692,50 @@ export default function PianoWorldScene({
     [startAudio],
   );
 
+  /** bumped to fire confetti (melody finished, course topped) */
+  const [celebrate, setCelebrate] = useState(0);
+
+  // --- hidden course: timer, best record and the crown reward -------------
+  const [crowned, setCrowned] = useState(() => readCourseBest() !== null);
+  const [course, setCourse] = useState<CourseRun>({
+    startedAt: null,
+    reached: 0,
+    finishedMs: null,
+    best: readCourseBest(),
+  });
+  const courseRef = useRef(course);
+  const handlePlatform = useCallback((index: number | null) => {
+    if (regionRef.current.feature !== "course") return;
+    const run = courseRef.current;
+    let next = run;
+    if (index === null) {
+      // back on the cloud floor: the attempt is over, start fresh next time
+      if (run.startedAt !== null) next = { ...run, startedAt: null, reached: 0 };
+    } else if (index === GOAL_INDEX) {
+      if (run.startedAt !== null) {
+        const finishedMs = performance.now() - run.startedAt;
+        const best = run.best === null ? finishedMs : Math.min(run.best, finishedMs);
+        writeCourseBest(best);
+        setCrowned(true);
+        setCelebrate((n) => n + 1);
+        next = { startedAt: null, reached: GOAL_INDEX, finishedMs, best };
+      }
+    } else {
+      next = {
+        ...run,
+        startedAt: run.startedAt ?? performance.now(),
+        reached: Math.max(run.reached, index),
+        finishedMs: run.startedAt === null ? null : run.finishedMs,
+      };
+    }
+    if (next !== run) {
+      courseRef.current = next;
+      setCourse(next);
+    }
+  }, []);
+
   const [melody, setMelody] = useState({ song: 0, step: 0, done: false });
   const melodyRef = useRef(melody);
-  const [celebrate, setCelebrate] = useState(0);
 
   const advanceMelody = useCallback((midi: number) => {
     const current = melodyRef.current;
@@ -728,6 +908,8 @@ export default function PianoWorldScene({
               : null
           }
           celebrate={celebrate}
+          onPlatform={handlePlatform}
+          crowned={crowned}
         />
       </Canvas>
 
@@ -744,12 +926,9 @@ export default function PianoWorldScene({
         <div className="rounded-full border border-border bg-card/90 px-3.5 py-1.5 text-sm font-medium text-foreground shadow-sm">
           {copy.regions[regionId]}
         </div>
-        {region.feature !== "melody" ? (
-          <p className="mt-2 max-w-60 rounded-lg border border-border bg-card/85 px-3 py-1.5 text-xs text-muted-foreground">
-            {copy.features[region.feature]}
-          </p>
-        ) : null}
       </div>
+
+      {region.feature === "course" ? <CourseCard run={course} copy={copy} /> : null}
 
       {region.feature === "melody" ? (
         <MelodyCard

@@ -1,5 +1,6 @@
 import type { InstrumentId } from "@/shared/lib/audio";
 import { SPAWN, WHITE_L } from "./layout";
+import { COURSE, COURSE_START, GOAL_INDEX } from "./course";
 
 /**
  * The piano world is a hub (the Grand Hall) with portals out to themed
@@ -9,7 +10,7 @@ import { SPAWN, WHITE_L } from "./layout";
  * optionally, decor), not a scene change.
  */
 
-export const REGION_IDS = ["hall", "neon", "cathedral", "lounge"] as const;
+export const REGION_IDS = ["hall", "neon", "cathedral", "lounge", "clouds"] as const;
 export type RegionId = (typeof REGION_IDS)[number];
 
 export function isRegionId(value: unknown): value is RegionId {
@@ -42,8 +43,11 @@ export interface PortalDef {
   to: RegionId;
   x: number;
   z: number;
-  /** Ring colour */
+  /** Ground height the portal stands on (0 = floor) */
+  y?: number;
   color: string;
+  /** Small and faint — a secret to stumble on, not a signposted exit */
+  hidden?: boolean;
 }
 
 /**
@@ -52,13 +56,16 @@ export interface PortalDef {
  * - springs: black keys bounce you into the air; the floor pulses
  * - echo: steps ripple and the organ rings on after you leave a key
  * - chords: each step plays a jazz seventh chord built on that key
+ * - course: a hidden jump climb (no keyboard floor; see course.ts)
  */
-export type RegionFeature = "melody" | "springs" | "echo" | "chords";
+export type RegionFeature = "melody" | "springs" | "echo" | "chords" | "course";
 
 export interface RegionDef {
   id: RegionId;
   instrument: InstrumentId;
   feature: RegionFeature;
+  /** Camera offset from the player; the course wants a lower, side-on view */
+  camera: [x: number, y: number, z: number];
   theme: RegionTheme;
   portals: PortalDef[];
 }
@@ -70,7 +77,11 @@ const HALL_PORTALS: PortalDef[] = [
   { to: "neon", x: -18, z: PORTAL_Z, color: "#ff4fd8" },
   { to: "cathedral", x: 9, z: PORTAL_Z, color: "#c9a25a" },
   { to: "lounge", x: 20, z: PORTAL_Z, color: "#e58a3a" },
+  // the secret: tucked behind the far-left end of the keyboard
+  { to: "clouds", x: -26.4, z: -WHITE_L / 2 - 1.1, color: "#b9a8ff", hidden: true },
 ];
+
+const DEFAULT_CAMERA: RegionDef["camera"] = [0, 12, 14];
 
 /** Every themed region has one way home, near where you arrive. */
 const homePortal = (color: string): PortalDef[] => [
@@ -82,6 +93,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     id: "hall",
     instrument: "grand-piano",
     feature: "melody",
+    camera: DEFAULT_CAMERA,
     portals: HALL_PORTALS,
     theme: {
       background: "#fcfbf8",
@@ -106,6 +118,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     id: "neon",
     instrument: "bright-synth",
     feature: "springs",
+    camera: DEFAULT_CAMERA,
     portals: homePortal("#f4efe6"),
     theme: {
       background: "#120f1a",
@@ -130,6 +143,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     id: "cathedral",
     instrument: "organ",
     feature: "echo",
+    camera: DEFAULT_CAMERA,
     portals: homePortal("#2f2b27"),
     theme: {
       background: "#e7e1d5",
@@ -154,6 +168,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     id: "lounge",
     instrument: "electric-piano",
     feature: "chords",
+    camera: DEFAULT_CAMERA,
     portals: homePortal("#f4efe6"),
     theme: {
       background: "#241b16",
@@ -174,6 +189,35 @@ export const REGIONS: Record<RegionId, RegionDef> = {
       accent: "#ff9a4a",
     },
   },
+  clouds: {
+    id: "clouds",
+    instrument: "synth-pad",
+    feature: "course",
+    camera: [0, 4.5, 12],
+    portals: [
+      { to: "hall", x: COURSE_START.x - 3, z: COURSE_START.z, color: "#8f7cff" },
+      // a way home once you've made it to the top
+      { to: "hall", x: COURSE[GOAL_INDEX].x, y: COURSE[GOAL_INDEX].y, z: COURSE[GOAL_INDEX].z - 0.6, color: "#d4a64a" },
+    ],
+    theme: {
+      background: "#cfe4fb",
+      fog: [26, 60],
+      floor: "#f4f8ff",
+      keyboardCase: "#2f2b27",
+      white: "#fbf8f2",
+      whitePressed: "#e8dcc6",
+      black: "#24201c",
+      blackPressed: "#5b5048",
+      pressedGlow: "#b9a8ff",
+      sky: "#ffffff",
+      ground: "#cfe4fb",
+      ambient: 1.9,
+      sun: 1.8,
+      sunColor: "#fff6e6",
+      dark: false,
+      accent: "#8f7cff",
+    },
+  },
 };
 
 /** How close (in floor units) you must step to a portal to go through it. */
@@ -181,8 +225,11 @@ export const PORTAL_RADIUS = 0.95;
 
 /** Where you appear in `to` after coming from `from`: just in front of the portal home, facing the keys. */
 export function arrivalPoint(to: RegionId, from: RegionId | null): { x: number; z: number } {
+  if (to === "clouds") return { ...COURSE_START };
   if (from === null) return { x: SPAWN.x, z: SPAWN.z };
-  const portal = REGIONS[to].portals.find((p) => p.to === from) ?? REGIONS[to].portals[0];
+  // Prefer a floor-level portal back to where you came from
+  const portal =
+    REGIONS[to].portals.find((p) => p.to === from && !p.y) ?? REGIONS[to].portals[0];
   if (!portal) return { x: SPAWN.x, z: SPAWN.z };
   // Beside the portal (not behind it, where it would hide you from the
   // camera) and outside its radius, so you don't land straight back in

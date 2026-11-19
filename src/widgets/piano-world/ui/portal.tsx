@@ -120,7 +120,7 @@ export function Portal({ portal, glow }: { portal: PortalDef; glow: boolean }) {
     }
     if (column.current) {
       const material = column.current.material as THREE.MeshBasicMaterial;
-      material.opacity = 0.55 + Math.sin(t * 3) * 0.08;
+      material.opacity = (portal.hidden ? 0.28 : 0.55) + Math.sin(t * 3) * 0.08;
       if (material.map) material.map.offset.y -= dt * 0.35; // light flows upward
     }
     // sparks drift up and respawn at the floor
@@ -151,7 +151,10 @@ export function Portal({ portal, glow }: { portal: PortalDef; glow: boolean }) {
   } as const;
 
   return (
-    <group position={[portal.x, 0.02, portal.z]}>
+    <group
+      position={[portal.x, (portal.y ?? 0) + 0.02, portal.z]}
+      scale={portal.hidden ? 0.55 : 1}
+    >
       {/* glowing pool on the floor */}
       <mesh ref={pool} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[COLUMN_RADIUS * 4, COLUMN_RADIUS * 4]} />

@@ -3,6 +3,7 @@
 import { forwardRef, useRef, type MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { CrownMesh } from "./crown-mesh";
 
 export interface KordiMotion {
   /** Walk-cycle phase; advances while moving. */
@@ -27,8 +28,8 @@ const BODY_DEPTH = 0.9;
  */
 export const KordiModel = forwardRef<
   THREE.Group,
-  { motion: MutableRefObject<KordiMotion>; scale?: number }
->(function KordiModel({ motion, scale = 1 }, ref) {
+  { motion: MutableRefObject<KordiMotion>; scale?: number; crown?: boolean }
+>(function KordiModel({ motion, scale = 1, crown = false }, ref) {
   const leftFoot = useRef<THREE.Mesh>(null);
   const rightFoot = useRef<THREE.Mesh>(null);
   const leftArm = useRef<THREE.Mesh>(null);
@@ -103,6 +104,12 @@ export const KordiModel = forwardRef<
           <torusGeometry args={[0.055, 0.011, 8, 24, Math.PI]} />
           <meshStandardMaterial color={INK} roughness={0.4} />
         </mesh>
+
+        {crown ? (
+          <group position={[0, 1.33, 0]} rotation={[0, 0, 0.12]} scale={0.95}>
+            <CrownMesh />
+          </group>
+        ) : null}
 
         {/* belly keyboard: three white keys with two black keys on top */}
         <group position={[0, 0.5, 0.43]}>

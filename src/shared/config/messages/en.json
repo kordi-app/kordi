@@ -142,12 +142,8 @@
         "hall": "Grand Hall",
         "neon": "Neon Street",
         "cathedral": "Cathedral",
-        "lounge": "Lounge"
-      },
-      "features": {
-        "springs": "Black keys are springs — step on one to bounce",
-        "echo": "Every step ripples, and notes ring on",
-        "chords": "Each key plays a jazz chord"
+        "lounge": "Lounge",
+        "clouds": "Cloud Keys"
       },
       "melodies": {
         "twinkle": "Twinkle Twinkle Little Star",
@@ -157,7 +153,11 @@
       "melodyNext": "Next",
       "melodyHint": "repeat notes: jump (Space) and land again",
       "melodyDone": "Done!",
-      "melodyNextSong": "Next tune coming up…"
+      "melodyNextSong": "Next tune coming up…",
+      "courseTitle": "Climb to the top",
+      "courseHint": "Space to jump · fall and you start over",
+      "courseBest": "Best",
+      "courseDone": "You made it! Crown earned"
     }
   },
   "piano": {

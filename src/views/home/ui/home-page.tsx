@@ -21,11 +21,6 @@ export async function HomePage() {
       <PianoWorld
         playerName={playerName}
         copy={{
-          features: {
-            springs: t("features.springs"),
-            echo: t("features.echo"),
-            chords: t("features.chords"),
-          },
           melodies: {
             twinkle: t("melodies.twinkle"),
             odeToJoy: t("melodies.odeToJoy"),
@@ -35,11 +30,16 @@ export async function HomePage() {
           melodyHint: t("melodyHint"),
           melodyDone: t("melodyDone"),
           melodyNextSong: t("melodyNextSong"),
+          courseTitle: t("courseTitle"),
+          courseHint: t("courseHint"),
+          courseBest: t("courseBest"),
+          courseDone: t("courseDone"),
           regions: {
             hall: t("regions.hall"),
             neon: t("regions.neon"),
             cathedral: t("regions.cathedral"),
             lounge: t("regions.lounge"),
+            clouds: t("regions.clouds"),
           },
           soundOff: t("soundOff"),
           soundLoading: t("soundLoading"),

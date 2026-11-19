@@ -8,6 +8,8 @@ export interface RemotePlayer {
   id: string;
   name: string;
   x: number;
+  /** height above the floor; absent from servers that predate it */
+  y?: number;
   z: number;
   /** heading (radians) */
   h: number;
@@ -171,11 +173,11 @@ export function useWorldPresence(name: string, region: string) {
   }, [name, region, syncOthers]);
 
   /** Report my position; throttled to 10/s and skipped when nothing changed. */
-  const sendPosition = useCallback((x: number, z: number, h: number, m: number | null) => {
+  const sendPosition = useCallback((x: number, y: number, z: number, h: number, m: number | null) => {
     const socket = socketRef.current;
     if (!socket || socket.readyState !== WebSocket.OPEN || !myId.current) return;
     const now = performance.now();
-    const payload = { x: +x.toFixed(2), z: +z.toFixed(2), h: +h.toFixed(2), m };
+    const payload = { x: +x.toFixed(2), y: +y.toFixed(2), z: +z.toFixed(2), h: +h.toFixed(2), m };
     const key = JSON.stringify(payload);
     if (key === lastSent.current.key || now - lastSent.current.at < SEND_INTERVAL_MS) return;
     lastSent.current = { at: now, key };
