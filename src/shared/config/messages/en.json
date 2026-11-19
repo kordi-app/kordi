@@ -160,6 +160,13 @@
         "title": "Chord quiz",
         "description": "10 questions, 20 seconds each. Faster answers score higher and reach the ranking."
       }
+    },
+    "world": {
+      "title": "Take a walk on the keys",
+      "hint": "Move Kordi with the arrow keys or WASD — every key you step on sounds.",
+      "soundOff": "Sound starts on your first key press",
+      "soundLoading": "Loading piano sounds…",
+      "soundOn": "Sound on"
     }
   },
   "piano": {

@@ -7,6 +7,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Link } from "@/shared/config/i18n/navigation";
+import { PianoWorld } from "@/widgets/piano-world";
 import { ROUTES } from "@/shared/config/routes";
 import { getDailyChord } from "../model/daily-chord";
 import { ChordKeyboard } from "./chord-keyboard";
@@ -26,20 +27,26 @@ export function HomePage() {
   const daily = getDailyChord();
 
   return (
-    <main className="px-5 pb-16 pt-6 md:px-10 md:pt-10">
-      <div className="mx-auto max-w-3xl">
-        <header>
-          <h1 className="text-[28px] font-semibold leading-tight -tracking-[0.025em] text-foreground md:text-headline-xl">
-            {t("hero.title")}
-          </h1>
-          <p className="mt-3 max-w-xl text-body-lg text-muted-foreground">
-            {t("hero.description")}
-          </p>
-        </header>
+    <main className="px-4 pb-16 pt-2 md:px-8">
+      {/* Kordi on a walkable keyboard — the page's front door is something to play with */}
+      <section className="mx-auto h-[min(68svh,640px)] min-h-[420px] max-w-6xl overflow-hidden rounded-2xl border border-border">
+        <PianoWorld
+          copy={{
+            title: t("world.title"),
+            hint: t("world.hint"),
+            soundOff: t("world.soundOff"),
+            soundLoading: t("world.soundLoading"),
+            soundOn: t("world.soundOn"),
+          }}
+        />
+      </section>
+
+      <div className="mx-auto mt-12 max-w-3xl">
+        <p className="text-body-lg text-muted-foreground">{t("hero.description")}</p>
 
         {/* The daily chord is the one thing on this page that changes — so it
             gets the space, and shows the actual keys instead of a name alone. */}
-        <section className="mt-10 rounded-xl border border-border bg-card p-6 md:p-8">
+        <section className="mt-8 rounded-xl border border-border bg-card p-6 md:p-8">
           <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
             <div className="min-w-0">
               <p className="text-sm text-muted-foreground">{t("daily.title")}</p>
