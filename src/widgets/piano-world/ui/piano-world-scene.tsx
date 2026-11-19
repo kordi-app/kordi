@@ -5,10 +5,13 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ChevronsUp } from "lucide-react";
 import {
+  disposeSampler,
   ensureAudioStarted,
-  getSampler,
+  getCurrentInstrumentId,
+  loadInstrument,
   playNoteOff,
   playNoteOn,
+  type InstrumentId,
 } from "@/shared/lib/audio";
 import { midiToNoteName } from "@/shared/lib/music";
 import { cn } from "@/shared/lib/utils";
@@ -21,6 +24,16 @@ import {
 import { KordiModel, type KordiMotion } from "./kordi-model";
 import { PianoFloor } from "./piano-floor";
 import { RemoteKordi } from "./remote-kordi";
+import { Portal } from "./portal";
+import { RegionDecor } from "./region-decor";
+import {
+  PORTAL_RADIUS,
+  REGIONS,
+  arrivalPoint,
+  isRegionId,
+  type RegionDef,
+  type RegionId,
+} from "../model/regions";
 
 type Direction = "up" | "down" | "left" | "right";
 type InputState = Record<Direction, boolean> & {
@@ -45,6 +58,7 @@ const KEY_TO_DIRECTION: Record<string, Direction> = {
 };
 
 export interface PianoWorldCopy {
+  regions: Record<RegionId, string>;
   soundOff: string;
   soundLoading: string;
   soundOn: string;
@@ -57,6 +71,14 @@ export interface PianoWorldCopy {
 }
 
 type AudioState = "off" | "loading" | "on";
+
+/** Where to put the player on entering a region. A fresh object per entry. */
+interface Arrival {
+  x: number;
+  z: number;
+}
+
+const FADE_MS = 260;
 
 /** Shortest-path angle interpolation, so turning never spins the long way round. */
 function lerpAngle(from: number, to: number, t: number) {
@@ -72,8 +94,17 @@ function World({
   sendPosition,
   onRemoteNote,
   takeJump,
+  region,
+  arrival,
+  onPortal,
+  portalLabel,
 }: {
   input: React.RefObject<InputState>;
+  region: RegionDef;
+  /** Changes identity on every region entry; the player is placed here */
+  arrival: Arrival;
+  onPortal: (to: RegionId) => void;
+  portalLabel: (to: RegionId) => string;
   /** true once per jump press (reads and clears it) */
   takeJump: () => boolean;
   onKeyChange: (midi: number | null) => void;
@@ -97,11 +128,26 @@ function World({
   const [pressed, setPressed] = useState<ReadonlySet<number>>(() => new Set());
   const pressedKey = useRef("");
   const camera = useThree((state) => state.camera);
+  /** Portals only fire after you've stepped clear of every portal once (no ping-pong on arrival). */
+  const portalArmed = useRef(false);
+  const placedFor = useRef<Arrival | null>(null);
 
   useFrame((_, rawDelta) => {
     const dt = Math.min(rawDelta, 0.05);
     const s = sim.current;
     const keys = input.current;
+
+    if (placedFor.current !== arrival) {
+      placedFor.current = arrival;
+      s.pos.set(arrival.x, CASE_H, arrival.z);
+      s.heading = 0;
+      s.vy = 0;
+      s.airborne = false;
+      portalArmed.current = false;
+      // Cut, don't glide, to the new spot — the screen is faded out meanwhile
+      camera.position.copy(s.pos).setY(0).add(CAMERA_OFFSET);
+      lookTarget.current.set(s.pos.x, 0.6, s.pos.z - 1.2);
+    }
 
     let dx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
     let dz = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
@@ -148,6 +194,16 @@ function World({
       onKeyChange(midi);
     }
     sendPosition(s.pos.x, s.pos.z, s.heading, midi);
+
+    const inside = region.portals.find(
+      (portal) => Math.hypot(s.pos.x - portal.x, s.pos.z - portal.z) < PORTAL_RADIUS,
+    );
+    if (!inside) {
+      portalArmed.current = true;
+    } else if (portalArmed.current && !s.airborne) {
+      portalArmed.current = false;
+      onPortal(inside.to);
+    }
 
     // Keys held down by me and by everyone else in the channel
     const down = new Set<number>();
@@ -197,7 +253,8 @@ function World({
       <directionalLight
         ref={light}
         position={[SPAWN.x + 6, 12, SPAWN.z + 6]}
-        intensity={2.2}
+        intensity={region.theme.sun}
+        color={region.theme.sunColor}
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-camera-left={-22}
@@ -206,7 +263,12 @@ function World({
         shadow-camera-bottom={-22}
         shadow-bias={-0.0005}
       />
-      <PianoFloor pressed={pressed} />
+      <hemisphereLight args={[region.theme.sky, region.theme.ground, region.theme.ambient]} />
+      <PianoFloor pressed={pressed} theme={region.theme} />
+      <RegionDecor region={region.id} />
+      {region.portals.map((portal) => (
+        <Portal key={portal.to} portal={portal} label={portalLabel(portal.to)} />
+      ))}
       {/* scaled up so the character reads at a glance against the giant keys */}
       <KordiModel ref={kordi} motion={motion} scale={1.6} />
       {others.map((other) => (
@@ -220,6 +282,7 @@ const MAX_LISTED = 8;
 
 /** Who else is here: channel, people in it, and everyone online. */
 function PresencePanel({ info, copy }: { info: PresenceInfo; copy: PianoWorldCopy }) {
+  if (info.status === "disabled") return null;
   if (info.status !== "online") {
     const label =
       info.status === "full" ? copy.full : info.status === "offline" ? copy.offline : copy.connecting;
@@ -296,7 +359,20 @@ export default function PianoWorldScene({
   copy: PianoWorldCopy;
   playerName: string;
 }) {
-  const { remotes, info, sendPosition } = useWorldPresence(playerName);
+  // Region comes from ?region= so a place can be linked to directly
+  const [regionId, setRegionId] = useState<RegionId>(() => {
+    const param = new URLSearchParams(window.location.search).get("region");
+    return isRegionId(param) ? param : "hall";
+  });
+  const region = REGIONS[regionId];
+  const regionRef = useRef(region);
+  const [arrival, setArrival] = useState<Arrival>(() => arrivalPoint(regionId, null));
+  const [fading, setFading] = useState(false);
+  const transitioning = useRef(false);
+
+  // Stage 1: the presence server has no notion of regions yet, so only the
+  // hub is shared — elsewhere you'd see people who are really in the hall.
+  const { remotes, info, sendPosition } = useWorldPresence(playerName, regionId === "hall");
   const containerRef = useRef<HTMLDivElement>(null);
   const input = useRef<InputState>({
     up: false,
@@ -312,23 +388,86 @@ export default function PianoWorldScene({
   const [audio, setAudio] = useState<AudioState>("off");
   const audioRef = useRef<AudioState>("off");
   const soundingRef = useRef<number | null>(null);
+  const remoteSounding = useRef(new Map<string, number>());
+
+  const releaseAll = useCallback(() => {
+    if (soundingRef.current !== null) playNoteOff(soundingRef.current);
+    soundingRef.current = null;
+    for (const midi of remoteSounding.current.values()) playNoteOff(midi);
+    remoteSounding.current.clear();
+  }, []);
+
+  /**
+   * The audio engine holds one instrument for the whole app. Loads are
+   * chained so a quick portal hop can't race two loads, and the last
+   * requested instrument always wins.
+   */
+  const instrumentChain = useRef<Promise<void>>(Promise.resolve());
+  const switchInstrument = useCallback(
+    (id: InstrumentId) => {
+      audioRef.current = "loading";
+      setAudio("loading");
+      instrumentChain.current = instrumentChain.current
+        .then(() => ensureAudioStarted())
+        .then(() => loadInstrument(id))
+        .then(() => {
+          if (regionRef.current.instrument !== id) return; // superseded by a later hop
+          audioRef.current = "on";
+          setAudio("on");
+        })
+        .catch(() => {
+          audioRef.current = "off";
+          setAudio("off");
+        });
+    },
+    [],
+  );
 
   // Browsers only allow audio after a user gesture — the first key or tap starts it
   const startAudio = useCallback(() => {
     if (audioRef.current !== "off") return;
-    audioRef.current = "loading";
-    setAudio("loading");
-    ensureAudioStarted()
-      .then(getSampler)
-      .then(() => {
-        audioRef.current = "on";
-        setAudio("on");
-      })
-      .catch(() => {
-        audioRef.current = "off";
-        setAudio("off");
-      });
+    switchInstrument(regionRef.current.instrument);
+  }, [switchInstrument]);
+
+  // Leave the shared audio engine as we found it, so the free-play page
+  // doesn't open on the organ because you visited the cathedral.
+  useEffect(() => {
+    const before = getCurrentInstrumentId();
+    return () => {
+      const now = getCurrentInstrumentId();
+      if (now === before) return;
+      if (before) void loadInstrument(before);
+      else disposeSampler();
+    };
   }, []);
+
+  const handlePortal = useCallback(
+    (to: RegionId) => {
+      if (transitioning.current) return;
+      transitioning.current = true;
+      const from = regionRef.current.id;
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      setFading(true);
+      setTimeout(
+        () => {
+          releaseAll();
+          setNote(null);
+          regionRef.current = REGIONS[to];
+          setRegionId(to);
+          setArrival(arrivalPoint(to, from));
+          const url = new URL(window.location.href);
+          if (to === "hall") url.searchParams.delete("region");
+          else url.searchParams.set("region", to);
+          window.history.replaceState(window.history.state, "", url);
+          if (audioRef.current !== "off") switchInstrument(REGIONS[to].instrument);
+          setFading(false);
+          transitioning.current = false;
+        },
+        reduceMotion ? 0 : FADE_MS,
+      );
+    },
+    [releaseAll, switchInstrument],
+  );
 
   const handlePadPress = useCallback(
     (direction: Direction, pressed: boolean) => {
@@ -352,7 +491,6 @@ export default function PianoWorldScene({
   }, []);
 
   // Other people's footsteps play too, quieter than your own
-  const remoteSounding = useRef(new Map<string, number>());
   const handleRemoteNote = useCallback((id: string, midi: number | null) => {
     const previous = remoteSounding.current.get(id);
     if (previous !== undefined) playNoteOff(previous);
@@ -416,10 +554,9 @@ export default function PianoWorldScene({
   // Silence the last note when leaving the page
   useEffect(
     () => () => {
-      if (soundingRef.current !== null) playNoteOff(soundingRef.current);
-      for (const midi of remoteSounding.current.values()) playNoteOff(midi);
+      releaseAll();
     },
-    [],
+    [releaseAll],
   );
 
   const audioLabel =
@@ -437,9 +574,8 @@ export default function PianoWorldScene({
         frameloop={visible ? "always" : "never"}
         camera={{ position: [0, 12, 18], fov: 45, near: 0.1, far: 150 }}
       >
-        <color attach="background" args={["#fcfbf8"]} />
-        <fog attach="fog" args={["#fcfbf8", 30, 60]} />
-        <hemisphereLight args={["#ffffff", "#e8dfd0", 1.9]} />
+        <color attach="background" args={[region.theme.background]} />
+        <fog attach="fog" args={[region.theme.background, ...region.theme.fog]} />
         <World
           input={input}
           onKeyChange={handleKeyChange}
@@ -448,8 +584,27 @@ export default function PianoWorldScene({
           sendPosition={sendPosition}
           onRemoteNote={handleRemoteNote}
           takeJump={takeJump}
+          region={region}
+          arrival={arrival}
+          onPortal={handlePortal}
+          portalLabel={(to) => copy.regions[to]}
         />
       </Canvas>
+
+      {/* region transition */}
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-0 bg-background transition-opacity duration-300 motion-reduce:transition-none",
+          fading ? "opacity-100" : "opacity-0",
+        )}
+      />
+
+      <div className="pointer-events-none absolute left-0 top-0 p-5 md:p-6">
+        <div className="rounded-full border border-border bg-card/90 px-3.5 py-1.5 text-sm font-medium text-foreground shadow-sm">
+          {copy.regions[regionId]}
+        </div>
+      </div>
 
       {/* HUD */}
       <div className="pointer-events-none absolute right-0 top-0 p-5 md:p-6">

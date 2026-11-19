@@ -1,38 +1,14 @@
 "use client";
 
-import { useMemo, useRef, type RefObject } from "react";
+import { useRef, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import type { RemotePlayer } from "../model/use-world-presence";
 import { CASE_H, PRESS_DEPTH, keyAt } from "../model/layout";
 import { KordiModel, type KordiMotion } from "./kordi-model";
+import { useLabelTexture } from "./label-texture";
 
 const SCALE = 1.6;
-
-/** Canvas-texture sprite with the player's name, so no font loader is needed. */
-function useNameTexture(name: string) {
-  return useMemo(() => {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d")!;
-    const font = "600 44px Pretendard Variable, Pretendard, system-ui, sans-serif";
-    ctx.font = font;
-    const width = Math.ceil(ctx.measureText(name).width) + 48;
-    canvas.width = width;
-    canvas.height = 76;
-    ctx.font = font;
-    ctx.fillStyle = "rgba(252, 251, 248, 0.92)";
-    ctx.beginPath();
-    ctx.roundRect(0, 0, width, 76, 38);
-    ctx.fill();
-    ctx.fillStyle = "#2a2521";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(name, width / 2, 40);
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    return { texture, aspect: width / 76 };
-  }, [name]);
-}
 
 /**
  * Another visitor's Kordi. Network updates arrive ~10×/s; the model eases
@@ -53,7 +29,7 @@ export function RemoteKordi({
   const initial = remotes.current.get(id);
   const pos = useRef(new THREE.Vector3(initial?.x ?? 0, 0, initial?.z ?? 0));
   const heading = useRef(initial?.h ?? 0);
-  const { texture, aspect } = useNameTexture(name);
+  const { texture, aspect } = useLabelTexture(name);
 
   useFrame((_, rawDelta) => {
     const target = remotes.current.get(id);

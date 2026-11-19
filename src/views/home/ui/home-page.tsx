@@ -21,6 +21,12 @@ export async function HomePage() {
       <PianoWorld
         playerName={playerName}
         copy={{
+          regions: {
+            hall: t("regions.hall"),
+            neon: t("regions.neon"),
+            cathedral: t("regions.cathedral"),
+            lounge: t("regions.lounge"),
+          },
           soundOff: t("soundOff"),
           soundLoading: t("soundLoading"),
           soundOn: t("soundOn"),

@@ -9,18 +9,15 @@ import {
   WHITE_L,
   WHITE_W,
 } from "../model/layout";
-
-const CASE_COLOR = "#2f2b27";
-const WHITE = "#fbf8f2";
-const WHITE_PRESSED = "#e8dcc6";
-const BLACK = "#24201c";
-const BLACK_PRESSED = "#5b5048";
+import type { RegionTheme } from "../model/regions";
 
 /** The giant keyboard Kordi walks on. Only `pressed` changes between renders. */
 export const PianoFloor = memo(function PianoFloor({
   pressed,
+  theme,
 }: {
   pressed: ReadonlySet<number>;
+  theme: RegionTheme;
 }) {
   const caseWidth = WHITE_COUNT * WHITE_W + 0.6;
 
@@ -29,13 +26,13 @@ export const PianoFloor = memo(function PianoFloor({
       {/* floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[160, 80]} />
-        <meshStandardMaterial color="#f7f3ec" roughness={1} />
+        <meshStandardMaterial color={theme.floor} roughness={1} />
       </mesh>
 
       {/* keyboard case */}
       <mesh position={[0, CASE_H / 2, -0.15]} receiveShadow castShadow>
         <boxGeometry args={[caseWidth, CASE_H, WHITE_L + 0.9]} />
-        <meshStandardMaterial color={CASE_COLOR} roughness={0.5} />
+        <meshStandardMaterial color={theme.keyboardCase} roughness={0.5} />
       </mesh>
 
       {KEYS.map((key) => {
@@ -53,12 +50,14 @@ export const PianoFloor = memo(function PianoFloor({
               color={
                 key.black
                   ? isPressed
-                    ? BLACK_PRESSED
-                    : BLACK
+                    ? theme.blackPressed
+                    : theme.black
                   : isPressed
-                    ? WHITE_PRESSED
-                    : WHITE
+                    ? theme.whitePressed
+                    : theme.white
               }
+              emissive={isPressed && theme.pressedGlow ? theme.pressedGlow : "#000000"}
+              emissiveIntensity={isPressed && theme.pressedGlow ? 0.9 : 0}
               roughness={key.black ? 0.35 : 0.5}
             />
           </mesh>

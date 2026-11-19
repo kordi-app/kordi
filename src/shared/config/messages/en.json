@@ -137,7 +137,13 @@
       "online": "{count} online",
       "connecting": "Connecting to others…",
       "full": "It's busy — walking solo for now",
-      "offline": "Disconnected — walking solo, reconnecting"
+      "offline": "Disconnected — walking solo, reconnecting",
+      "regions": {
+        "hall": "Grand Hall",
+        "neon": "Neon Street",
+        "cathedral": "Cathedral",
+        "lounge": "Lounge"
+      }
     }
   },
   "piano": {

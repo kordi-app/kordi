@@ -22,7 +22,7 @@ type ServerMessage =
   | { t: "moves"; ps: RemotePlayer[] }
   | { t: "online"; n: number };
 
-export type PresenceStatus = "connecting" | "online" | "full" | "offline";
+export type PresenceStatus = "connecting" | "online" | "full" | "offline" | "disabled";
 
 export interface PresenceInfo {
   status: PresenceStatus;
@@ -46,7 +46,7 @@ const MAX_RETRY_MS = 30_000;
  * If the world is full or the server is unreachable, the scene simply keeps
  * working single-player.
  */
-export function useWorldPresence(name: string) {
+export function useWorldPresence(name: string, enabled = true) {
   const remotes = useRef(new Map<string, RemotePlayer>());
   const [info, setInfo] = useState<PresenceInfo>({
     status: "connecting",
@@ -64,6 +64,12 @@ export function useWorldPresence(name: string) {
   }, []);
 
   useEffect(() => {
+    if (!enabled) {
+      remotes.current.clear();
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- mirrors an external connection's state
+      setInfo({ status: "disabled", channel: null, online: 0, others: [] });
+      return;
+    }
     let disposed = false;
     let retryMs = 1_000;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
@@ -133,7 +139,7 @@ export function useWorldPresence(name: string) {
       clearTimeout(retryTimer);
       socketRef.current?.close();
     };
-  }, [name, syncOthers]);
+  }, [name, enabled, syncOthers]);
 
   /** Report my position; throttled to 10/s and skipped when nothing changed. */
   const sendPosition = useCallback((x: number, z: number, h: number, m: number | null) => {
