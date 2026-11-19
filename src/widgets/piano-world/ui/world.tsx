@@ -8,6 +8,7 @@ import {
   BOUNCE_BOOST,
   courseBlocked,
   courseCeiling,
+  courseDepenetrate,
   courseRuntime,
   slideOffset,
   tickCourse,
@@ -183,6 +184,23 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     const s = sim.current;
     const keys = input.current;
 
+    // --- arrival: cut (don't glide) to the new spot while the screen is faded.
+    // Runs first: everything below may index the new region's course with
+    // `s.platform`, which must not still point into the previous course.
+    if (placedFor.current !== arrival) {
+      placedFor.current = arrival;
+      s.pos.set(arrival.x, groundAt(region, arrival.x, arrival.z, 0).height, arrival.z);
+      s.heading = 0;
+      s.vx = s.vz = s.vy = 0;
+      s.airborne = s.jumped = s.springing = false;
+      s.platform = null;
+      s.midi = null;
+      portalArmed.current = false;
+      camera.position.copy(s.pos).add(cameraOffset);
+      lookTarget.current.set(s.pos.x, s.pos.y + 0.6, s.pos.z - 1.2);
+      balls.current = spawns.map((spot) => newBall(spot.x, spot.z));
+    }
+
     // the course's moving and crumbling platforms run on the shared clock
     const now = state.clock.getElapsedTime();
     if (course) {
@@ -191,19 +209,6 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
         s.pos.x += slideOffset(course, s.platform, now) - slideOffset(course, s.platform, courseRuntime.time);
       }
       tickCourse(course, now);
-    }
-
-    // --- arrival: cut (don't glide) to the new spot while the screen is faded
-    if (placedFor.current !== arrival) {
-      placedFor.current = arrival;
-      s.pos.set(arrival.x, groundAt(region, arrival.x, arrival.z, 0).height, arrival.z);
-      s.heading = 0;
-      s.vx = s.vz = s.vy = 0;
-      s.airborne = s.jumped = s.springing = false;
-      portalArmed.current = false;
-      camera.position.copy(s.pos).add(cameraOffset);
-      lookTarget.current.set(s.pos.x, s.pos.y + 0.6, s.pos.z - 1.2);
-      balls.current = spawns.map((spot) => newBall(spot.x, spot.z));
     }
 
     // --- walking: velocity eases toward the input direction (momentum, weaker in the air)
@@ -234,6 +239,12 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
         s.pos.x = nextX;
         s.pos.z = nextZ;
       }
+    }
+    if (course) {
+      // steps move and appear on their own: if one ended up inside Kordi, step out of it
+      const out = courseDepenetrate(course, s.pos.x, s.pos.z, s.pos.y);
+      s.pos.x = THREE.MathUtils.clamp(out.x, -course.bounds.x, course.bounds.x);
+      s.pos.z = THREE.MathUtils.clamp(out.z, course.bounds.zMin, course.bounds.zMax);
     }
     if (!course) {
       // props you can't walk through, and a gentle push away from other players

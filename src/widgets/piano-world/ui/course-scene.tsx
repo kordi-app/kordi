@@ -8,8 +8,10 @@ import {
   CRUMBLE_DELAY,
   CRUMBLE_DOWN_TIME,
   PLATFORM_THICKNESS,
+  BEAM_LAMP_ABOVE,
   alwaysLit,
   beamLight,
+  beamWidthAt,
   beamX,
   courseRuntime,
   isSolid,
@@ -92,8 +94,8 @@ function Treasure({ x, y, z, star }: { x: number; y: number; z: number; star: bo
   );
 }
 
-/** Soft white texture: `fx(u)` across, `fy(v)` up (both 0–1 → 0–1 alpha). */
-function makeFalloffTexture(fx: (u: number) => number, fy: (v: number) => number) {
+/** Soft white texture with alpha `f(u, v)` (both 0–1 → 0–1). */
+function makeAlphaTexture(f: (u: number, v: number) => number) {
   const size = 64;
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
@@ -101,7 +103,7 @@ function makeFalloffTexture(fx: (u: number) => number, fy: (v: number) => number
   const image = ctx.createImageData(size, size);
   for (let py = 0; py < size; py++) {
     for (let px = 0; px < size; px++) {
-      const alpha = fx(px / (size - 1)) * fy(1 - py / (size - 1));
+      const alpha = f(px / (size - 1), 1 - py / (size - 1));
       const o = (py * size + px) * 4;
       image.data[o] = image.data[o + 1] = image.data[o + 2] = 255;
       image.data[o + 3] = Math.round(alpha * 255);
@@ -112,36 +114,103 @@ function makeFalloffTexture(fx: (u: number) => number, fy: (v: number) => number
 }
 
 /**
- * A searchlight: a tall shaft of light hanging from a lamp above the course,
- * swinging with the same clock the physics reads — what you see lit is
- * exactly what will hold you.
+ * Fake volumetric light on a cone: bright where you look straight through it,
+ * fading to nothing where its surface turns edge-on, so the shaft has no hard
+ * outline. Brightest near the lamp, thinning toward the water.
  */
-function Searchlight({ beam, top, texture }: { beam: Beam; top: number; texture: THREE.Texture }) {
+const SHAFT_VERTEX = /* glsl */ `
+  uniform float uHeight;
+  varying vec3 vNormal;
+  varying vec3 vView;
+  varying float vUp;
+  void main() {
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    vView = -mv.xyz;
+    vNormal = normalize(normalMatrix * normal);
+    vUp = position.y / uHeight + 0.5;
+    gl_Position = projectionMatrix * mv;
+  }
+`;
+const SHAFT_FRAGMENT = /* glsl */ `
+  uniform vec3 uColor;
+  uniform float uOpacity;
+  varying vec3 vNormal;
+  varying vec3 vView;
+  varying float vUp;
+  void main() {
+    float facing = abs(dot(normalize(vNormal), normalize(vView)));
+    float body = pow(facing, 2.2);
+    float fall = mix(0.3, 1.0, pow(vUp, 1.4));
+    gl_FragColor = vec4(uColor, body * fall * uOpacity);
+    #include <colorspace_fragment>
+  }
+`;
+
+/**
+ * A searchlight: a cone of light from a lamp above the course, swinging with
+ * the same clock the physics reads. The cone's width at each height is
+ * beamWidthAt — what you see lit is exactly what will hold you.
+ */
+function Searchlight({ beam, course, pool }: { beam: Beam; course: CourseDef; pool: THREE.Texture }) {
   const group = useRef<THREE.Group>(null);
-  const height = top + 7;
+  const top = course.platforms[course.goalIndex].y;
+  const height = top + BEAM_LAMP_ABOVE;
+  const radiusTop = beamWidthAt(course, beam, height) / 2;
+  const radiusBottom = beamWidthAt(course, beam, 0) / 2;
+
+  const shaft = useMemo(() => {
+    const geometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, height, 48, 1, true);
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        uColor: { value: new THREE.Color(BEAM_COLOR) },
+        uOpacity: { value: 0.32 },
+        uHeight: { value: height },
+      },
+      vertexShader: SHAFT_VERTEX,
+      fragmentShader: SHAFT_FRAGMENT,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+    return { geometry, material };
+  }, [radiusTop, radiusBottom, height]);
+  useEffect(
+    () => () => {
+      shaft.geometry.dispose();
+      shaft.material.dispose();
+    },
+    [shaft],
+  );
+
   useFrame(() => {
     if (group.current) group.current.position.x = beamX(beam, courseRuntime.time);
   });
   return (
     <group ref={group}>
-      {/* the shaft, between the two rows of steps */}
-      <mesh position={[0, height / 2, -1.3]}>
-        <planeGeometry args={[beam.width, height]} />
+      {/* the shaft, centred between the two rows of steps */}
+      <mesh position={[0, height / 2, -1.3]} geometry={shaft.geometry} material={shaft.material} />
+      {/* where it meets the water: a soft pool of light */}
+      <mesh position={[0, 0.02, -1.3]} rotation={[-Math.PI / 2, 0, 0]} scale={[radiusBottom * 2.2, radiusBottom * 2.2, 1]}>
+        <planeGeometry args={[1, 1]} />
         <meshBasicMaterial
-          map={texture}
+          map={pool}
           color={BEAM_COLOR}
           transparent
-          opacity={0.34}
+          opacity={0.45}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
           toneMapped={false}
-          side={THREE.DoubleSide}
         />
       </mesh>
-      {/* the lamp it hangs from */}
-      <mesh position={[0, height, -1.3]}>
-        <cylinderGeometry args={[0.35, 0.6, 0.5, 20]} />
-        <meshStandardMaterial color="#20243a" emissive={BEAM_COLOR} emissiveIntensity={0.6} />
+      {/* the lamp it hangs from: a wide floodlight with a glowing lens */}
+      <mesh position={[0, height + 0.3, -1.3]}>
+        <cylinderGeometry args={[radiusTop * 0.7, radiusTop * 1.05, 0.6, 32]} />
+        <meshStandardMaterial color="#20243a" />
+      </mesh>
+      <mesh position={[0, height - 0.01, -1.3]} rotation={[Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[radiusTop, 32]} />
+        <meshBasicMaterial color={BEAM_COLOR} toneMapped={false} />
       </mesh>
     </group>
   );
@@ -226,15 +295,12 @@ export const CourseScene = memo(function CourseScene({
       })),
     [],
   );
-  const beamTexture = useMemo(
-    () =>
-      makeFalloffTexture(
-        (u) => Math.max(0, 1 - Math.abs(u - 0.5) * 2) ** 0.6,
-        (v) => 0.35 + 0.65 * v,
-      ),
+  // round, soft-edged glow for where a searchlight meets the water
+  const poolTexture = useMemo(
+    () => makeAlphaTexture((u, v) => Math.max(0, 1 - Math.hypot(u - 0.5, v - 0.5) * 2) ** 1.6),
     [],
   );
-  useEffect(() => () => beamTexture.dispose(), [beamTexture]);
+  useEffect(() => () => poolTexture.dispose(), [poolTexture]);
   const outlines = useMemo(
     () =>
       platforms.map((p) => {
@@ -278,7 +344,7 @@ export const CourseScene = memo(function CourseScene({
 
       if (!night || alwaysLit(p)) return;
       // lit: full; in the grace window after the light leaves: half, as a warning; dark: gone
-      const light = Math.max(0, beamLight(course, p.x, t));
+      const light = Math.max(0, beamLight(course, p.x, p.y, t));
       const want = isSolid(course, i) ? (light > 0 ? 1 : 0.5) : 0;
       const level = (levels.current[i] += (want - levels.current[i]) * fade);
       group.children.forEach((child) => {
@@ -296,8 +362,6 @@ export const CourseScene = memo(function CourseScene({
     (i) => (pressed.has(platforms[i].midi) ? -0.06 : 0),
   );
 
-  const top = goal.y;
-
   return (
     <group>
       {night ? (
@@ -309,7 +373,7 @@ export const CourseScene = memo(function CourseScene({
             <meshStandardMaterial color="#0b1030" roughness={0.9} />
           </mesh>
           {beams.map((beam, i) => (
-            <Searchlight key={i} beam={beam} top={top} texture={beamTexture} />
+            <Searchlight key={i} beam={beam} course={course} pool={poolTexture} />
           ))}
         </>
       ) : (

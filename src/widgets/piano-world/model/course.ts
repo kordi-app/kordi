@@ -186,11 +186,26 @@ export function beamX(beam: Beam, t: number) {
   return Math.sin((t / beam.period) * Math.PI * 2 + beam.phase) * beam.amplitude;
 }
 
-/** 0–1: how strongly the brightest beam covers x (1 at its centre, 0 outside). */
-export function beamLight(course: CourseDef, x: number, t: number) {
+/** The searchlight lamps hang this far above the goal. */
+export const BEAM_LAMP_ABOVE = 7;
+/** The shaft is a cone: at the floor it is this much wider than at the goal. */
+const BEAM_SPREAD = 0.5;
+
+/**
+ * Full width of a beam's lit band at height y. `beam.width` at the goal,
+ * widening linearly toward the floor (and narrowing up to the lamp) — the
+ * renderer draws exactly this cone.
+ */
+export function beamWidthAt(course: CourseDef, beam: Beam, y: number) {
+  const top = course.platforms[course.goalIndex].y;
+  return beam.width * (1 + (BEAM_SPREAD * (top - y)) / top);
+}
+
+/** 0–1: how strongly the brightest beam covers (x, y) (1 at its centre, 0 outside). */
+export function beamLight(course: CourseDef, x: number, y: number, t: number) {
   let light = 0;
   for (const beam of course.beams ?? []) {
-    light = Math.max(light, 1 - Math.abs(x - beamX(beam, t)) / (beam.width / 2));
+    light = Math.max(light, 1 - Math.abs(x - beamX(beam, t)) / (beamWidthAt(course, beam, y) / 2));
   }
   return light;
 }
@@ -219,7 +234,7 @@ export function tickCourse(course: CourseDef, t: number) {
   }
   if (course.beams) {
     course.platforms.forEach((p, i) => {
-      if (beamLight(course, p.x, t) > 0) courseRuntime.litUntil.set(i, t + LIGHT_GRACE);
+      if (beamLight(course, p.x, p.y, t) > 0) courseRuntime.litUntil.set(i, t + LIGHT_GRACE);
     });
   }
 }
@@ -272,6 +287,34 @@ export function courseGround(
     }
   });
   return best;
+}
+
+/**
+ * Push a body out of any step it ended up inside, the shortest way out.
+ * courseBlocked only stops you walking *into* a step; steps can also come to
+ * you — a sliding step drifts into you, a crumbled one respawns, a dark one
+ * gets lit, or you clip an edge on the way down — and once inside, every move
+ * is blocked. Call every frame after moving.
+ */
+export function courseDepenetrate(course: CourseDef, x: number, z: number, y: number): { x: number; z: number } {
+  const SKIN = 1e-3;
+  // two passes: getting out of one step can nudge you into a neighbour
+  for (let pass = 0; pass < 2; pass++) {
+    let moved = false;
+    course.platforms.forEach((p, i) => {
+      if (!isSolid(course, i) || p.y <= y + STEP_UP || y + PLAYER_HEIGHT <= bottomOf(p)) return;
+      const dx = x - (p.x + slideOffset(course, i));
+      const dz = z - p.z;
+      const overlapX = p.width / 2 + PLAYER_RADIUS - Math.abs(dx);
+      const overlapZ = p.depth / 2 + PLAYER_RADIUS - Math.abs(dz);
+      if (overlapX <= 0 || overlapZ <= 0) return;
+      if (overlapX < overlapZ) x += (dx >= 0 ? 1 : -1) * (overlapX + SKIN);
+      else z += (dz >= 0 ? 1 : -1) * (overlapZ + SKIN);
+      moved = true;
+    });
+    if (!moved) break;
+  }
+  return { x, z };
 }
 
 /** Would a body at (x, y, z) intersect a platform it can't simply step onto? */

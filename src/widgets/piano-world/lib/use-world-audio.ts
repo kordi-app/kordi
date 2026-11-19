@@ -18,6 +18,12 @@ export type AudioState = "off" | "loading" | "on";
 
 /** Cathedral: how long a note keeps ringing after you step off it. */
 const ECHO_MS = 1400;
+/**
+ * A step is a strike, not a held key: released after this long even if you
+ * keep standing there. Every instrument but the grand piano is a synth that
+ * sustains for as long as the note is held, so standing still would drone.
+ */
+const STEP_RING_MS = 450;
 const STEP_VELOCITY = 0.75;
 const CHORD_TONE_VELOCITY = 0.42;
 const REMOTE_VELOCITY = 0.35;
@@ -40,8 +46,11 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
 
   /** Notes I'm holding (several in the lounge, where a step is a chord) */
   const held = useRef<number[]>([]);
+  /** releases `held` once the step has rung for STEP_RING_MS */
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const echoTimers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
   const remoteHeld = useRef(new Map<string, number>());
+  const remoteTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const catHeld = useRef<number | null>(null);
   const chimeTimers = useRef(new Set<ReturnType<typeof setTimeout>>());
   const instrumentChain = useRef<Promise<void>>(Promise.resolve());
@@ -76,8 +85,11 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
 
   /** Stop everything that's sounding and clear the note display. */
   const silence = useCallback(() => {
+    clearTimeout(holdTimer.current);
     held.current.forEach(playNoteOff);
     held.current = [];
+    remoteTimers.current.forEach(clearTimeout);
+    remoteTimers.current.clear();
     echoTimers.current.forEach((timer, midi) => {
       clearTimeout(timer);
       playNoteOff(midi);
@@ -90,27 +102,33 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
     setNote(null);
   }, []);
 
+  /** Let go of the notes your step is sounding (in the cathedral they ring on). */
+  const releaseHeld = useCallback(() => {
+    clearTimeout(holdTimer.current);
+    const echo = regionRef.current.feature === "echo";
+    for (const previous of held.current) {
+      if (echo) {
+        clearTimeout(echoTimers.current.get(previous));
+        echoTimers.current.set(
+          previous,
+          setTimeout(() => {
+            playNoteOff(previous);
+            echoTimers.current.delete(previous);
+          }, ECHO_MS),
+        );
+      } else {
+        playNoteOff(previous);
+      }
+    }
+    held.current = [];
+  }, [regionRef]);
+
   /** Your step changed key: how it sounds depends on the region's feature. */
   const handleStep = useCallback(
     (midi: number | null) => {
       setNote(midi);
       const feature = regionRef.current.feature;
-
-      for (const previous of held.current) {
-        if (feature === "echo") {
-          clearTimeout(echoTimers.current.get(previous));
-          echoTimers.current.set(
-            previous,
-            setTimeout(() => {
-              playNoteOff(previous);
-              echoTimers.current.delete(previous);
-            }, ECHO_MS),
-          );
-        } else {
-          playNoteOff(previous);
-        }
-      }
-      held.current = [];
+      releaseHeld();
       if (midi === null) return;
 
       onStepRef.current(midi);
@@ -127,20 +145,31 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
         playNoteOn(n, i === 0 ? STEP_VELOCITY : CHORD_TONE_VELOCITY);
       });
       held.current = notes;
+      holdTimer.current = setTimeout(releaseHeld, STEP_RING_MS);
     },
-    [onStepRef, regionRef],
+    [onStepRef, regionRef, releaseHeld],
   );
 
-  /** Other people's footsteps, quieter than your own. */
-  const handleRemoteStep = useCallback((id: string, midi: number | null) => {
+  const releaseRemote = useCallback((id: string) => {
+    clearTimeout(remoteTimers.current.get(id));
+    remoteTimers.current.delete(id);
     const previous = remoteHeld.current.get(id);
     if (previous !== undefined) playNoteOff(previous);
     remoteHeld.current.delete(id);
-    if (midi !== null && audioRef.current === "on") {
-      playNoteOn(midi, REMOTE_VELOCITY);
-      remoteHeld.current.set(id, midi);
-    }
   }, []);
+
+  /** Other people's footsteps, quieter than your own (also a strike, not a hold). */
+  const handleRemoteStep = useCallback(
+    (id: string, midi: number | null) => {
+      releaseRemote(id);
+      if (midi !== null && audioRef.current === "on") {
+        playNoteOn(midi, REMOTE_VELOCITY);
+        remoteHeld.current.set(id, midi);
+        remoteTimers.current.set(id, setTimeout(() => releaseRemote(id), STEP_RING_MS));
+      }
+    },
+    [releaseRemote],
+  );
 
   /** The cat's footsteps, very soft (the scene only reports them when it's near). */
   const handleCatStep = useCallback((midi: number | null) => {

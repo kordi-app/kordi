@@ -87,15 +87,24 @@ export function useWorldPresence(name: string, region: string) {
     let disposed = false;
     let retryMs = 1_000;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    /**
+     * This effect's own socket. Cleanup must close *this* one: socketRef is
+     * shared with the next effect run, and a closing socket's events arrive
+     * after the next one has already connected.
+     */
+    let live: WebSocket | null = null;
 
     const connect = () => {
       const socket = new WebSocket(
         `${WORLD_SOCKET_URL}?region=${encodeURIComponent(region)}&name=${encodeURIComponent(name)}`,
       );
+      live = socket;
       socketRef.current = socket;
       setInfo((prev) => ({ ...prev, status: "connecting" }));
 
       socket.onmessage = (event) => {
+        // a socket on its way out (region hop, name change) must not touch the new one's state
+        if (disposed) return;
         let message: ServerMessage;
         try {
           message = JSON.parse(event.data as string) as ServerMessage;
@@ -153,10 +162,15 @@ export function useWorldPresence(name: string, region: string) {
       };
 
       socket.onclose = (event) => {
+        // Closed by cleanup: the next effect run owns the shared refs by now.
+        // (Clearing them here used to null out the *new* socket, so it was
+        // never sent positions and never closed on the next hop — a leaked
+        // connection that the server kept counting as a player.)
+        if (disposed) return;
+        live = null;
         socketRef.current = null;
         myId.current = null;
         remotes.current.clear();
-        if (disposed) return;
         if (event.code === CLOSE_FULL) {
           setInfo({ status: "full", channel: null, online: 0, others: [], regionCounts: {} });
           return;
@@ -171,7 +185,10 @@ export function useWorldPresence(name: string, region: string) {
     return () => {
       disposed = true;
       clearTimeout(retryTimer);
-      socketRef.current?.close();
+      live?.close();
+      if (socketRef.current === live) socketRef.current = null;
+      myId.current = null;
+      remotes.current.clear();
     };
   }, [name, region, syncOthers]);
 
