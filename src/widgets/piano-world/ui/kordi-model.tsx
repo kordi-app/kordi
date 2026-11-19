@@ -4,12 +4,15 @@ import { forwardRef, useRef, type MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { CrownMesh } from "./crown-mesh";
+import type { EmoteId } from "../model/interactables";
 
 export interface KordiMotion {
   /** Walk-cycle phase; advances while moving. */
   phase: number;
   /** 0 when standing, 1 at full walking speed. */
   amount: number;
+  /** Emote being performed, if any */
+  emote: EmoteId | null;
 }
 
 const CREAM = "#f4efe6";
@@ -35,17 +38,61 @@ export const KordiModel = forwardRef<
   const leftArm = useRef<THREE.Mesh>(null);
   const rightArm = useRef<THREE.Mesh>(null);
   const body = useRef<THREE.Group>(null);
+  const emoteClock = useRef<{ emote: EmoteId | null; time: number }>({ emote: null, time: 0 });
 
-  useFrame(() => {
-    const { phase, amount } = motion.current;
+  useFrame((_, dt) => {
+    const m = motion.current;
+    const { phase, amount } = m;
     const swing = Math.sin(phase) * amount;
-    if (leftFoot.current) leftFoot.current.position.z = 0.04 + swing * 0.12;
-    if (rightFoot.current) rightFoot.current.position.z = 0.04 - swing * 0.12;
-    if (leftArm.current) leftArm.current.rotation.x = -swing * 0.5;
-    if (rightArm.current) rightArm.current.rotation.x = swing * 0.5;
+    // emote clock is local: restart whenever the emote changes
+    const clock = emoteClock.current;
+    if (clock.emote !== m.emote) {
+      clock.emote = m.emote;
+      clock.time = 0;
+    }
+    clock.time += dt;
+    const t = clock.time;
+
+    // walk cycle (the baseline every emote layers on top of)
+    let leftArmX = -swing * 0.5;
+    let rightArmX = swing * 0.5;
+    let leftArmZ = 0.5;
+    let rightArmZ = -0.5;
+    let bodyY = Math.abs(Math.sin(phase)) * 0.07 * amount;
+    let bodyRotY = 0;
+    const bodyRotZ = Math.sin(phase) * 0.05 * amount;
+    let feetForward = 0;
+
+    switch (m.emote) {
+      case "wave":
+        rightArmZ = -2.4 + Math.sin(t * 12) * 0.35; // arm up, waving
+        break;
+      case "clap": {
+        const clap = Math.abs(Math.sin(t * 9));
+        leftArmZ = 1.2 - clap * 0.6;
+        rightArmZ = -1.2 + clap * 0.6;
+        leftArmX = rightArmX = -0.9;
+        break;
+      }
+      case "dance":
+        bodyRotY = Math.sin(t * 4) * 0.6;
+        bodyY = Math.abs(Math.sin(t * 8)) * 0.14;
+        leftArmZ = 1.6 + Math.sin(t * 8) * 0.5;
+        rightArmZ = -1.6 + Math.sin(t * 8 + Math.PI) * 0.5;
+        break;
+      case "sit":
+        bodyY = -0.18;
+        feetForward = 0.22;
+        break;
+    }
+
+    if (leftFoot.current) leftFoot.current.position.z = 0.04 + swing * 0.12 + feetForward;
+    if (rightFoot.current) rightFoot.current.position.z = 0.04 - swing * 0.12 + feetForward;
+    if (leftArm.current) leftArm.current.rotation.set(leftArmX, 0, leftArmZ);
+    if (rightArm.current) rightArm.current.rotation.set(rightArmX, 0, rightArmZ);
     if (body.current) {
-      body.current.position.y = Math.abs(Math.sin(phase)) * 0.07 * amount;
-      body.current.rotation.z = Math.sin(phase) * 0.05 * amount;
+      body.current.position.y = bodyY;
+      body.current.rotation.set(0, bodyRotY, bodyRotZ);
     }
   });
 

@@ -1,12 +1,14 @@
 "use client";
 
-import { useRef, type RefObject } from "react";
+import { useRef, useState, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import type { RemotePlayer } from "../model/use-world-presence";
 import { CASE_H, PRESS_DEPTH, keyAt } from "../model/layout";
 import { KordiModel, type KordiMotion } from "./kordi-model";
 import { useLabelTexture } from "./label-texture";
+import { EmoteBubble } from "./emote-bubble";
+import type { EmoteId } from "../model/interactables";
 
 const SCALE = 1.6;
 
@@ -28,11 +30,14 @@ export function RemoteKordi({
   course: boolean;
 }) {
   const group = useRef<THREE.Group>(null);
-  const motion = useRef<KordiMotion>({ phase: 0, amount: 0 });
+  const motion = useRef<KordiMotion>({ phase: 0, amount: 0, emote: null });
   const initial = remotes.current.get(id);
   const pos = useRef(new THREE.Vector3(initial?.x ?? 0, 0, initial?.z ?? 0));
   const heading = useRef(initial?.h ?? 0);
   const { texture, aspect } = useLabelTexture(name);
+  // the emote bubble is React state, but only changes when the emote does
+  const [emote, setEmote] = useState<EmoteId | null>(null);
+  const emoteShown = useRef<EmoteId | null>(null);
 
   useFrame((_, rawDelta) => {
     const target = remotes.current.get(id);
@@ -62,6 +67,11 @@ export function RemoteKordi({
 
     group.current.position.copy(pos.current);
     group.current.rotation.y = heading.current;
+    m.emote = target.e ?? null;
+    if (target.e !== emoteShown.current) {
+      emoteShown.current = target.e ?? null;
+      setEmote(emoteShown.current);
+    }
   });
 
   return (
@@ -71,6 +81,7 @@ export function RemoteKordi({
       <sprite position={[0, 2.55, 0]} scale={[0.42 * aspect, 0.42, 1]}>
         <spriteMaterial map={texture} transparent depthWrite={false} />
       </sprite>
+      {emote ? <EmoteBubble emote={emote} offsetY={3.15} /> : null}
     </group>
   );
 }

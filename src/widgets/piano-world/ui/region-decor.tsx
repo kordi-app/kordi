@@ -9,10 +9,10 @@ import { BOUNDS, CASE_H, KEYS, WHITE_H, WHITE_L } from "../model/layout";
 const BACK_Z = -WHITE_L / 2 - 3;
 
 /** Light set dressing per region — cheap geometry, few lights. */
-export function RegionDecor({ region }: { region: RegionId }) {
+export function RegionDecor({ region, party = false }: { region: RegionId; party?: boolean }) {
   switch (region) {
     case "neon":
-      return <NeonDecor />;
+      return <NeonDecor party={party} />;
     case "cathedral":
       return <CathedralDecor />;
     case "lounge":
@@ -25,7 +25,7 @@ export function RegionDecor({ region }: { region: RegionId }) {
 const WHITE_KEYS = KEYS.filter((k) => !k.black);
 
 /** Disco floor: a rainbow wave rolls across the white keys to a steady beat. */
-function DiscoWave() {
+function DiscoWave({ party }: { party: boolean }) {
   const mesh = useRef<THREE.InstancedMesh>(null);
   const color = useMemo(() => new THREE.Color(), []);
 
@@ -46,9 +46,10 @@ function DiscoWave() {
     const t = clock.getElapsedTime();
     WHITE_KEYS.forEach((key, i) => {
       // 120 BPM pulse riding a wave that travels along the keyboard
-      const wave = Math.max(0, Math.sin(t * 3 - key.x * 0.45));
-      const beat = 0.55 + 0.45 * Math.max(0, Math.cos(t * Math.PI * 4));
-      const strength = wave ** 3 * beat;
+      const speed = party ? 2.4 : 1;
+      const wave = Math.max(0, Math.sin(t * 3 * speed - key.x * 0.45));
+      const beat = 0.55 + 0.45 * Math.max(0, Math.cos(t * Math.PI * 4 * speed));
+      const strength = (party ? Math.max(wave, 0.35) : wave ** 3) * beat;
       color.setHSL((t * 0.08 + i * 0.02) % 1, 0.9, 0.55).multiplyScalar(strength);
       instanced.setColorAt(i, color);
     });
@@ -108,11 +109,11 @@ function Fireflies() {
 }
 
 /** Glowing rails framing the keyboard. */
-function NeonDecor() {
+function NeonDecor({ party }: { party: boolean }) {
   const length = BOUNDS.x * 2;
   return (
     <group>
-      <DiscoWave />
+      <DiscoWave party={party} />
       {[
         { z: -WHITE_L / 2 - 0.7, color: "#ff4fd8" },
         { z: WHITE_L / 2 + 0.5, color: "#4fd8ff" },

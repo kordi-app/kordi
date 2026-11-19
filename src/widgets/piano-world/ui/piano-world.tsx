@@ -12,9 +12,11 @@ const PianoWorldScene = dynamic(() => import("./piano-world-scene"), {
 export function PianoWorld({
   copy,
   playerName,
+  isGuest,
 }: {
   copy: PianoWorldCopy;
   playerName: string;
+  isGuest: boolean;
 }) {
-  return <PianoWorldScene copy={copy} playerName={playerName} />;
+  return <PianoWorldScene copy={copy} playerName={playerName} isGuest={isGuest} />;
 }

@@ -25,8 +25,28 @@ import { KordiModel, type KordiMotion } from "./kordi-model";
 import { PianoFloor } from "./piano-floor";
 import { RemoteKordi } from "./remote-kordi";
 import { Portal } from "./portal";
+import { ChordCardStand, DiscoBall, Jukebox, MusicBox, PianoCat, Teacher } from "./world-props";
+import { EmoteBubble } from "./emote-bubble";
+import {
+  EMOTES,
+  EMOTE_ICON,
+  EMOTE_SECONDS,
+  interactablesIn,
+  type EmoteId,
+  type InteractableId,
+} from "../model/interactables";
+import { CHORD_CARD_COUNT, chordCard, type ChordCard, type ChordCardKey } from "../model/chord-cards";
+import { FUR_ELISE, MUSIC_BOX, playSequence } from "../model/sequencer";
+import { ChordCardPanel, WishPanel } from "./interaction-panels";
 import { CourseScene } from "./course-scene";
-import { COURSE, COURSE_BOUNDS, GOAL_INDEX, courseGround } from "../model/course";
+import {
+  COURSE,
+  COURSE_BOUNDS,
+  GOAL_INDEX,
+  courseBlocked,
+  courseCeiling,
+  courseGround,
+} from "../model/course";
 import { StepEffects, type StepEffectsApi } from "./step-effects";
 import { TargetBeam } from "./target-beam";
 import { MELODIES } from "../model/melodies";
@@ -93,7 +113,28 @@ const KEY_TO_DIRECTION: Record<string, Direction> = {
   KeyD: "right",
 };
 
+/** Overlay panels opened by interactables */
+type Panel = { kind: "chordCard"; card: ChordCard } | { kind: "wish" };
+
 export interface PianoWorldCopy {
+  nameLabel: string;
+  nameReroll: string;
+  nameAdjectives: string[];
+  nameNouns: string[];
+  emotes: Record<EmoteId, string>;
+  interact: Record<InteractableId | "jukeboxStop", string>;
+  catReactions: string[];
+  teacherTips: string[];
+  cards: Record<ChordCardKey, string>;
+  cardTitle: string;
+  cardPlay: string;
+  close: string;
+  wishTitle: string;
+  wishPlaceholder: string;
+  wishNote: string;
+  wishSend: string;
+  wishSent: string;
+  jukeboxNowPlaying: string;
   regions: Record<RegionId, string>;
   melodies: Record<(typeof MELODIES)[number]["key"], string>;
   melodyNext: string;
@@ -146,7 +187,31 @@ function World({
   celebrate,
   onPlatform,
   crowned,
+  emote,
+  onEmoteCancel,
+  onNearby,
+  hearts,
+  lantern,
+  petting,
+  party,
+  musicBoxPlaying,
+  jukeboxPlaying,
+  onCatKey,
 }: {
+  emote: EmoteId | null;
+  /** moving ends an emote */
+  onEmoteCancel: () => void;
+  /** the interactable now in reach (null when none) */
+  onNearby: (id: InteractableId | null) => void;
+  /** bump to fire hearts over the cat / a lantern from the music box */
+  hearts: number;
+  lantern: number;
+  petting: boolean;
+  party: boolean;
+  musicBoxPlaying: boolean;
+  jukeboxPlaying: boolean;
+  /** the key the cat is on, only reported while it's within earshot */
+  onCatKey: (midi: number | null) => void;
   /** course: the platform now underfoot (null = cloud floor / not a course) */
   onPlatform: (index: number | null) => void;
   /** finished the hidden course at least once */
@@ -165,12 +230,19 @@ function World({
   onKeyChange: (midi: number | null) => void;
   remotes: React.RefObject<Map<string, RemotePlayer>>;
   others: { id: string; name: string }[];
-  sendPosition: (x: number, y: number, z: number, h: number, m: number | null) => void;
+  sendPosition: (
+    x: number,
+    y: number,
+    z: number,
+    h: number,
+    m: number | null,
+    e: EmoteId | null,
+  ) => void;
   onRemoteNote: (id: string, midi: number | null) => void;
 }) {
   const kordi = useRef<THREE.Group>(null);
   const light = useRef<THREE.DirectionalLight>(null);
-  const motion = useRef<KordiMotion>({ phase: 0, amount: 0 });
+  const motion = useRef<KordiMotion>({ phase: 0, amount: 0, emote: null });
   const sim = useRef({
     pos: new THREE.Vector3(SPAWN.x, CASE_H, SPAWN.z),
     heading: 0, // face the camera on arrival
@@ -190,6 +262,14 @@ function World({
   const placedFor = useRef<Arrival | null>(null);
   const fx = useRef<StepEffectsApi>(null);
   const celebrated = useRef(celebrate);
+  const fired = useRef({ hearts, lantern });
+  const catPos = useRef(new THREE.Vector3(SPAWN.x, 0, 1.2));
+  const catKey = useRef<number | null>(null);
+  const catHeard = useRef<number | null>(null);
+  const nearby = useRef<InteractableId | null>(null);
+  const bubble = useRef<THREE.Group>(null);
+  const items = useMemo(() => interactablesIn(region.id), [region]);
+  const itemById = useMemo(() => new Map(items.map((item) => [item.id, item])), [items]);
 
   useFrame((_, rawDelta) => {
     const dt = Math.min(rawDelta, 0.05);
@@ -216,15 +296,22 @@ function World({
       const length = Math.hypot(dx, dz);
       dx /= length;
       dz /= length;
-      const bounds = region.feature === "course" ? COURSE_BOUNDS : BOUNDS;
-      s.pos.x = THREE.MathUtils.clamp(s.pos.x + dx * SPEED * dt, -bounds.x, bounds.x);
-      s.pos.z = THREE.MathUtils.clamp(s.pos.z + dz * SPEED * dt, bounds.zMin, bounds.zMax);
+      const course = region.feature === "course";
+      const bounds = course ? COURSE_BOUNDS : BOUNDS;
+      const nextX = THREE.MathUtils.clamp(s.pos.x + dx * SPEED * dt, -bounds.x, bounds.x);
+      const nextZ = THREE.MathUtils.clamp(s.pos.z + dz * SPEED * dt, bounds.zMin, bounds.zMax);
+      // Course steps are solid: resolve each axis separately so you slide
+      // along a step's side instead of sticking to it
+      if (!course || !courseBlocked(nextX, s.pos.z, s.pos.y)) s.pos.x = nextX;
+      if (!course || !courseBlocked(s.pos.x, nextZ, s.pos.y)) s.pos.z = nextZ;
       s.heading = lerpAngle(s.heading, Math.atan2(dx, dz), 1 - Math.exp(-dt * 12));
     }
 
     const m = motion.current;
     m.amount = THREE.MathUtils.lerp(m.amount, moving ? 1 : 0, 1 - Math.exp(-dt * 10));
     m.phase += dt * 11 * m.amount;
+    m.emote = emote;
+    if (emote && moving) onEmoteCancel();
 
     const ground = groundAt(region, s.pos.x, s.pos.z, s.pos.y);
     const surface = ground.height;
@@ -237,7 +324,17 @@ function World({
     }
     if (s.airborne) {
       s.vy -= GRAVITY * dt;
-      s.pos.y += s.vy * dt;
+      const nextY = s.pos.y + s.vy * dt;
+      const ceiling =
+        region.feature === "course" && s.vy > 0
+          ? courseCeiling(s.pos.x, s.pos.z, s.pos.y, nextY)
+          : null;
+      if (ceiling !== null) {
+        s.pos.y = ceiling; // bonk: head hit a step's underside
+        s.vy = 0;
+      } else {
+        s.pos.y = nextY;
+      }
       if (s.vy < 0 && s.pos.y <= surface) {
         s.pos.y = surface; // landing re-strikes the key below
         s.airborne = false;
@@ -275,7 +372,43 @@ function World({
       celebrated.current = celebrate;
       fx.current?.confetti(s.pos.x, s.pos.y, s.pos.z);
     }
-    sendPosition(s.pos.x, s.pos.y, s.pos.z, s.heading, midi);
+    sendPosition(s.pos.x, s.pos.y, s.pos.z, s.heading, midi, emote);
+
+    // What's within reach? (the cat wanders, so its spot is live)
+    let closest: InteractableId | null = null;
+    let closestDistance = Infinity;
+    for (const item of items) {
+      const at = item.id === "cat" ? catPos.current : item;
+      const distance = Math.hypot(s.pos.x - at.x, s.pos.z - at.z);
+      if (distance < item.radius && distance < closestDistance) {
+        closest = item.id;
+        closestDistance = distance;
+      }
+    }
+    if (closest !== nearby.current) {
+      nearby.current = closest;
+      onNearby(closest);
+    }
+
+    // The cat's footsteps are only heard when you're near it
+    const catNear =
+      region.id === "hall" && Math.hypot(s.pos.x - catPos.current.x, s.pos.z - catPos.current.z) < 9;
+    const heard = catNear ? catKey.current : null;
+    if (heard !== catHeard.current) {
+      catHeard.current = heard;
+      onCatKey(heard);
+    }
+
+    if (fired.current.hearts !== hearts) {
+      fired.current.hearts = hearts;
+      fx.current?.hearts(catPos.current.x, catPos.current.y + 0.6, catPos.current.z);
+    }
+    if (fired.current.lantern !== lantern) {
+      fired.current.lantern = lantern;
+      const box = itemById.get("musicBox");
+      if (box) fx.current?.lantern(box.x, 0, box.z);
+    }
+    if (bubble.current) bubble.current.position.set(s.pos.x, s.pos.y + 2.75, s.pos.z);
 
     const inside = region.portals.find(
       (portal) =>
@@ -356,7 +489,33 @@ function World({
       ) : (
         <PianoFloor pressed={pressed} theme={region.theme} />
       )}
-      <RegionDecor region={region.id} />
+      <RegionDecor region={region.id} party={party} />
+      {items.map((item) => {
+        switch (item.id) {
+          case "cat":
+            return (
+              <PianoCat
+                key={item.id}
+                petting={petting}
+                onKey={(midi) => {
+                  catKey.current = midi;
+                }}
+                onPosition={(position) => catPos.current.copy(position)}
+              />
+            );
+          case "chordCard":
+            return <ChordCardStand key={item.id} item={item} />;
+          case "teacher":
+            return <Teacher key={item.id} item={item} />;
+          case "musicBox":
+            return <MusicBox key={item.id} item={item} playing={musicBoxPlaying} />;
+          case "jukebox":
+            return <Jukebox key={item.id} item={item} playing={jukeboxPlaying} />;
+          case "discoBall":
+            return <DiscoBall key={item.id} item={item} party={party} />;
+        }
+      })}
+      <group ref={bubble}>{emote ? <EmoteBubble emote={emote} /> : null}</group>
       {region.portals.map((portal) => (
         <Portal key={`${portal.to}-${portal.x}`} portal={portal} glow={region.theme.dark} />
       ))}
@@ -563,10 +722,14 @@ function DirectionButton({
 export default function PianoWorldScene({
   copy,
   playerName,
+  isGuest,
 }: {
   copy: PianoWorldCopy;
   playerName: string;
+  /** guests get a random musical name they can re-roll */
+  isGuest: boolean;
 }) {
+  const [name, setName] = useState(playerName);
   // Region comes from ?region= so a place can be linked to directly
   const [regionId, setRegionId] = useState<RegionId>(() => {
     const param = new URLSearchParams(window.location.search).get("region");
@@ -579,7 +742,7 @@ export default function PianoWorldScene({
   const transitioning = useRef(false);
 
   // Each region is its own set of rooms on the server; changing region reconnects
-  const { remotes, info, sendPosition } = useWorldPresence(playerName, regionId);
+  const { remotes, info, sendPosition } = useWorldPresence(name, regionId);
   const containerRef = useRef<HTMLDivElement>(null);
   const input = useRef<InputState>({
     up: false,
@@ -656,33 +819,6 @@ export default function PianoWorldScene({
     };
   }, []);
 
-  const handlePortal = useCallback(
-    (to: RegionId) => {
-      if (transitioning.current) return;
-      transitioning.current = true;
-      const from = regionRef.current.id;
-      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      setFading(true);
-      setTimeout(
-        () => {
-          releaseAll();
-          setNote(null);
-          regionRef.current = REGIONS[to];
-          setRegionId(to);
-          setArrival(arrivalPoint(to, from));
-          const url = new URL(window.location.href);
-          if (to === "hall") url.searchParams.delete("region");
-          else url.searchParams.set("region", to);
-          window.history.replaceState(window.history.state, "", url);
-          if (audioRef.current !== "off") switchInstrument(REGIONS[to].instrument);
-          setFading(false);
-          transitioning.current = false;
-        },
-        reduceMotion ? 0 : FADE_MS,
-      );
-    },
-    [releaseAll, switchInstrument],
-  );
 
   const handlePadPress = useCallback(
     (direction: Direction, pressed: boolean) => {
@@ -799,6 +935,184 @@ export default function PianoWorldScene({
     [advanceMelody],
   );
 
+  // --- emotes ------------------------------------------------------------
+  const [emote, setEmote] = useState<EmoteId | null>(null);
+  const emoteTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const playEmote = useCallback((next: EmoteId) => {
+    clearTimeout(emoteTimer.current);
+    setEmote(next);
+    const seconds = EMOTE_SECONDS[next];
+    if (Number.isFinite(seconds)) {
+      emoteTimer.current = setTimeout(() => setEmote(null), seconds * 1000);
+    }
+  }, []);
+  const cancelEmote = useCallback(() => {
+    clearTimeout(emoteTimer.current);
+    setEmote((current) => (current === null ? current : null));
+  }, []);
+
+  // --- interactables -------------------------------------------------------
+  const [nearby, setNearby] = useState<InteractableId | null>(null);
+  const nearbyRef = useRef<InteractableId | null>(null);
+  const [panel, setPanel] = useState<Panel | null>(null);
+  const panelRef = useRef<Panel | null>(null);
+  const [speech, setSpeech] = useState<string | null>(null);
+  const speechTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [hearts, setHearts] = useState(0);
+  const [lantern, setLantern] = useState(0);
+  const [petting, setPetting] = useState(false);
+  const [party, setParty] = useState(false);
+  const [musicBoxPlaying, setMusicBoxPlaying] = useState(false);
+  const [jukeboxPlaying, setJukeboxPlaying] = useState(false);
+  const stopTune = useRef<(() => void) | null>(null);
+  const draws = useRef({ card: 0, tip: 0, reaction: 0 });
+
+  const openPanel = useCallback((next: Panel | null) => {
+    panelRef.current = next;
+    setPanel(next);
+  }, []);
+
+  const say = useCallback((text: string, ms = 3500) => {
+    clearTimeout(speechTimer.current);
+    setSpeech(text);
+    speechTimer.current = setTimeout(() => setSpeech(null), ms);
+  }, []);
+
+  const stopMusic = useCallback(() => {
+    stopTune.current?.();
+    stopTune.current = null;
+    setJukeboxPlaying(false);
+    setMusicBoxPlaying(false);
+  }, []);
+
+  const handleNearby = useCallback((id: InteractableId | null) => {
+    nearbyRef.current = id;
+    setNearby(id);
+  }, []);
+
+  /** Strum a chord: notes start a beat apart and ring together. */
+  const strum = useCallback((midi: number[]) => {
+    if (audioRef.current !== "on") return;
+    midi.forEach((note, i) => setTimeout(() => playNoteOn(note, 0.55), i * 90));
+    setTimeout(() => midi.forEach(playNoteOff), 2200);
+  }, []);
+
+  const interact = useCallback(
+    (id: InteractableId) => {
+      startAudio();
+      switch (id) {
+        case "cat": {
+          setPetting(true);
+          setHearts((n) => n + 1);
+          const reactions = copy.catReactions;
+          say(reactions[draws.current.reaction++ % reactions.length]);
+          if (audioRef.current === "on") {
+            // a little purr: two soft high notes
+            [88, 91].forEach((note, i) => setTimeout(() => playNoteOn(note, 0.25), i * 140));
+            setTimeout(() => [88, 91].forEach(playNoteOff), 700);
+          }
+          setTimeout(() => setPetting(false), 1600);
+          break;
+        }
+        case "chordCard": {
+          // draws are random per press (an event, so randomness is fine here)
+          const index = Math.floor(Math.random() * CHORD_CARD_COUNT);
+          draws.current.card = index;
+          const card = chordCard(index);
+          openPanel({ kind: "chordCard", card });
+          strum(card.midi);
+          break;
+        }
+        case "teacher": {
+          const tips = copy.teacherTips;
+          say(tips[draws.current.tip++ % tips.length], 5000);
+          break;
+        }
+        case "musicBox":
+          openPanel({ kind: "wish" });
+          break;
+        case "jukebox":
+          if (stopTune.current) {
+            stopMusic();
+          } else {
+            setJukeboxPlaying(true);
+            stopTune.current = playSequence(FUR_ELISE, 132, 0.55, () => {
+              stopTune.current = null;
+              setJukeboxPlaying(false);
+            });
+            say(copy.jukeboxNowPlaying);
+          }
+          break;
+        case "discoBall":
+          setParty(true);
+          setCelebrate((n) => n + 1);
+          setTimeout(() => setParty(false), 8000);
+          break;
+      }
+    },
+    [copy, openPanel, say, startAudio, stopMusic, strum],
+  );
+
+  const sendWish = useCallback(() => {
+    // The wish text is never sent or stored anywhere — it only lives in the textarea
+    openPanel(null);
+    setLantern((n) => n + 1);
+    stopMusic();
+    setMusicBoxPlaying(true);
+    stopTune.current = playSequence(MUSIC_BOX, 150, 0.4, () => {
+      stopTune.current = null;
+      setMusicBoxPlaying(false);
+    });
+    say(copy.wishSent);
+  }, [copy, openPanel, say, stopMusic]);
+
+  /** The cat's footsteps, very soft. */
+  const catSounding = useRef<number | null>(null);
+  const handleCatKey = useCallback((midi: number | null) => {
+    if (catSounding.current !== null) playNoteOff(catSounding.current);
+    catSounding.current = null;
+    if (midi !== null && audioRef.current === "on") {
+      playNoteOn(midi, 0.18);
+      catSounding.current = midi;
+    }
+  }, []);
+
+  const rerollName = useCallback(() => {
+    const { nameAdjectives: adjectives, nameNouns: nouns } = copy;
+    const pick = (list: string[]) => list[Math.floor(Math.random() * list.length)];
+    setName(`${pick(adjectives)} ${pick(nouns)}`);
+  }, [copy]);
+
+  const handlePortal = useCallback(
+    (to: RegionId) => {
+      if (transitioning.current) return;
+      transitioning.current = true;
+      const from = regionRef.current.id;
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      setFading(true);
+      setTimeout(
+        () => {
+          releaseAll();
+          stopMusic();
+          openPanel(null);
+          setNote(null);
+          regionRef.current = REGIONS[to];
+          setRegionId(to);
+          setArrival(arrivalPoint(to, from));
+          const url = new URL(window.location.href);
+          if (to === "hall") url.searchParams.delete("region");
+          else url.searchParams.set("region", to);
+          window.history.replaceState(window.history.state, "", url);
+          if (audioRef.current !== "off") switchInstrument(REGIONS[to].instrument);
+          setFading(false);
+          transitioning.current = false;
+        },
+        reduceMotion ? 0 : FADE_MS,
+      );
+    },
+    [releaseAll, switchInstrument, stopMusic, openPanel],
+  );
+
   const takeJump = useCallback(() => {
     const requested = input.current.jump;
     input.current.jump = false;
@@ -836,6 +1150,21 @@ export default function PianoWorldScene({
       (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
 
     const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Escape" && panelRef.current) {
+        openPanel(null);
+        return;
+      }
+      if (isTyping(e.target) || !visibleRef.current || e.metaKey || e.ctrlKey) return;
+      if ((e.code === "KeyE" || e.code === "Enter") && nearbyRef.current && !panelRef.current) {
+        e.preventDefault();
+        interact(nearbyRef.current);
+        return;
+      }
+      const emoteIndex = ["Digit1", "Digit2", "Digit3", "Digit4"].indexOf(e.code);
+      if (emoteIndex !== -1) {
+        playEmote(EMOTES[emoteIndex]);
+        return;
+      }
       if (e.code === "Space" && visibleRef.current && !isTyping(e.target)) {
         e.preventDefault(); // Space would otherwise scroll the page
         if (!e.repeat) input.current.jump = true;
@@ -864,12 +1193,13 @@ export default function PianoWorldScene({
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("blur", releaseAll);
     };
-  }, [startAudio]);
+  }, [startAudio, interact, openPanel, playEmote]);
 
   // Silence the last note when leaving the page
   useEffect(
     () => () => {
       releaseAll();
+      stopTune.current?.();
     },
     [releaseAll],
   );
@@ -910,6 +1240,16 @@ export default function PianoWorldScene({
           celebrate={celebrate}
           onPlatform={handlePlatform}
           crowned={crowned}
+          emote={emote}
+          onEmoteCancel={cancelEmote}
+          onNearby={handleNearby}
+          hearts={hearts}
+          lantern={lantern}
+          petting={petting}
+          party={party}
+          musicBoxPlaying={musicBoxPlaying}
+          jukeboxPlaying={jukeboxPlaying}
+          onCatKey={handleCatKey}
         />
       </Canvas>
 
@@ -966,6 +1306,71 @@ export default function PianoWorldScene({
         {audioLabel}
       </div>
       </div>
+
+      {/* my name — guests can re-roll it */}
+      <div className="absolute right-5 top-24 hidden md:block">
+        <button
+          type="button"
+          disabled={!isGuest}
+          onClick={rerollName}
+          title={isGuest ? copy.nameReroll : undefined}
+          className="rounded-full border border-border bg-card/90 px-3 py-1 text-xs text-foreground shadow-sm enabled:hover:bg-muted"
+        >
+          <span className="text-muted-foreground">{copy.nameLabel}</span> {name}
+          {isGuest ? <span className="ml-1.5 text-muted-foreground">↻</span> : null}
+        </button>
+      </div>
+
+      {/* emote bar */}
+      <div className="absolute right-5 top-1/2 flex -translate-y-1/2 flex-col gap-1.5">
+        {EMOTES.map((id, i) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => (emote === id ? cancelEmote() : playEmote(id))}
+            title={`${i + 1} · ${copy.emotes[id]}`}
+            aria-label={copy.emotes[id]}
+            aria-pressed={emote === id}
+            className={cn(
+              "flex size-10 items-center justify-center rounded-xl border border-border bg-card/90 text-lg shadow-sm hover:bg-muted",
+              emote === id && "ring-2 ring-foreground/30",
+            )}
+          >
+            {EMOTE_ICON[id]}
+          </button>
+        ))}
+      </div>
+
+      {/* speech from NPCs, the cat, the jukebox… */}
+      {speech ? (
+        <div
+          role="status"
+          className="pointer-events-none absolute bottom-24 left-1/2 max-w-[min(28rem,calc(100%-2rem))] -translate-x-1/2 rounded-2xl border border-border bg-card/95 px-4 py-2.5 text-center text-sm text-foreground shadow-md"
+        >
+          {speech}
+        </div>
+      ) : null}
+
+      {/* "press E" prompt */}
+      {nearby && !panel ? (
+        <button
+          type="button"
+          onClick={() => interact(nearby)}
+          className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card/95 px-4 py-2 text-sm font-medium text-foreground shadow-md hover:bg-muted"
+        >
+          <kbd className="rounded border border-border bg-background px-1.5 text-xs text-muted-foreground pointer-coarse:hidden">
+            E
+          </kbd>
+          {copy.interact[nearby === "jukebox" && jukeboxPlaying ? "jukeboxStop" : nearby]}
+        </button>
+      ) : null}
+
+      {panel?.kind === "chordCard" ? (
+        <ChordCardPanel card={panel.card} copy={copy} onClose={() => openPanel(null)} onPlay={() => strum(panel.card.midi)} />
+      ) : null}
+      {panel?.kind === "wish" ? (
+        <WishPanel copy={copy} onClose={() => openPanel(null)} onSend={sendWish} />
+      ) : null}
 
       {/* touch controls */}
       <button

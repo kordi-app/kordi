@@ -157,7 +157,88 @@
       "courseTitle": "Climb to the top",
       "courseHint": "Space to jump · fall and you start over",
       "courseBest": "Best",
-      "courseDone": "You made it! Crown earned"
+      "courseDone": "You made it! Crown earned",
+      "nameLabel": "Today's name",
+      "nameReroll": "Pick another name",
+      "nameAdjectives": [
+        "Mellow",
+        "Sparkly",
+        "Shy",
+        "Brave",
+        "Sleepy",
+        "Jolly",
+        "Cozy",
+        "Breezy",
+        "Quirky",
+        "Kind",
+        "Bold",
+        "Quiet"
+      ],
+      "nameNouns": [
+        "Rest",
+        "Sharp",
+        "Flat",
+        "Clef",
+        "Repeat",
+        "Staccato",
+        "Trill",
+        "Fermata",
+        "Triplet",
+        "Crescendo",
+        "Metronome",
+        "Octave"
+      ],
+      "emotes": {
+        "wave": "Wave",
+        "clap": "Clap",
+        "dance": "Dance",
+        "sit": "Sit"
+      },
+      "interact": {
+        "cat": "Pet the cat",
+        "chordCard": "Draw today's chord",
+        "teacher": "Ask for a tip",
+        "musicBox": "Write a wish",
+        "jukebox": "Play the jukebox",
+        "jukeboxStop": "Stop the jukebox",
+        "discoBall": "Start the party!"
+      },
+      "catReactions": [
+        "The cat purrs happily",
+        "The cat swishes its tail across the keys",
+        "The cat squints and nuzzles your hand",
+        "The cat flops down right on middle C",
+        "The cat lets out a high little mew"
+      ],
+      "teacherTips": [
+        "A seventh chord is a triad plus one more note. Cmaj7 = C·E·G·B!",
+        "After G7 you'll want to land on C — that's called resolution.",
+        "To turn major into minor, lower the middle note (the 3rd) by a half step.",
+        "sus4 swaps the 3rd for the 4th: tension that loves to resolve back.",
+        "Change which note is at the bottom (an inversion) and the same chord feels new.",
+        "Dm7 – G7 – Cmaj7 is the ii–V–I, the most common move in jazz.",
+        "Small hands? Drop the 5th. The 3rd and 7th give a chord its character.",
+        "Slow and accurate always beats fast and wrong."
+      ],
+      "cards": {
+        "cmaj7": "Bright and dreamy — a staple of city pop and ballads.",
+        "am7": "A little wistful but soft. Good for rainy days.",
+        "dm7": "Where jazz begins: the 'ii' in ii–V–I.",
+        "g7": "Restless and itching to move. Resolve it to C.",
+        "fmaj7": "Like sunlight — it opens a song right up.",
+        "em7": "Light, clear minor that glides between chords.",
+        "bm7b5": "Half-diminished and mysterious; the ii of a minor key.",
+        "csus4": "Suspense waiting to resolve. Let it fall to C."
+      },
+      "cardTitle": "Today's chord",
+      "cardPlay": "Play it again",
+      "close": "Close",
+      "wishTitle": "Wish music box",
+      "wishPlaceholder": "Something you hope for, a song you want to play…",
+      "wishNote": "What you write isn't saved anywhere. Send it and it rises as light.",
+      "wishSend": "Send it with the music box",
+      "wishSent": "Your wish rises as light",
+      "jukeboxNowPlaying": "Beethoven, Für Elise (public domain)"
     }
   },
   "piano": {

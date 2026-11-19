@@ -1,26 +1,51 @@
 import { getTranslations } from "next-intl/server";
 import { getMe } from "@/entities/user/server";
-import { PianoWorld } from "@/widgets/piano-world";
+import { PianoWorld, type PianoWorldCopy } from "@/widgets/piano-world";
 
-/** Signed-in visitors walk under their nickname; everyone else is a numbered guest. */
-async function resolvePlayerName(guestLabel: string): Promise<string> {
+/**
+ * Signed-in visitors walk under their nickname; guests get a random musical
+ * name for the day ("Mellow Fermata"), which they can re-roll in the world.
+ */
+async function resolvePlayer(adjectives: string[], nouns: string[]) {
   try {
-    return (await getMe()).nickname;
+    return { name: (await getMe()).nickname, isGuest: false };
   } catch {
-    return `${guestLabel} ${1000 + Math.floor(Math.random() * 9000)}`;
+    const pick = (list: string[]) => list[Math.floor(Math.random() * list.length)];
+    return { name: `${pick(adjectives)} ${pick(nouns)}`, isGuest: true };
   }
 }
 
 /** Home is the walkable keyboard, filling everything below the app header. */
 export async function HomePage() {
   const t = await getTranslations("home.world");
-  const playerName = await resolvePlayerName(t("guest"));
+  const nameAdjectives = t.raw("nameAdjectives") as string[];
+  const nameNouns = t.raw("nameNouns") as string[];
+  const player = await resolvePlayer(nameAdjectives, nameNouns);
 
   return (
     <main className="h-[calc(100svh-3.5rem)] min-h-[420px] w-full">
       <PianoWorld
-        playerName={playerName}
+        playerName={player.name}
+        isGuest={player.isGuest}
         copy={{
+          nameLabel: t("nameLabel"),
+          nameReroll: t("nameReroll"),
+          nameAdjectives,
+          nameNouns,
+          emotes: t.raw("emotes") as PianoWorldCopy["emotes"],
+          interact: t.raw("interact") as PianoWorldCopy["interact"],
+          catReactions: t.raw("catReactions") as string[],
+          teacherTips: t.raw("teacherTips") as string[],
+          cards: t.raw("cards") as PianoWorldCopy["cards"],
+          cardTitle: t("cardTitle"),
+          cardPlay: t("cardPlay"),
+          close: t("close"),
+          wishTitle: t("wishTitle"),
+          wishPlaceholder: t("wishPlaceholder"),
+          wishNote: t("wishNote"),
+          wishSend: t("wishSend"),
+          wishSent: t("wishSent"),
+          jukeboxNowPlaying: t("jukeboxNowPlaying"),
           melodies: {
             twinkle: t("melodies.twinkle"),
             odeToJoy: t("melodies.odeToJoy"),

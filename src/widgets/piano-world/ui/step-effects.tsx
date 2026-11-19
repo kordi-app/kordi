@@ -11,9 +11,14 @@ export interface StepEffectsApi {
   ripple: (x: number, y: number, z: number, color: string) => void;
   /** a shower of confetti over a point */
   confetti: (x: number, y: number, z: number) => void;
+  /** ♥ hearts floating up (petting the cat) */
+  hearts: (x: number, y: number, z: number) => void;
+  /** a single soft light drifting up into the sky (a sent wish) */
+  lantern: (x: number, y: number, z: number) => void;
 }
 
 const NOTE_POOL = 24;
+const LANTERN_POOL = 4;
 const RIPPLE_POOL = 10;
 const CONFETTI_POOL = 70;
 const CONFETTI_COLORS = ["#ff6b6b", "#ffd166", "#06d6a0", "#4cc9f0", "#b388ff", "#ff9a4a"];
@@ -44,7 +49,7 @@ function nextFree(pool: Particle[]) {
   return oldest; // recycle the one closest to fading out
 }
 
-function makeNoteTexture() {
+function makeGlyphTexture(glyph: string) {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 64;
   const ctx = canvas.getContext("2d")!;
@@ -52,7 +57,20 @@ function makeNoteTexture() {
   ctx.font = "bold 52px system-ui, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("♪", 32, 36);
+  ctx.fillText(glyph, 32, 36);
+  return new THREE.CanvasTexture(canvas);
+}
+
+function makeGlowTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 64;
+  const ctx = canvas.getContext("2d")!;
+  const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gradient.addColorStop(0, "rgba(255,255,255,1)");
+  gradient.addColorStop(0.35, "rgba(255,240,200,0.8)");
+  gradient.addColorStop(1, "rgba(255,220,150,0)");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 64, 64);
   return new THREE.CanvasTexture(canvas);
 }
 
@@ -61,8 +79,39 @@ function makeNoteTexture() {
  * imperative API; all animation happens here in one frame loop.
  */
 export const StepEffects = forwardRef<StepEffectsApi>(function StepEffects(_, ref) {
-  const noteTexture = useMemo(() => makeNoteTexture(), []);
-  useEffect(() => () => noteTexture.dispose(), [noteTexture]);
+  const textures = useMemo(
+    () => ({ note: makeGlyphTexture("♪"), heart: makeGlyphTexture("♥"), glow: makeGlowTexture() }),
+    [],
+  );
+  useEffect(
+    () => () => {
+      textures.note.dispose();
+      textures.heart.dispose();
+      textures.glow.dispose();
+    },
+    [textures],
+  );
+  const noteTexture = textures.note;
+  const lanterns = useRef(freshPool(LANTERN_POOL));
+  const lanternSprites = useRef<(THREE.Sprite | null)[]>([]);
+
+  /** shared by ♪ and ♥: a few glyphs popping upward */
+  const burst = (glyph: THREE.Texture, count: number, x: number, y: number, z: number, color: string) => {
+    for (let i = 0; i < count; i++) {
+      const p = nextFree(notes.current);
+      const index = notes.current.indexOf(p);
+      p.maxLife = p.life = 1.1 + Math.random() * 0.4;
+      p.pos.set(x + (Math.random() - 0.5) * 0.6, y + 0.3, z + (Math.random() - 0.5) * 0.6);
+      p.vel.set((Math.random() - 0.5) * 0.8, 1.6 + Math.random() * 0.8, (Math.random() - 0.5) * 0.4);
+      const sprite = noteSprites.current[index];
+      if (sprite) {
+        const material = sprite.material as THREE.SpriteMaterial;
+        material.map = glyph;
+        material.color.set(color);
+        material.needsUpdate = true;
+      }
+    }
+  };
 
   const notes = useRef(freshPool(NOTE_POOL));
   const ripples = useRef(freshPool(RIPPLE_POOL));
@@ -73,15 +122,16 @@ export const StepEffects = forwardRef<StepEffectsApi>(function StepEffects(_, re
 
   useImperativeHandle(ref, () => ({
     notes(x, y, z, color) {
-      for (let i = 0; i < 3; i++) {
-        const p = nextFree(notes.current);
-        const index = notes.current.indexOf(p);
-        p.maxLife = p.life = 1.1 + Math.random() * 0.4;
-        p.pos.set(x + (Math.random() - 0.5) * 0.6, y + 0.3, z + (Math.random() - 0.5) * 0.6);
-        p.vel.set((Math.random() - 0.5) * 0.8, 1.6 + Math.random() * 0.8, (Math.random() - 0.5) * 0.4);
-        const sprite = noteSprites.current[index];
-        if (sprite) (sprite.material as THREE.SpriteMaterial).color.set(color);
-      }
+      burst(textures.note, 3, x, y, z, color);
+    },
+    hearts(x, y, z) {
+      burst(textures.heart, 5, x, y + 0.4, z, "#ff6b8a");
+    },
+    lantern(x, y, z) {
+      const p = nextFree(lanterns.current);
+      p.maxLife = p.life = 7;
+      p.pos.set(x, y + 1.6, z);
+      p.vel.set(0, 1.1, 0);
     },
     ripple(x, y, z, color) {
       const p = nextFree(ripples.current);
@@ -122,6 +172,24 @@ export const StepEffects = forwardRef<StepEffectsApi>(function StepEffects(_, re
       const t = p.life / p.maxLife;
       (sprite.material as THREE.SpriteMaterial).opacity = Math.min(1, t * 2);
       const size = 0.45 + (1 - t) * 0.15;
+      sprite.scale.set(size, size, 1);
+    });
+
+    lanterns.current.forEach((p, i) => {
+      const sprite = lanternSprites.current[i];
+      if (!sprite) return;
+      if (p.life <= 0) {
+        sprite.visible = false;
+        return;
+      }
+      p.life -= dt;
+      p.pos.y += p.vel.y * dt;
+      p.pos.x += Math.sin(p.life * 1.7) * 0.25 * dt; // gentle sway
+      sprite.visible = true;
+      sprite.position.copy(p.pos);
+      const t = p.life / p.maxLife;
+      (sprite.material as THREE.SpriteMaterial).opacity = Math.min(1, t * 3);
+      const size = 0.9 + Math.sin(p.life * 6) * 0.08;
       sprite.scale.set(size, size, 1);
     });
 
@@ -171,6 +239,17 @@ export const StepEffects = forwardRef<StepEffectsApi>(function StepEffects(_, re
           }}
         >
           <spriteMaterial map={noteTexture} transparent depthWrite={false} />
+        </sprite>
+      ))}
+      {Array.from({ length: LANTERN_POOL }, (_, i) => (
+        <sprite
+          key={`l${i}`}
+          visible={false}
+          ref={(el) => {
+            lanternSprites.current[i] = el;
+          }}
+        >
+          <spriteMaterial map={textures.glow} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
         </sprite>
       ))}
       {Array.from({ length: RIPPLE_POOL }, (_, i) => (
