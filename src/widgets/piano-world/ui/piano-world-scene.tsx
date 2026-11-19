@@ -25,6 +25,10 @@ import { KordiModel, type KordiMotion } from "./kordi-model";
 import { PianoFloor } from "./piano-floor";
 import { RemoteKordi } from "./remote-kordi";
 import { Portal } from "./portal";
+import { StepEffects, type StepEffectsApi } from "./step-effects";
+import { TargetBeam } from "./target-beam";
+import { MELODIES } from "../model/melodies";
+import { seventhChordOn } from "../model/harmony";
 import { RegionDecor } from "./region-decor";
 import {
   PORTAL_RADIUS,
@@ -32,6 +36,7 @@ import {
   arrivalPoint,
   isRegionId,
   type RegionDef,
+  type RegionFeature,
   type RegionId,
 } from "../model/regions";
 
@@ -59,8 +64,12 @@ const KEY_TO_DIRECTION: Record<string, Direction> = {
 
 export interface PianoWorldCopy {
   regions: Record<RegionId, string>;
-  /** "{count}" is filled in, e.g. "3명" */
-  people: string;
+  features: Record<Exclude<RegionFeature, "melody">, string>;
+  melodies: Record<(typeof MELODIES)[number]["key"], string>;
+  melodyNext: string;
+  melodyHint: string;
+  melodyDone: string;
+  melodyNextSong: string;
   soundOff: string;
   soundLoading: string;
   soundOn: string;
@@ -99,14 +108,18 @@ function World({
   region,
   arrival,
   onPortal,
-  portalLabel,
+  targetMidi,
+  celebrate,
 }: {
+  /** melody game: the key to step on next */
+  targetMidi: number | null;
+  /** bump to fire confetti over Kordi */
+  celebrate: number;
   input: React.RefObject<InputState>;
   region: RegionDef;
   /** Changes identity on every region entry; the player is placed here */
   arrival: Arrival;
   onPortal: (to: RegionId) => void;
-  portalLabel: (to: RegionId) => string;
   /** true once per jump press (reads and clears it) */
   takeJump: () => boolean;
   onKeyChange: (midi: number | null) => void;
@@ -133,6 +146,8 @@ function World({
   /** Portals only fire after you've stepped clear of every portal once (no ping-pong on arrival). */
   const portalArmed = useRef(false);
   const placedFor = useRef<Arrival | null>(null);
+  const fx = useRef<StepEffectsApi>(null);
+  const celebrated = useRef(celebrate);
 
   useFrame((_, rawDelta) => {
     const dt = Math.min(rawDelta, 0.05);
@@ -194,6 +209,20 @@ function World({
     if (midi !== s.current) {
       s.current = midi;
       onKeyChange(midi);
+      if (midi !== null && key) {
+        const accent = region.theme.accent;
+        fx.current?.notes(s.pos.x, s.pos.y, s.pos.z, accent);
+        if (region.feature === "echo") fx.current?.ripple(s.pos.x, s.pos.y, s.pos.z, accent);
+        // Neon: black keys are springs
+        if (region.feature === "springs" && key.black) {
+          s.airborne = true;
+          s.vy = JUMP_SPEED * 1.75;
+        }
+      }
+    }
+    if (celebrated.current !== celebrate) {
+      celebrated.current = celebrate;
+      fx.current?.confetti(s.pos.x, s.pos.y, s.pos.z);
     }
     sendPosition(s.pos.x, s.pos.z, s.heading, midi);
 
@@ -269,14 +298,52 @@ function World({
       <PianoFloor pressed={pressed} theme={region.theme} />
       <RegionDecor region={region.id} />
       {region.portals.map((portal) => (
-        <Portal key={portal.to} portal={portal} label={portalLabel(portal.to)} />
+        <Portal key={portal.to} portal={portal} glow={region.theme.dark} />
       ))}
+      {targetMidi !== null ? <TargetBeam midi={targetMidi} color={region.theme.accent} /> : null}
+      <StepEffects ref={fx} />
       {/* scaled up so the character reads at a glance against the giant keys */}
       <KordiModel ref={kordi} motion={motion} scale={1.6} />
       {others.map((other) => (
         <RemoteKordi key={other.id} id={other.id} name={other.name} remotes={remotes} />
       ))}
     </>
+  );
+}
+
+function MelodyCard({
+  title,
+  step,
+  total,
+  done,
+  next,
+  copy,
+}: {
+  title: string;
+  step: number;
+  total: number;
+  done: boolean;
+  next: number | null;
+  copy: PianoWorldCopy;
+}) {
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-5 w-[min(20rem,calc(100%-2rem))] -translate-x-1/2 rounded-xl border border-border bg-card/90 px-4 py-3 shadow-sm md:top-6">
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="truncate text-sm font-semibold text-foreground">{title}</p>
+        <p className="shrink-0 text-xs tabular-nums text-muted-foreground">
+          {done ? copy.melodyDone : `${step} / ${total}`}
+        </p>
+      </div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full bg-warning transition-[width] duration-300"
+          style={{ width: `${(step / total) * 100}%` }}
+        />
+      </div>
+      <p className="mt-2 text-xs text-muted-foreground">
+        {next !== null ? `${copy.melodyNext} ${midiToNoteName(next)} · ${copy.melodyHint}` : copy.melodyNextSong}
+      </p>
+    </div>
   );
 }
 
@@ -388,12 +455,20 @@ export default function PianoWorldScene({
   const [note, setNote] = useState<number | null>(null);
   const [audio, setAudio] = useState<AudioState>("off");
   const audioRef = useRef<AudioState>("off");
-  const soundingRef = useRef<number | null>(null);
+  /** Notes I'm currently holding (several in the lounge, where a step is a chord) */
+  const soundingRef = useRef<number[]>([]);
+  /** Cathedral: notes left ringing after you step off, released a moment later */
+  const echoTimers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
   const remoteSounding = useRef(new Map<string, number>());
 
   const releaseAll = useCallback(() => {
-    if (soundingRef.current !== null) playNoteOff(soundingRef.current);
-    soundingRef.current = null;
+    soundingRef.current.forEach(playNoteOff);
+    soundingRef.current = [];
+    echoTimers.current.forEach((timer, midi) => {
+      clearTimeout(timer);
+      playNoteOff(midi);
+    });
+    echoTimers.current.clear();
     for (const midi of remoteSounding.current.values()) playNoteOff(midi);
     remoteSounding.current.clear();
   }, []);
@@ -478,12 +553,71 @@ export default function PianoWorldScene({
     [startAudio],
   );
 
-  const handleKeyChange = useCallback((midi: number | null) => {
-    setNote(midi);
-    if (soundingRef.current !== null) playNoteOff(soundingRef.current);
-    soundingRef.current = midi;
-    if (midi !== null && audioRef.current === "on") playNoteOn(midi, 0.75);
+  const [melody, setMelody] = useState({ song: 0, step: 0, done: false });
+  const melodyRef = useRef(melody);
+  const [celebrate, setCelebrate] = useState(0);
+
+  const advanceMelody = useCallback((midi: number) => {
+    const current = melodyRef.current;
+    const song = MELODIES[current.song];
+    if (current.done || song.notes[current.step] !== midi) return;
+    const step = current.step + 1;
+    if (step < song.notes.length) {
+      melodyRef.current = { ...current, step };
+      setMelody(melodyRef.current);
+      return;
+    }
+    // Finished: celebrate, then line up the next tune
+    melodyRef.current = { ...current, step, done: true };
+    setMelody(melodyRef.current);
+    setCelebrate((n) => n + 1);
+    setTimeout(() => {
+      melodyRef.current = { song: (current.song + 1) % MELODIES.length, step: 0, done: false };
+      setMelody(melodyRef.current);
+    }, 2800);
   }, []);
+
+  /** How a step sounds depends on the region (see RegionFeature). */
+  const handleKeyChange = useCallback(
+    (midi: number | null) => {
+      setNote(midi);
+      const feature = regionRef.current.feature;
+
+      // let go of what was held
+      for (const held of soundingRef.current) {
+        if (feature === "echo") {
+          clearTimeout(echoTimers.current.get(held));
+          echoTimers.current.set(
+            held,
+            setTimeout(() => {
+              playNoteOff(held);
+              echoTimers.current.delete(held);
+            }, 1400),
+          );
+        } else {
+          playNoteOff(held);
+        }
+      }
+      soundingRef.current = [];
+      if (midi === null) return;
+
+      if (feature === "melody") advanceMelody(midi);
+      if (audioRef.current !== "on") return;
+
+      const notes = feature === "chords" ? seventhChordOn(midi) : [midi];
+      notes.forEach((n, i) => {
+        const pending = echoTimers.current.get(n);
+        if (pending) {
+          clearTimeout(pending);
+          echoTimers.current.delete(n);
+          playNoteOff(n); // restrike cleanly
+        }
+        playNoteOn(n, i === 0 ? 0.75 : 0.42);
+      });
+      soundingRef.current = notes;
+    },
+    [advanceMelody],
+  );
 
   const takeJump = useCallback(() => {
     const requested = input.current.jump;
@@ -588,12 +722,12 @@ export default function PianoWorldScene({
           region={region}
           arrival={arrival}
           onPortal={handlePortal}
-          portalLabel={(to) => {
-            const count = info.regionCounts[to] ?? 0;
-            return count > 0
-              ? `${copy.regions[to]} · ${copy.people.replace("{count}", String(count))}`
-              : copy.regions[to];
-          }}
+          targetMidi={
+            region.feature === "melody" && !melody.done
+              ? MELODIES[melody.song].notes[melody.step]
+              : null
+          }
+          celebrate={celebrate}
         />
       </Canvas>
 
@@ -610,7 +744,23 @@ export default function PianoWorldScene({
         <div className="rounded-full border border-border bg-card/90 px-3.5 py-1.5 text-sm font-medium text-foreground shadow-sm">
           {copy.regions[regionId]}
         </div>
+        {region.feature !== "melody" ? (
+          <p className="mt-2 max-w-60 rounded-lg border border-border bg-card/85 px-3 py-1.5 text-xs text-muted-foreground">
+            {copy.features[region.feature]}
+          </p>
+        ) : null}
       </div>
+
+      {region.feature === "melody" ? (
+        <MelodyCard
+          title={copy.melodies[MELODIES[melody.song].key]}
+          step={melody.step}
+          total={MELODIES[melody.song].notes.length}
+          done={melody.done}
+          next={melody.done ? null : MELODIES[melody.song].notes[melody.step]}
+          copy={copy}
+        />
+      ) : null}
 
       {/* HUD */}
       <div className="pointer-events-none absolute right-0 top-0 p-5 md:p-6">

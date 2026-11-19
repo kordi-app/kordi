@@ -144,7 +144,20 @@
         "cathedral": "Cathedral",
         "lounge": "Lounge"
       },
-      "people": "{count} here"
+      "features": {
+        "springs": "Black keys are springs — step on one to bounce",
+        "echo": "Every step ripples, and notes ring on",
+        "chords": "Each key plays a jazz chord"
+      },
+      "melodies": {
+        "twinkle": "Twinkle Twinkle Little Star",
+        "odeToJoy": "Ode to Joy",
+        "maryLamb": "Mary Had a Little Lamb"
+      },
+      "melodyNext": "Next",
+      "melodyHint": "repeat notes: jump (Space) and land again",
+      "melodyDone": "Done!",
+      "melodyNextSong": "Next tune coming up…"
     }
   },
   "piano": {

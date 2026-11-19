@@ -144,7 +144,20 @@
         "cathedral": "성당",
         "lounge": "라운지"
       },
-      "people": "{count}명"
+      "features": {
+        "springs": "검은 건반을 밟으면 높이 튀어 올라요",
+        "echo": "발자국마다 빛이 퍼지고, 소리가 오래 울려요",
+        "chords": "건반마다 재즈 화음이 울려요"
+      },
+      "melodies": {
+        "twinkle": "작은별",
+        "odeToJoy": "환희의 송가",
+        "maryLamb": "떴다 떴다 비행기"
+      },
+      "melodyNext": "다음",
+      "melodyHint": "같은 음이 이어지면 점프(Space)로 다시 밟아요",
+      "melodyDone": "완성!",
+      "melodyNextSong": "다음 곡을 준비하는 중…"
     }
   },
   "piano": {

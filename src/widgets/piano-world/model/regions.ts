@@ -32,8 +32,10 @@ export interface RegionTheme {
   ambient: number;
   sun: number;
   sunColor: string;
-  /** Tailwind-safe text colour for HUD chips drawn over this background */
+  /** Dark backdrop: effects glow additively here */
   dark: boolean;
+  /** Colour for step effects and the melody guide */
+  accent: string;
 }
 
 export interface PortalDef {
@@ -44,15 +46,25 @@ export interface PortalDef {
   color: string;
 }
 
+/**
+ * What makes a region play differently, not just look different:
+ * - melody: follow a glowing path through a song
+ * - springs: black keys bounce you into the air; the floor pulses
+ * - echo: steps ripple and the organ rings on after you leave a key
+ * - chords: each step plays a jazz seventh chord built on that key
+ */
+export type RegionFeature = "melody" | "springs" | "echo" | "chords";
+
 export interface RegionDef {
   id: RegionId;
   instrument: InstrumentId;
+  feature: RegionFeature;
   theme: RegionTheme;
   portals: PortalDef[];
 }
 
-/** Portals stand on the open floor in front of the keys. */
-const PORTAL_Z = WHITE_L / 2 + 2.2;
+/** Portals stand well out on the open floor, clear of the keyboard. */
+const PORTAL_Z = WHITE_L / 2 + 5.5;
 
 const HALL_PORTALS: PortalDef[] = [
   { to: "neon", x: -18, z: PORTAL_Z, color: "#ff4fd8" },
@@ -69,6 +81,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
   hall: {
     id: "hall",
     instrument: "grand-piano",
+    feature: "melody",
     portals: HALL_PORTALS,
     theme: {
       background: "#fcfbf8",
@@ -86,11 +99,13 @@ export const REGIONS: Record<RegionId, RegionDef> = {
       sun: 2.2,
       sunColor: "#ffffff",
       dark: false,
+      accent: "#d4a64a",
     },
   },
   neon: {
     id: "neon",
     instrument: "bright-synth",
+    feature: "springs",
     portals: homePortal("#f4efe6"),
     theme: {
       background: "#120f1a",
@@ -108,11 +123,13 @@ export const REGIONS: Record<RegionId, RegionDef> = {
       sun: 1.3,
       sunColor: "#b8a8ff",
       dark: true,
+      accent: "#ff4fd8",
     },
   },
   cathedral: {
     id: "cathedral",
     instrument: "organ",
+    feature: "echo",
     portals: homePortal("#2f2b27"),
     theme: {
       background: "#e7e1d5",
@@ -130,11 +147,13 @@ export const REGIONS: Record<RegionId, RegionDef> = {
       sun: 1.8,
       sunColor: "#ffe8b8",
       dark: false,
+      accent: "#f0c96a",
     },
   },
   lounge: {
     id: "lounge",
     instrument: "electric-piano",
+    feature: "chords",
     portals: homePortal("#f4efe6"),
     theme: {
       background: "#241b16",
@@ -152,6 +171,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
       sun: 1.1,
       sunColor: "#ffb070",
       dark: true,
+      accent: "#ff9a4a",
     },
   },
 };

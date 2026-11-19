@@ -83,11 +83,12 @@ export const KordiModel = forwardRef<
         {[-0.17, 0.17].map((x) => (
           <group key={x} position={[x, 0.98, 0.405]}>
             <mesh scale={[1, 1, 0.35]}>
-              <sphereGeometry args={[0.065, 20, 16]} />
+              <sphereGeometry args={[0.068, 24, 16]} />
               <meshStandardMaterial color={INK} roughness={0.25} />
             </mesh>
-            <mesh position={[0.02, 0.022, 0.02]} scale={[1, 1, 0.4]}>
-              <sphereGeometry args={[0.018, 12, 8]} />
+            {/* highlight mirrored per eye (upper-outer), so the pair reads symmetric */}
+            <mesh position={[Math.sign(x) * 0.02, 0.024, 0.02]} scale={[1, 1, 0.4]}>
+              <sphereGeometry args={[0.019, 12, 8]} />
               <meshBasicMaterial color="#ffffff" />
             </mesh>
           </group>

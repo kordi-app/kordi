@@ -92,5 +92,6 @@ export const SPAWN = { x: KEYS.find((k) => k.midi === 60)!.x, z: WHITE_L / 2 + 1
 export const BOUNDS = {
   x: (WHITE_COUNT * WHITE_W) / 2 + 1.5,
   zMin: -WHITE_L / 2 - 1.5,
-  zMax: WHITE_L / 2 + 3,
+  // room in front of the keys for the portals (see regions.ts)
+  zMax: WHITE_L / 2 + 8,
 };

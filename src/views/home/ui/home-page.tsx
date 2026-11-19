@@ -21,6 +21,20 @@ export async function HomePage() {
       <PianoWorld
         playerName={playerName}
         copy={{
+          features: {
+            springs: t("features.springs"),
+            echo: t("features.echo"),
+            chords: t("features.chords"),
+          },
+          melodies: {
+            twinkle: t("melodies.twinkle"),
+            odeToJoy: t("melodies.odeToJoy"),
+            maryLamb: t("melodies.maryLamb"),
+          },
+          melodyNext: t("melodyNext"),
+          melodyHint: t("melodyHint"),
+          melodyDone: t("melodyDone"),
+          melodyNextSong: t("melodyNextSong"),
           regions: {
             hall: t("regions.hall"),
             neon: t("regions.neon"),
@@ -33,7 +47,6 @@ export async function HomePage() {
           // Raw templates: "{channel}"/"{count}" are filled in on the client
           channel: t.raw("channel") as string,
           online: t.raw("online") as string,
-          people: t.raw("people") as string,
           connecting: t("connecting"),
           full: t("full"),
           offline: t("offline"),
