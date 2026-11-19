@@ -10,11 +10,14 @@ import {
   playNoteOff,
   playNoteOn,
   playVoice,
+  playWarpEffect,
   type InstrumentId,
   type VoiceId,
+  type WarpEffect,
 } from "@/shared/lib/audio";
 import { useCallbackRef } from "@/shared/lib/react/use-callback-ref";
 import { seventhChordOn } from "../model/harmony";
+import { debugSeam } from "./debug-seam";
 import type { RegionDef } from "../model/regions";
 
 export type AudioState = "off" | "loading" | "on";
@@ -135,6 +138,7 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
       if (midi === null) return;
 
       onStepRef.current(midi);
+      debugSeam?.steps.push({ midi, t: performance.now() });
       if (audioRef.current !== "on") return;
 
       const notes = feature === "chords" ? seventhChordOn(midi) : [midi];
@@ -217,7 +221,14 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
 
   /** A struck/plucked island sound (bridge, drums, pipes, harp, bell) — rings out on its own. */
   const voice = useCallback((id: VoiceId, midi: number, velocity: number) => {
+    debugSeam?.voices.push({ id, midi, t: performance.now() });
     if (audioRef.current === "on") playVoice(id, midi, velocity);
+  }, []);
+
+  /** Warp stone sounds (waking, leaving, arriving). */
+  const warpEffect = useCallback((kind: WarpEffect) => {
+    debugSeam?.voices.push({ id: `warp:${kind}`, midi: 0, t: performance.now() });
+    if (audioRef.current === "on") playWarpEffect(kind);
   }, []);
 
   /** The note ball hit (or rolled onto) a key. */
@@ -239,5 +250,6 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
     handleBallNote,
     chime,
     voice,
+    warpEffect,
   };
 }

@@ -19,6 +19,10 @@ export interface Sky {
   hemiSky: string;
   hemiGround: string;
   ambient: number;
+  /** what water reflects: blue by day, orange at dusk, deep blue at night */
+  reflection: string;
+  /** unit vector toward the light that casts shadows (the sun, or the moon at night) */
+  lightDir: [number, number, number];
 }
 
 type RGB = [number, number, number];
@@ -36,9 +40,29 @@ const smooth = (edge0: number, edge1: number, v: number) => {
   return t * t * (3 - 2 * t);
 };
 
-const DAY = { background: "#fcfbf8", sun: "#ffffff", sky: "#ffffff", ground: "#e8dfd0" };
-const DUSK = { background: "#ffd9b8", sun: "#ffb27a", sky: "#ffd0a8", ground: "#c9a890" };
-const NIGHT = { background: "#0d1330", sun: "#9fb0ff", sky: "#3a4a8a", ground: "#141a30" };
+const DAY = { background: "#fcfbf8", sun: "#ffffff", sky: "#ffffff", ground: "#e8dfd0", reflection: "#9fd0ee" };
+const DUSK = { background: "#ffd9b8", sun: "#ffb27a", sky: "#ffd0a8", ground: "#c9a890", reflection: "#f2b48a" };
+const NIGHT = { background: "#0d1330", sun: "#9fb0ff", sky: "#3a4a8a", ground: "#141a30", reflection: "#1c2a55" };
+
+/**
+ * The shadow-casting light's direction. The sun crosses from east (+x) to
+ * west (−x) on the camera's side of the sky, so shadows fall away up the
+ * screen and swing through the day; it's high at noon (short shadows) and
+ * low morning and evening (long ones). At night the moon takes over, with
+ * the same arc. Never lower than ~22° so shadows stay readable.
+ */
+function lightDirection(phase: number, elevation: number): [number, number, number] {
+  const day = elevation > 0.05;
+  // 0 at sunrise/moonrise … 1 at sunset/moonset
+  const arc = day ? (phase + 0.04) / 0.58 : (phase - 0.54 + (phase < 0.54 ? 1 : 0)) / 0.42;
+  const across = Math.cos(Math.min(1, Math.max(0, arc)) * Math.PI); // +1 east … −1 west
+  const height = Math.max(0.38, Math.sin(Math.min(1, Math.max(0, arc)) * Math.PI) * 1.25);
+  const x = across * 0.9;
+  const y = height;
+  const z = 0.55;
+  const length = Math.hypot(x, y, z);
+  return [x / length, y / length, z / length];
+}
 
 /** The sky at a given wall-clock time (ms since epoch). */
 export function skyAt(nowMs: number): Sky {
@@ -60,5 +84,7 @@ export function skyAt(nowMs: number): Sky {
     hemiSky: tint("sky"),
     hemiGround: tint("ground"),
     ambient: 1.9 - night * 1.0,
+    reflection: tint("reflection"),
+    lightDir: lightDirection(phase, elevation),
   };
 }

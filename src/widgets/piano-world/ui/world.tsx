@@ -25,7 +25,6 @@ import {
   CRYSTAL_REACH,
   HARP,
   HARP_STRINGS,
-  ISLAND_SOLIDS,
   PIPES,
   PIPE_HUM_REACH,
   WARP_REACH,
@@ -33,6 +32,7 @@ import {
   islandHits,
   type WarpStoneId,
 } from "../model/island";
+import { ALL_ISLAND_SOLIDS } from "../model/nature";
 import { terrainBlocked, terrainCeiling, terrainDepenetrate } from "../model/terrain";
 import { BALL_RADIUS, ballSpawns, newBall, stepBall, type Ball } from "../model/ball";
 import { NoteBall } from "./note-ball";
@@ -64,6 +64,7 @@ import type { InteractionScene } from "../lib/use-interactions";
 import { CourseScene } from "./course-scene";
 import { EmoteBubble } from "./emote-bubble";
 import { IslandScene } from "./island-scene";
+import { debugSeam } from "../lib/debug-seam";
 import { KordiModel, type CrownKind, type KordiMotion } from "./kordi-model";
 import { PianoFloor } from "./piano-floor";
 import { Portal } from "./portal";
@@ -83,6 +84,14 @@ const HUM_COOLDOWN = 1.4;
 const BELL_COOLDOWN = 2.5;
 /** The bell's chord: a low tonic under a bright triad */
 const BELL_CHORD = [48, 72, 76, 79];
+/** Shadows are drawn for this far around Kordi (half-width), at this resolution */
+const SHADOW_EXTENT = 28;
+const SHADOW_MAP_SIZE = 2048;
+/** how far back along the light the shadow camera sits (clears the tower top) */
+const SHADOW_DISTANCE = 45;
+const UP = new THREE.Vector3(0, 1, 0);
+/** The keyboard plaza: the melody game's card shows only while you're here */
+const PLAZA_REACH = { x: 36, zMin: -10, zMax: 16 };
 
 /** Things the world reports back to the page */
 export interface WorldEvents {
@@ -105,6 +114,8 @@ export interface WorldEvents {
   onVoice: (voice: VoiceId, midi: number, velocity: number) => void;
   /** the warp stone now in reach (island only) */
   onWarpNearby: (id: WarpStoneId | null) => void;
+  /** whether you're on the keyboard plaza (the melody game only shows there) */
+  onNearKeys: (near: boolean) => void;
 }
 
 export interface WorldPresence {
@@ -195,7 +206,10 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     lastZ: 0,
     warp: null as WarpStoneId | null,
     skyAt: -Infinity,
+    nearKeys: true,
   });
+  /** shadow camera snapping (keeps shadow edges from crawling as Kordi moves) */
+  const shadowScratch = useRef({ dir: new THREE.Vector3(), right: new THREE.Vector3(), up: new THREE.Vector3(), target: new THREE.Vector3() });
   const lookTarget = useRef(new THREE.Vector3(SPAWN.x, 0.6, SPAWN.z - 1.2));
   const scratch = useRef({ camera: new THREE.Vector3(), look: new THREE.Vector3() });
 
@@ -224,7 +238,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     [items, region],
   );
   const course = region.course ?? null;
-  const island = region.island ? ISLAND_SOLIDS : null;
+  const island = region.island ? ALL_ISLAND_SOLIDS : null;
 
   useFrame((state, rawDelta) => {
     const dt = Math.min(rawDelta, 0.05);
@@ -249,6 +263,11 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       if (isle.current.warp !== null) {
         isle.current.warp = null;
         events.onWarpNearby(null);
+      }
+      if (island) {
+        // a shimmer where you land (portal arrivals and warps alike)
+        fx.current?.ripple(s.pos.x, s.pos.y, s.pos.z, "#7fd8ff");
+        fx.current?.notes(s.pos.x, s.pos.y, s.pos.z, "#7fd8ff");
       }
       portalArmed.current = false;
       camera.position.copy(s.pos).add(cameraOffset);
@@ -487,6 +506,11 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       }
     }
     sendPosition(s.pos.x, s.pos.y, s.pos.z, s.heading, midi, emote);
+    if (debugSeam) {
+      debugSeam.region = region.id;
+      debugSeam.pos = { x: s.pos.x, y: s.pos.y, z: s.pos.z };
+      debugSeam.airborne = s.airborne;
+    }
 
     // --- note balls
     balls.current.forEach((ball, i) => {
@@ -601,6 +625,12 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       }
     }
 
+    const nearKeys = !island || (Math.abs(s.pos.x) < PLAZA_REACH.x && s.pos.z > PLAZA_REACH.zMin && s.pos.z < PLAZA_REACH.zMax);
+    if (nearKeys !== isle.current.nearKeys) {
+      isle.current.nearKeys = nearKeys;
+      events.onNearKeys(nearKeys);
+    }
+
     // --- portals
     const inside = region.portals.find(
       (portal) =>
@@ -644,7 +674,8 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     lantern.current?.position.set(s.pos.x + 0.9, s.pos.y + 2.6, s.pos.z + 1.4);
     bubble.current?.position.set(s.pos.x, s.pos.y + EMOTE_BUBBLE_HEIGHT, s.pos.z);
     // The keyboard is 52 keys wide: the sun travels with Kordi so nearby shadows stay crisp
-    let sunX = 6;
+    const sh = shadowScratch.current;
+    sh.dir.set(0.4, 0.8, 0.45).normalize();
     if (island) {
       // the island's sky follows the wall clock (everyone shares the same time of day)
       const iso = isle.current;
@@ -663,11 +694,20 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
           hemi.current.intensity = sky.ambient;
         }
       }
-      sunX = Math.cos(skyAt(Date.now()).azimuth) * 7;
+      sh.dir.set(...skyAt(Date.now()).lightDir);
     }
     if (light.current) {
-      light.current.position.set(s.pos.x + sunX, s.pos.y + 12, s.pos.z + 6);
-      light.current.target.position.copy(s.pos);
+      // Centre the shadow map on Kordi, snapped to whole shadow texels across the light's view
+      // so shadow edges stay put instead of shimmering as you walk.
+      const texel = (SHADOW_EXTENT * 2) / SHADOW_MAP_SIZE;
+      sh.right.crossVectors(UP, sh.dir).normalize();
+      sh.up.crossVectors(sh.dir, sh.right).normalize();
+      const r = Math.round(s.pos.dot(sh.right) / texel) * texel;
+      const u = Math.round(s.pos.dot(sh.up) / texel) * texel;
+      const d = s.pos.dot(sh.dir);
+      sh.target.copy(sh.right).multiplyScalar(r).addScaledVector(sh.up, u).addScaledVector(sh.dir, d);
+      light.current.target.position.copy(sh.target);
+      light.current.position.copy(sh.target).addScaledVector(sh.dir, SHADOW_DISTANCE);
       light.current.target.updateMatrixWorld();
     }
 
@@ -688,12 +728,16 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
         intensity={region.theme.sun}
         color={region.theme.sunColor}
         castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-camera-left={-22}
-        shadow-camera-right={22}
-        shadow-camera-top={22}
-        shadow-camera-bottom={-22}
-        shadow-bias={-0.0005}
+        shadow-mapSize={[SHADOW_MAP_SIZE, SHADOW_MAP_SIZE]}
+        shadow-camera-left={-SHADOW_EXTENT}
+        shadow-camera-right={SHADOW_EXTENT}
+        shadow-camera-top={SHADOW_EXTENT}
+        shadow-camera-bottom={-SHADOW_EXTENT}
+        shadow-camera-near={1}
+        shadow-camera-far={SHADOW_DISTANCE * 2.5}
+        shadow-bias={-0.0004}
+        shadow-normalBias={0.04}
+        shadow-radius={3}
       />
       <hemisphereLight ref={hemi} args={[region.theme.sky, region.theme.ground, region.theme.ambient]} />
 

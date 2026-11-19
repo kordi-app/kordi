@@ -1,6 +1,6 @@
 import { CASE_H, PRESS_DEPTH, keyAt } from "./layout";
 import { courseGround } from "./course";
-import { ISLAND_SOLIDS } from "./island";
+import { ALL_ISLAND_SOLIDS } from "./nature";
 import { terrainGround } from "./terrain";
 import type { RegionDef } from "./regions";
 
@@ -126,7 +126,7 @@ export function groundAt(region: RegionDef, x: number, z: number, y: number): Gr
   const key = keyAt(x, z);
   const keyHeight = key ? CASE_H + key.height - PRESS_DEPTH : 0;
   if (region.island) {
-    const hit = terrainGround(ISLAND_SOLIDS, x, z, y);
+    const hit = terrainGround(ALL_ISLAND_SOLIDS, x, z, y);
     if (hit.index !== null && hit.height > keyHeight) {
       return { height: hit.height, midi: null, black: false, platform: null, solid: hit.index };
     }

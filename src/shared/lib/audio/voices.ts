@@ -90,15 +90,63 @@ const SPECS: Record<VoiceId, VoiceSpec> = {
 
 const voices = new Map<VoiceId, Voice>();
 
-/** Strike one note on a voice. Silently does nothing until audio has been started. */
-export function playVoice(id: VoiceId, midi: number, velocity = 0.7): void {
-  if (Tone.getContext().state !== "running") return;
+const running = () => Tone.getContext().state === "running";
+
+function voiceFor(id: VoiceId) {
   let voice = voices.get(id);
   if (!voice) {
     voice = SPECS[id].make();
     voices.set(id, voice);
   }
-  voice.triggerAttackRelease(Tone.Frequency(midi, "midi").toNote(), SPECS[id].hold, Tone.now(), velocity);
+  return voice;
+}
+
+/** Strike one note on a voice (optionally `delay` seconds from now). Silent until audio has started. */
+export function playVoice(id: VoiceId, midi: number, velocity = 0.7, delay = 0): void {
+  if (!running()) return;
+  voiceFor(id).triggerAttackRelease(Tone.Frequency(midi, "midi").toNote(), SPECS[id].hold, Tone.now() + delay, velocity);
+}
+
+/** A filtered-noise rush rising (or falling) over `seconds`: the sound of being whisked away. */
+function whoosh(from: number, to: number, seconds: number, level: number) {
+  const now = Tone.now();
+  const noise = new Tone.Noise("pink");
+  const filter = new Tone.Filter({ type: "bandpass", frequency: from, Q: 1.2 });
+  const gain = new Tone.Gain(0);
+  noise.chain(filter, gain, Tone.getDestination());
+  filter.frequency.setValueAtTime(from, now);
+  filter.frequency.exponentialRampToValueAtTime(to, now + seconds);
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(level, now + seconds * 0.45);
+  gain.gain.linearRampToValueAtTime(0, now + seconds);
+  noise.start(now).stop(now + seconds + 0.05);
+  setTimeout(() => [noise, filter, gain].forEach((node) => node.dispose()), (seconds + 0.5) * 1000);
+}
+
+export type WarpEffect = "wake" | "depart" | "arrive";
+
+/**
+ * Warp stone sounds: waking one (a bright rising chime over a bell), leaving
+ * (a rush of air with a fast climb) and arriving (sparkles settling down).
+ */
+export function playWarpEffect(kind: WarpEffect): void {
+  if (!running()) return;
+  switch (kind) {
+    case "wake":
+      [72, 76, 79, 84, 88, 91].forEach((n, i) => playVoice("crystal", n, 0.55, i * 0.07));
+      playVoice("bell", 60, 0.5);
+      playVoice("bell", 67, 0.35, 0.05);
+      break;
+    case "depart":
+      whoosh(300, 5000, 0.55, 0.35);
+      [60, 67, 72, 79, 84, 91].forEach((n, i) => playVoice("crystal", n, 0.45, i * 0.045));
+      break;
+    case "arrive":
+      whoosh(4000, 500, 0.4, 0.22);
+      [96, 91, 88, 84, 79].forEach((n, i) => playVoice("crystal", n, 0.4, 0.05 + i * 0.06));
+      playVoice("bell", 72, 0.3, 0.1);
+      break;
+  }
 }
 
 /** Free every voice (e.g. when leaving the page that used them). */

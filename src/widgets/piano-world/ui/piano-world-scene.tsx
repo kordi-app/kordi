@@ -47,6 +47,8 @@ export default function PianoWorldScene({
   const { awake, wake } = useWarpStones();
   /** the warp stone in reach, if any (the island only) */
   const [warpNearby, setWarpNearbyState] = useState<WarpStoneId | null>(null);
+  /** the melody card only shows on the keyboard plaza */
+  const [nearKeys, setNearKeys] = useState(true);
   const warpNearbyRef = useRef<WarpStoneId | null>(null);
   const melody = useMelodyGame(bumpCelebrate);
   const course = useCourseRun(bumpCelebrate, region.course?.id);
@@ -61,7 +63,7 @@ export default function PianoWorldScene({
     [advance, regionRef],
   );
   const audio = useWorldAudio(regionRef, onStep);
-  const { startAudio, isOn, chime, switchInstrument, silence } = audio;
+  const { startAudio, isOn, chime, switchInstrument, silence, warpEffect } = audio;
   const audioApi = useMemo(() => ({ startAudio, isOn, chime }), [startAudio, isOn, chime]);
   const interactions = useInteractions(copy, audioApi, bumpCelebrate);
   const { interact, nearbyRef, panelRef, setPanel, setNearby, say, reset: resetInteractions } = interactions;
@@ -78,11 +80,11 @@ export default function PianoWorldScene({
       setWarpNearbyState(id);
       if (id && wake(id)) {
         say(copy.warpWoke.replace("{name}", copy.warpStones[id]));
-        chime([72, 79, 84], 0.45, 110, 1400);
+        warpEffect("wake");
         bumpCelebrate();
       }
     },
-    [wake, say, copy, chime, bumpCelebrate],
+    [wake, say, copy, warpEffect, bumpCelebrate],
   );
 
   const warpTo = useCallback(
@@ -91,9 +93,10 @@ export default function PianoWorldScene({
       setPanel(null);
       if (!stone) return;
       silence();
-      warp(warpArrival(stone));
+      warpEffect("depart");
+      warp(warpArrival(stone), () => warpEffect("arrive"));
     },
-    [setPanel, silence, warp],
+    [setPanel, silence, warp, warpEffect],
   );
 
   const { input, containerRef, visible, takeJump, pressDirection, pressJump } = useWorldControls({
@@ -156,6 +159,7 @@ export default function PianoWorldScene({
       onNearby: setNearby,
       onVoice: voice,
       onWarpNearby: handleWarpNearby,
+      onNearKeys: setNearKeys,
     }),
     [
       handleStep,
@@ -185,7 +189,7 @@ export default function PianoWorldScene({
   return (
     <div ref={containerRef} className="relative h-full w-full" onPointerDown={startAudio}>
       <Canvas
-        shadows
+        shadows="percentage"
         dpr={[1, 2]}
         frameloop={visible ? "always" : "never"}
         camera={{ position: [0, 12, 18], fov: 45, near: 0.1, far: 150 }}
@@ -213,7 +217,7 @@ export default function PianoWorldScene({
       />
 
       <RegionLabel region={region} copy={copy} />
-      {region.feature === "melody" ? (
+      {region.feature === "melody" && nearKeys ? (
         <MelodyCard melody={melody.melody} progress={melody.progress} copy={copy} />
       ) : null}
       {region.feature === "course" ? <CourseCard run={course.run} copy={copy} /> : null}

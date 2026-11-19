@@ -80,13 +80,20 @@ export const TOWER = { x: 0, z: -46, half: 4, top: 15.4 };
 /** Stairs wind round the tower on a square path this far out from its centre */
 const STAIR_PATH = TOWER.half + 0.8;
 export const STAIR_SIZE = 1.6;
-const STAIR_RISE = 0.32;
+/** Two laps round the tower, arriving mid-way along the left side (between the belfry columns) */
+const STAIR_COUNT = 47;
+const STAIR_RISE = TOWER.top / STAIR_COUNT;
 export const STAIR_THICKNESS = 0.3;
+/** The first few steps are open, so you can walk on from the ground */
+const OPEN_STEPS = 3;
+export const RAIL_HEIGHT = 1.0;
 
 export interface Stair {
   x: number;
   z: number;
   top: number;
+  /** outward directions of the step's open edges (one, or two at a corner) */
+  outward: { x: number; z: number }[];
 }
 
 /** Point at arc length t round the square path (front side first, going right). */
@@ -106,14 +113,45 @@ function onSquare(t: number) {
   }
 }
 
-export const STAIRS: readonly Stair[] = Array.from({ length: Math.ceil(TOWER.top / STAIR_RISE) }, (_, k) => {
+export const STAIRS: readonly Stair[] = Array.from({ length: STAIR_COUNT }, (_, k) => {
   const p = onSquare(k * STAIR_SIZE);
-  return { x: TOWER.x + p.x, z: TOWER.z + p.z, top: Math.min(TOWER.top, (k + 1) * STAIR_RISE) };
+  const outward: Stair["outward"] = [];
+  if (Math.abs(Math.abs(p.x) - STAIR_PATH) < 1e-6) outward.push({ x: Math.sign(p.x), z: 0 });
+  if (Math.abs(Math.abs(p.z) - STAIR_PATH) < 1e-6) outward.push({ x: 0, z: Math.sign(p.z) });
+  return { x: TOWER.x + p.x, z: TOWER.z + p.z, top: (k + 1) * STAIR_RISE, outward };
 });
+
+/** Handrails along the stairs' outer edges: solid, so the climb is safe. */
+export const STAIR_RAILS: readonly { x: number; z: number; w: number; d: number; top: number }[] = STAIRS.slice(
+  OPEN_STEPS,
+).flatMap((stair) =>
+  stair.outward.map((n) => ({
+    x: stair.x + n.x * (STAIR_SIZE / 2 - 0.06),
+    z: stair.z + n.z * (STAIR_SIZE / 2 - 0.06),
+    w: n.x ? 0.12 : STAIR_SIZE,
+    d: n.z ? 0.12 : STAIR_SIZE,
+    top: stair.top + RAIL_HEIGHT,
+  })),
+);
+
+/** Belfry columns on the roof (relative to the tower centre) */
+export const BELFRY = { inset: 3.2, height: 4.4, spire: 5.5 };
+/** Battlements round the roof edge, with a gap where the stairs arrive (the left side) */
+export const MERLONS: readonly { x: number; z: number }[] = (() => {
+  const edge = TOWER.half - 0.35;
+  const along = [-3.4, -1.7, 0, 1.7, 3.4];
+  const out: { x: number; z: number }[] = [];
+  for (const e of along) {
+    out.push({ x: e, z: edge }, { x: e, z: -edge }, { x: edge, z: e });
+    if (e < -1 || e > 3) out.push({ x: -edge, z: e }); // the stair landing comes in between
+  }
+  return out.map((m) => ({ x: TOWER.x + m.x, z: TOWER.z + m.z }));
+})();
+export const MERLON_SIZE = 0.7;
 
 export const BELL = { x: TOWER.x, z: TOWER.z, y: TOWER.top, radius: 0.85, height: 2.2 };
 /** Touch the bell (stand this close on the roof) to ring it */
-export const BELL_REACH = 1.7;
+export const BELL_REACH = 2.0;
 
 // --- pipe forest -----------------------------------------------------------
 
@@ -150,7 +188,7 @@ export const PIPES: readonly Pipe[] = (() => {
   return pipes;
 })();
 /** Pass this close to a pipe's surface and it hums */
-export const PIPE_HUM_REACH = 0.75;
+export const PIPE_HUM_REACH = 1.0;
 
 // --- harp waterfall and the cave behind it ----------------------------------
 
@@ -207,7 +245,7 @@ export const WARP_STONES: readonly WarpStone[] = [
   { id: "falls", x: -52, z: -37 },
 ];
 /** Walk this close to wake a stone, and to use it */
-export const WARP_REACH = 1.9;
+export const WARP_REACH = 2.6;
 /** Where a warp puts you: just in front of the stone */
 export const warpArrival = (stone: WarpStone) => ({ x: stone.x, z: stone.z + 2.2 });
 
@@ -275,6 +313,21 @@ export const ISLAND_SOLIDS: readonly Solid[] = [
       top: stair.top,
       bottom: stair.top - STAIR_THICKNESS,
     }),
+  ),
+  ...STAIR_RAILS.map(
+    (rail): Solid => ({ foot: { shape: "box", x: rail.x, z: rail.z, w: rail.w, d: rail.d }, top: rail.top, bottom: rail.top - RAIL_HEIGHT - STAIR_THICKNESS }),
+  ),
+  ...MERLONS.map(
+    (m): Solid => ({ foot: { shape: "box", x: m.x, z: m.z, w: MERLON_SIZE, d: MERLON_SIZE }, top: TOWER.top + 0.8, bottom: TOWER.top - 0.1 }),
+  ),
+  ...[-1, 1].flatMap((sx) =>
+    [-1, 1].map(
+      (sz): Solid => ({
+        foot: { shape: "circle", x: TOWER.x + sx * BELFRY.inset, z: TOWER.z + sz * BELFRY.inset, r: 0.32 },
+        top: TOWER.top + BELFRY.height,
+        bottom: TOWER.top - 0.1,
+      }),
+    ),
   ),
   { foot: { shape: "circle", x: BELL.x, z: BELL.z, r: BELL.radius }, top: BELL.y + BELL.height, bottom: BELL.y },
   ...PIPES.map((pipe): Solid => ({ foot: { shape: "circle", x: pipe.x, z: pipe.z, r: pipe.r }, top: pipe.height, bottom: -1 })),
