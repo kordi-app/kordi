@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { HTTPError } from "ky";
 import { apiClient } from "@/shared/api/server";
-import type { ApiEnvelope } from "@/shared/api";
+import { unwrap, type ApiEnvelope } from "@/shared/api";
 import { errorResponse } from "@/shared/api/proxy";
 import {
   reissueTokens,
@@ -39,8 +39,8 @@ async function handle(
       method,
       ...(body !== undefined && { json: body }),
       ...(authorization && { headers: { Authorization: authorization } }),
-    }).json<Partial<ApiEnvelope<unknown>>>();
-    return res.data ?? null;
+    }).json<ApiEnvelope<unknown>>();
+    return unwrap(res) ?? null;
   };
 
   try {
