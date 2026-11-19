@@ -246,7 +246,20 @@
         "springs": "검은 건반을 밟으면 높이 튀어 올라요",
         "echo": "발자국마다 빛이 퍼지고, 소리가 오래 울려요",
         "chords": "건반마다 재즈 화음이 울려요"
-      }
+      },
+      "warpStones": {
+        "plaza": "건반 광장",
+        "bridge": "실로폰 다리",
+        "drums": "드럼 계곡",
+        "tower": "종탑",
+        "pipes": "파이프 숲",
+        "falls": "하프 폭포"
+      },
+      "warpTitle": "워프석",
+      "warpUse": "워프석으로 이동",
+      "warpWoke": "워프석이 깨어났어요 · {name}",
+      "warpHere": "지금 여기",
+      "warpAsleep": "아직 찾지 못했어요"
     }
   },
   "piano": {

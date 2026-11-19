@@ -1,6 +1,7 @@
 import type { ChordCardKey } from "./chord-cards";
 import type { EmoteId, InteractableId } from "./interactables";
 import type { Melody } from "./melodies";
+import type { WarpStoneId } from "./island";
 import type { RegionFeature, RegionId } from "./regions";
 
 /** All user-facing text for the piano world, resolved by the page from i18n. */
@@ -41,6 +42,14 @@ export interface PianoWorldCopy {
   nightHint: string;
   courseBest: string;
   courseDone: string;
+  // warp stones
+  warpStones: Record<WarpStoneId, string>;
+  warpTitle: string;
+  warpUse: string;
+  /** "{name}" is filled in */
+  warpWoke: string;
+  warpHere: string;
+  warpAsleep: string;
   // sound & presence status
   soundOff: string;
   soundLoading: string;

@@ -1,6 +1,7 @@
 import type { InstrumentId } from "@/shared/lib/audio";
 import { SPAWN, WHITE_L } from "./layout";
 import { COURSES, goalSpots, type CourseDef } from "./course";
+import { CAVE_PORTAL, ISLAND_BOUNDS } from "./island";
 
 /**
  * The piano world is a hub (the Grand Hall) with portals out to themed
@@ -48,6 +49,8 @@ export interface PortalDef {
   color: string;
   /** Small and faint — a secret to stumble on, not a signposted exit */
   hidden?: boolean;
+  /** Where you appear coming back through it (default: beside it) */
+  arrive?: { x: number; z: number };
 }
 
 /**
@@ -70,6 +73,10 @@ export interface RegionDef {
   portals: PortalDef[];
   /** The jump course, for course regions */
   course?: CourseDef;
+  /** The open island around the keyboard (the hall): terrain, zones, day and night */
+  island?: boolean;
+  /** Walkable area, when larger than the keyboard floor's */
+  bounds?: { x: number; zMin: number; zMax: number };
 }
 
 /** Portals stand well out on the open floor, clear of the keyboard. */
@@ -79,8 +86,15 @@ const HALL_PORTALS: PortalDef[] = [
   { to: "neon", x: -22, z: PORTAL_Z, color: "#ff4fd8" },
   { to: "cathedral", x: 13, z: PORTAL_Z, color: "#c9a25a" },
   { to: "lounge", x: 28, z: PORTAL_Z, color: "#e58a3a" },
-  // the secret: tucked behind the far-left end of the keyboard
-  { to: "clouds", x: -26.4, z: -WHITE_L / 2 - 1.1, color: "#b9a8ff", hidden: true },
+  // the secret: at the back of the cave behind the harp waterfall
+  {
+    to: "clouds",
+    x: CAVE_PORTAL.x,
+    z: CAVE_PORTAL.z,
+    color: "#b9a8ff",
+    hidden: true,
+    arrive: { x: CAVE_PORTAL.x, z: CAVE_PORTAL.z + 3 },
+  },
 ];
 
 const DEFAULT_CAMERA: RegionDef["camera"] = [0, 12, 14];
@@ -106,9 +120,12 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     feature: "melody",
     camera: DEFAULT_CAMERA,
     portals: HALL_PORTALS,
+    island: true,
+    bounds: ISLAND_BOUNDS,
     theme: {
+      // the day/night cycle recolours sky, fog and light on the island
       background: "#fcfbf8",
-      fog: [30, 60],
+      fog: [45, 130],
       floor: "#f7f3ec",
       keyboardCase: "#2f2b27",
       white: "#fbf8f2",
@@ -273,6 +290,7 @@ export function arrivalPoint(to: RegionId, from: RegionId | null): { x: number; 
   const portal =
     REGIONS[to].portals.find((p) => p.to === from && !p.y) ?? REGIONS[to].portals[0];
   if (!portal) return { x: SPAWN.x, z: SPAWN.z };
+  if (portal.arrive) return { ...portal.arrive };
   // Beside the portal (not behind it, where it would hide you from the
   // camera) and outside its radius, so you don't land straight back in
   return { x: portal.x + 2.4, z: portal.z - 0.6 };

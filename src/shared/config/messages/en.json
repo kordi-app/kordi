@@ -246,7 +246,20 @@
         "springs": "Black keys are springs — step on one to bounce",
         "echo": "Every step ripples, and notes ring on",
         "chords": "Each key plays a jazz chord"
-      }
+      },
+      "warpStones": {
+        "plaza": "Keyboard Plaza",
+        "bridge": "Xylophone Bridge",
+        "drums": "Drum Valley",
+        "tower": "Bell Tower",
+        "pipes": "Pipe Forest",
+        "falls": "Harp Falls"
+      },
+      "warpTitle": "Warp stones",
+      "warpUse": "Warp",
+      "warpWoke": "A warp stone woke up · {name}",
+      "warpHere": "You are here",
+      "warpAsleep": "Not found yet"
     }
   },
   "piano": {

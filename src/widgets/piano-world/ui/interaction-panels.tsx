@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 import type { ChordCard } from "../model/chord-cards";
 import type { PianoWorldCopy } from "../model/copy";
+import { WARP_STONES, type WarpStoneId } from "../model/island";
 
 function PanelShell({
   title,
@@ -136,6 +137,47 @@ export function WishPanel({
       >
         {copy.wishSend}
       </button>
+    </PanelShell>
+  );
+}
+
+/** Pick an awake warp stone to jump to. Stones you haven't found yet show as locked. */
+export function WarpPanel({
+  from,
+  awake,
+  copy,
+  onClose,
+  onWarp,
+}: {
+  from: WarpStoneId;
+  awake: ReadonlySet<WarpStoneId>;
+  copy: PianoWorldCopy;
+  onClose: () => void;
+  onWarp: (to: WarpStoneId) => void;
+}) {
+  return (
+    <PanelShell title={copy.warpTitle} onClose={onClose} closeLabel={copy.close}>
+      <ul className="mt-4 flex flex-col gap-1.5">
+        {WARP_STONES.map(({ id }) => {
+          const here = id === from;
+          const known = awake.has(id);
+          return (
+            <li key={id}>
+              <button
+                type="button"
+                disabled={here || !known}
+                onClick={() => onWarp(id)}
+                className="flex w-full items-center justify-between rounded-lg border border-border px-3 py-2 text-left text-sm text-foreground enabled:hover:bg-muted disabled:text-muted-foreground"
+              >
+                <span>{known ? copy.warpStones[id] : "???"}</span>
+                <span className="text-xs text-muted-foreground">
+                  {here ? copy.warpHere : known ? "" : copy.warpAsleep}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
     </PanelShell>
   );
 }

@@ -1,5 +1,7 @@
 import { CASE_H, PRESS_DEPTH, keyAt } from "./layout";
 import { courseGround } from "./course";
+import { ISLAND_SOLIDS } from "./island";
+import { terrainGround } from "./terrain";
 import type { RegionDef } from "./regions";
 
 /** Walking speed, units per second. */
@@ -103,6 +105,8 @@ export interface Ground {
   black: boolean;
   /** course platform index, for progress tracking */
   platform: number | null;
+  /** island terrain (ISLAND_SOLIDS index) when standing on it rather than a key */
+  solid: number | null;
 }
 
 /** What's underfoot in this region at (x, z), given the current height. */
@@ -116,14 +120,23 @@ export function groundAt(region: RegionDef, x: number, z: number, y: number): Gr
       midi: platform?.midi ?? null,
       black: platform?.kind === "black",
       platform: hit.index,
+      solid: null,
     };
   }
   const key = keyAt(x, z);
+  const keyHeight = key ? CASE_H + key.height - PRESS_DEPTH : 0;
+  if (region.island) {
+    const hit = terrainGround(ISLAND_SOLIDS, x, z, y);
+    if (hit.index !== null && hit.height > keyHeight) {
+      return { height: hit.height, midi: null, black: false, platform: null, solid: hit.index };
+    }
+  }
   return {
-    height: key ? CASE_H + key.height - PRESS_DEPTH : 0,
+    height: keyHeight,
     midi: key?.midi ?? null,
     black: key?.black ?? false,
     platform: null,
+    solid: null,
   };
 }
 

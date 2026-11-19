@@ -3,12 +3,15 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import {
   disposeSampler,
+  disposeVoices,
   ensureAudioStarted,
   getCurrentInstrumentId,
   loadInstrument,
   playNoteOff,
   playNoteOn,
+  playVoice,
   type InstrumentId,
+  type VoiceId,
 } from "@/shared/lib/audio";
 import { useCallbackRef } from "@/shared/lib/react/use-callback-ref";
 import { seventhChordOn } from "../model/harmony";
@@ -202,6 +205,7 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
     return () => {
       pending.forEach(clearTimeout);
       silence();
+      disposeVoices();
       if (getCurrentInstrumentId() === before) return;
       if (before) void loadInstrument(before);
       else disposeSampler();
@@ -210,6 +214,11 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
 
   /** read synchronously in event handlers */
   const isOn = useCallback(() => audioRef.current === "on", []);
+
+  /** A struck/plucked island sound (bridge, drums, pipes, harp, bell) — rings out on its own. */
+  const voice = useCallback((id: VoiceId, midi: number, velocity: number) => {
+    if (audioRef.current === "on") playVoice(id, midi, velocity);
+  }, []);
 
   /** The note ball hit (or rolled onto) a key. */
   const handleBallNote = useCallback(
@@ -229,5 +238,6 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
     handleCatStep,
     handleBallNote,
     chime,
+    voice,
   };
 }

@@ -4,10 +4,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CHORD_CARD_COUNT, chordCard, type ChordCard } from "../model/chord-cards";
 import type { PianoWorldCopy } from "../model/copy";
 import type { InteractableId } from "../model/interactables";
+import type { WarpStoneId } from "../model/island";
 import { FUR_ELISE, MUSIC_BOX, playSequence } from "../model/sequencer";
 
 /** Overlay panels opened by interactables */
-export type Panel = { kind: "chordCard"; card: ChordCard } | { kind: "wish" };
+export type Panel =
+  | { kind: "chordCard"; card: ChordCard }
+  | { kind: "wish" }
+  /** choosing where to warp, from the stone you're at */
+  | { kind: "warp"; from: WarpStoneId };
 
 /** What the world shows in response to interactions (passed to the 3D scene) */
 export interface InteractionScene {
@@ -170,6 +175,7 @@ export function useInteractions(copy: PianoWorldCopy, audio: AudioApi, onCelebra
     panelRef,
     setPanel,
     speech,
+    say,
     scene,
     interact,
     strum,

@@ -46,6 +46,12 @@ export async function HomePage() {
           wishSend: t("wishSend"),
           wishSent: t("wishSent"),
           jukeboxNowPlaying: t("jukeboxNowPlaying"),
+          warpStones: t.raw("warpStones") as PianoWorldCopy["warpStones"],
+          warpTitle: t("warpTitle"),
+          warpUse: t("warpUse"),
+          warpWoke: t.raw("warpWoke") as string,
+          warpHere: t("warpHere"),
+          warpAsleep: t("warpAsleep"),
           melodies: {
             twinkle: t("melodies.twinkle"),
             odeToJoy: t("melodies.odeToJoy"),

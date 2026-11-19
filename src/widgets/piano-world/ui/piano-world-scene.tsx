@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { cn } from "@/shared/lib/utils";
 import type { PianoWorldCopy } from "../model/copy";
 import { EMOTES } from "../model/interactables";
+import { WARP_STONES, warpArrival, type WarpStoneId } from "../model/island";
 import type { RegionId } from "../model/regions";
 import { useCourseRun } from "../lib/use-course-run";
 import { useEmote } from "../lib/use-emote";
@@ -14,11 +15,12 @@ import { useRegionTravel } from "../lib/use-region-travel";
 import { useWorldAudio } from "../lib/use-world-audio";
 import { useWorldControls } from "../lib/use-world-controls";
 import { useWorldPresence } from "../lib/use-world-presence";
+import { useWarpStones } from "../lib/use-warp-stones";
 import { CourseCard, MelodyCard } from "./hud/progress-cards";
-import { EmoteBar, InteractPrompt, SpeechBubble } from "./hud/interaction-hud";
+import { EmoteBar, InteractPrompt, SpeechBubble, WarpPrompt } from "./hud/interaction-hud";
 import { NameChip, NoteDisplay, RegionLabel, StatusStack } from "./hud/status";
 import { TouchControls } from "./hud/touch-controls";
-import { ChordCardPanel, WishPanel } from "./interaction-panels";
+import { ChordCardPanel, WarpPanel, WishPanel } from "./interaction-panels";
 import { World, type WorldDisplay, type WorldEvents } from "./world";
 
 /**
@@ -41,7 +43,11 @@ export default function PianoWorldScene({
   const [celebrate, setCelebrate] = useState(0);
   const bumpCelebrate = useCallback(() => setCelebrate((n) => n + 1), []);
 
-  const { region, regionRef, arrival, fading, travel } = useRegionTravel();
+  const { region, regionRef, arrival, fading, travel, warp } = useRegionTravel();
+  const { awake, wake } = useWarpStones();
+  /** the warp stone in reach, if any (the island only) */
+  const [warpNearby, setWarpNearbyState] = useState<WarpStoneId | null>(null);
+  const warpNearbyRef = useRef<WarpStoneId | null>(null);
   const melody = useMelodyGame(bumpCelebrate);
   const course = useCourseRun(bumpCelebrate, region.course?.id);
   const { emote, play: playEmote, cancel: cancelEmote, toggle: toggleEmote } = useEmote();
@@ -58,14 +64,51 @@ export default function PianoWorldScene({
   const { startAudio, isOn, chime, switchInstrument, silence } = audio;
   const audioApi = useMemo(() => ({ startAudio, isOn, chime }), [startAudio, isOn, chime]);
   const interactions = useInteractions(copy, audioApi, bumpCelebrate);
-  const { interact, nearbyRef, panelRef, setPanel, setNearby, reset: resetInteractions } = interactions;
+  const { interact, nearbyRef, panelRef, setPanel, setNearby, say, reset: resetInteractions } = interactions;
+
+  const openWarp = useCallback(() => {
+    const from = warpNearbyRef.current;
+    if (from) setPanel({ kind: "warp", from });
+  }, [setPanel]);
+
+  /** Reaching a stone wakes it the first time (with a chime and a line). */
+  const handleWarpNearby = useCallback(
+    (id: WarpStoneId | null) => {
+      warpNearbyRef.current = id;
+      setWarpNearbyState(id);
+      if (id && wake(id)) {
+        say(copy.warpWoke.replace("{name}", copy.warpStones[id]));
+        chime([72, 79, 84], 0.45, 110, 1400);
+        bumpCelebrate();
+      }
+    },
+    [wake, say, copy, chime, bumpCelebrate],
+  );
+
+  const warpTo = useCallback(
+    (to: WarpStoneId) => {
+      const stone = WARP_STONES.find((s) => s.id === to);
+      setPanel(null);
+      if (!stone) return;
+      silence();
+      warp(warpArrival(stone));
+    },
+    [setPanel, silence, warp],
+  );
 
   const { input, containerRef, visible, takeJump, pressDirection, pressJump } = useWorldControls({
     onGesture: startAudio,
     onInteract: () => {
-      if (!nearbyRef.current || panelRef.current) return false;
-      interact(nearbyRef.current);
-      return true;
+      if (panelRef.current) return false;
+      if (nearbyRef.current) {
+        interact(nearbyRef.current);
+        return true;
+      }
+      if (warpNearbyRef.current) {
+        openWarp();
+        return true;
+      }
+      return false;
     },
     onEmote: (index) => playEmote(EMOTES[index]),
     onEscape: () => {
@@ -100,7 +143,7 @@ export default function PianoWorldScene({
     setName(`${pick(copy.nameAdjectives)} ${pick(copy.nameNouns)}`);
   }, [copy]);
 
-  const { handleStep, handleRemoteStep, handleCatStep, handleBallNote } = audio;
+  const { handleStep, handleRemoteStep, handleCatStep, handleBallNote, voice } = audio;
   const events: WorldEvents = useMemo(
     () => ({
       onStep: handleStep,
@@ -111,8 +154,21 @@ export default function PianoWorldScene({
       onPortal: handlePortal,
       onEmoteCancel: cancelEmote,
       onNearby: setNearby,
+      onVoice: voice,
+      onWarpNearby: handleWarpNearby,
     }),
-    [handleStep, handleRemoteStep, handleCatStep, handleBallNote, handlePlatform, handlePortal, cancelEmote, setNearby],
+    [
+      handleStep,
+      handleRemoteStep,
+      handleCatStep,
+      handleBallNote,
+      handlePlatform,
+      handlePortal,
+      cancelEmote,
+      setNearby,
+      voice,
+      handleWarpNearby,
+    ],
   );
 
   const display: WorldDisplay = {
@@ -121,6 +177,7 @@ export default function PianoWorldScene({
     crown: course.crown,
     interaction: interactions.scene,
     celebrate,
+    awake,
   };
 
   const { panel } = interactions;
@@ -166,14 +223,16 @@ export default function PianoWorldScene({
       <StatusStack info={presenceInfo} audio={audio.audio} copy={copy} />
 
       <SpeechBubble text={interactions.speech} />
-      {panel ? null : (
+      {panel ? null : interactions.nearby ? (
         <InteractPrompt
           nearby={interactions.nearby}
           jukeboxPlaying={interactions.scene.jukeboxPlaying}
           onInteract={interact}
           copy={copy}
         />
-      )}
+      ) : warpNearby && region.island ? (
+        <WarpPrompt onUse={openWarp} copy={copy} />
+      ) : null}
       {panel?.kind === "chordCard" ? (
         <ChordCardPanel
           card={panel.card}
@@ -181,6 +240,9 @@ export default function PianoWorldScene({
           onClose={() => setPanel(null)}
           onPlay={() => interactions.strum(panel.card.midi)}
         />
+      ) : null}
+      {panel?.kind === "warp" ? (
+        <WarpPanel from={panel.from} awake={awake} copy={copy} onClose={() => setPanel(null)} onWarp={warpTo} />
       ) : null}
       {panel?.kind === "wish" ? (
         <WishPanel copy={copy} onClose={() => setPanel(null)} onSend={interactions.sendWish} />

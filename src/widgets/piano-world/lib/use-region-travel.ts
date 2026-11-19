@@ -50,5 +50,21 @@ export function useRegionTravel() {
     );
   }, []);
 
-  return { region, regionRef, arrival, fading, travel };
+  /** Jump to another spot in the same region (warp stones): the same fade, no region change. */
+  const warp = useCallback((to: { x: number; z: number }) => {
+    if (transitioning.current) return;
+    transitioning.current = true;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setFading(true);
+    timer.current = setTimeout(
+      () => {
+        setArrival({ x: to.x, z: to.z }); // a fresh object: the scene places you on it
+        setFading(false);
+        transitioning.current = false;
+      },
+      reduceMotion ? 0 : FADE_MS,
+    );
+  }, []);
+
+  return { region, regionRef, arrival, fading, travel, warp };
 }

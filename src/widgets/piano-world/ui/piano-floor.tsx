@@ -16,9 +16,12 @@ import { useKeySprings } from "../lib/use-key-springs";
 export const PianoFloor = memo(function PianoFloor({
   pressed,
   theme,
+  ground = true,
 }: {
   pressed: ReadonlySet<number>;
   theme: RegionTheme;
+  /** the plain floor around the keyboard (the island draws its own) */
+  ground?: boolean;
 }) {
   const caseWidth = WHITE_COUNT * WHITE_W + 0.6;
   const springRef = useKeySprings(
@@ -29,11 +32,12 @@ export const PianoFloor = memo(function PianoFloor({
 
   return (
     <group>
-      {/* floor */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[400, 300]} />
-        <meshStandardMaterial color={theme.floor} roughness={1} />
-      </mesh>
+      {ground ? (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+          <planeGeometry args={[400, 300]} />
+          <meshStandardMaterial color={theme.floor} roughness={1} />
+        </mesh>
+      ) : null}
 
       {/* keyboard case */}
       <mesh position={[0, CASE_H / 2, -0.15]} receiveShadow castShadow>

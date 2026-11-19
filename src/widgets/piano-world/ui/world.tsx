@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, type RefObject } from "react";
+import type { VoiceId } from "@/shared/lib/audio";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { BOUNDS, CASE_H, SPAWN } from "../model/layout";
@@ -16,6 +17,23 @@ import {
 } from "../model/course";
 import { interactablesIn, type EmoteId, type InteractableId } from "../model/interactables";
 import { decorColliders } from "../model/decor";
+import { skyAt } from "../model/day-night";
+import {
+  BELL,
+  BELL_REACH,
+  CRYSTALS,
+  CRYSTAL_REACH,
+  HARP,
+  HARP_STRINGS,
+  ISLAND_SOLIDS,
+  PIPES,
+  PIPE_HUM_REACH,
+  WARP_REACH,
+  WARP_STONES,
+  islandHits,
+  type WarpStoneId,
+} from "../model/island";
+import { terrainBlocked, terrainCeiling, terrainDepenetrate } from "../model/terrain";
 import { BALL_RADIUS, ballSpawns, newBall, stepBall, type Ball } from "../model/ball";
 import { NoteBall } from "./note-ball";
 import {
@@ -45,6 +63,7 @@ import type { RemotePlayer } from "../lib/use-world-presence";
 import type { InteractionScene } from "../lib/use-interactions";
 import { CourseScene } from "./course-scene";
 import { EmoteBubble } from "./emote-bubble";
+import { IslandScene } from "./island-scene";
 import { KordiModel, type CrownKind, type KordiMotion } from "./kordi-model";
 import { PianoFloor } from "./piano-floor";
 import { Portal } from "./portal";
@@ -59,6 +78,11 @@ const CAT_EARSHOT = 9;
 const PORTAL_HEIGHT_TOLERANCE = 1.2;
 const EMOTE_BUBBLE_HEIGHT = 2.75;
 const KORDI_SCALE = 1.6;
+/** Island: re-strike the same pipe / crystal no sooner than this (seconds) */
+const HUM_COOLDOWN = 1.4;
+const BELL_COOLDOWN = 2.5;
+/** The bell's chord: a low tonic under a bright triad */
+const BELL_CHORD = [48, 72, 76, 79];
 
 /** Things the world reports back to the page */
 export interface WorldEvents {
@@ -77,6 +101,10 @@ export interface WorldEvents {
   onCatStep: (midi: number | null) => void;
   /** a note ball hit or rolled onto a key */
   onBallNote: (midi: number, velocity: number) => void;
+  /** the island's terrain made a sound (bridge bar, drum, pipe, harp string, bell…) */
+  onVoice: (voice: VoiceId, midi: number, velocity: number) => void;
+  /** the warp stone now in reach (island only) */
+  onWarpNearby: (id: WarpStoneId | null) => void;
 }
 
 export interface WorldPresence {
@@ -101,6 +129,8 @@ export interface WorldDisplay {
   interaction: InteractionScene;
   /** bump to fire confetti over Kordi */
   celebrate: number;
+  /** warp stones you've woken (island) */
+  awake: ReadonlySet<WarpStoneId>;
 }
 
 interface WorldProps {
@@ -123,8 +153,10 @@ interface WorldProps {
  */
 export function World({ region, arrival, input, takeJump, presence, display, events }: WorldProps) {
   const { remotes, others, sendPosition } = presence;
-  const { emote, target, crown, interaction, celebrate } = display;
+  const { emote, target, crown, interaction, celebrate, awake } = display;
   const camera = useThree((state) => state.camera);
+  const scene = useThree((state) => state.scene);
+  const hemi = useRef<THREE.HemisphereLight>(null);
 
   const kordi = useRef<THREE.Group>(null);
   const light = useRef<THREE.DirectionalLight>(null);
@@ -132,8 +164,10 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
   const lantern = useRef<THREE.Group>(null);
   const fx = useRef<StepEffectsApi>(null);
   const motion = useRef<KordiMotion>({ phase: 0, amount: 0, emote: null, land: 0, stretch: 0, lean: 0, bank: 0 });
+  /** Kordi's live position: one Vector3, mutated in place, shared with the island renderer */
+  const [playerPos] = useState(() => new THREE.Vector3(SPAWN.x, CASE_H, SPAWN.z));
   const sim = useRef({
-    pos: new THREE.Vector3(SPAWN.x, CASE_H, SPAWN.z),
+    pos: playerPos,
     heading: 0, // face the camera on arrival
     vx: 0,
     vz: 0,
@@ -149,6 +183,18 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     bumpCooldown: 0,
     midi: null as number | null,
     platform: null as number | null,
+    /** island terrain underfoot (ISLAND_SOLIDS index) */
+    solid: null as number | null,
+    /** height of the last ground stood on: the camera follows this, not jumps */
+    restY: 0,
+  });
+  /** island ambience: per-thing cooldowns, last position (for harp strings), stone in reach */
+  const isle = useRef({
+    played: new Map<string, number>(),
+    lastX: 0,
+    lastZ: 0,
+    warp: null as WarpStoneId | null,
+    skyAt: -Infinity,
   });
   const lookTarget = useRef(new THREE.Vector3(SPAWN.x, 0.6, SPAWN.z - 1.2));
   const scratch = useRef({ camera: new THREE.Vector3(), look: new THREE.Vector3() });
@@ -178,6 +224,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     [items, region],
   );
   const course = region.course ?? null;
+  const island = region.island ? ISLAND_SOLIDS : null;
 
   useFrame((state, rawDelta) => {
     const dt = Math.min(rawDelta, 0.05);
@@ -195,6 +242,14 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       s.airborne = s.jumped = s.springing = false;
       s.platform = null;
       s.midi = null;
+      s.solid = null;
+      s.restY = s.pos.y;
+      isle.current.lastX = s.pos.x;
+      isle.current.lastZ = s.pos.z;
+      if (isle.current.warp !== null) {
+        isle.current.warp = null;
+        events.onWarpNearby(null);
+      }
       portalArmed.current = false;
       camera.position.copy(s.pos).add(cameraOffset);
       lookTarget.current.set(s.pos.x, s.pos.y + 0.6, s.pos.z - 1.2);
@@ -226,7 +281,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
 
     const speed = Math.hypot(s.vx, s.vz);
     if (speed > 1e-3) {
-      const bounds = course ? course.bounds : BOUNDS;
+      const bounds = course ? course.bounds : (region.bounds ?? BOUNDS);
       const nextX = THREE.MathUtils.clamp(s.pos.x + s.vx * dt, -bounds.x, bounds.x);
       const nextZ = THREE.MathUtils.clamp(s.pos.z + s.vz * dt, bounds.zMin, bounds.zMax);
       if (course) {
@@ -235,10 +290,21 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
         else s.vx = 0;
         if (!courseBlocked(course, s.pos.x, nextZ, s.pos.y)) s.pos.z = nextZ;
         else s.vz = 0;
+      } else if (island) {
+        // island terrain is solid the same way
+        if (!terrainBlocked(island, nextX, s.pos.z, s.pos.y)) s.pos.x = nextX;
+        else s.vx = 0;
+        if (!terrainBlocked(island, s.pos.x, nextZ, s.pos.y)) s.pos.z = nextZ;
+        else s.vz = 0;
       } else {
         s.pos.x = nextX;
         s.pos.z = nextZ;
       }
+    }
+    if (island) {
+      const out = terrainDepenetrate(island, s.pos.x, s.pos.z, s.pos.y);
+      s.pos.x = out.x;
+      s.pos.z = out.z;
     }
     if (course) {
       // steps move and appear on their own: if one ended up inside Kordi, step out of it
@@ -330,7 +396,14 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       const cut = s.vy > 0 && !keys.jumpHeld && !s.springing ? JUMP_CUT_GRAVITY : 1;
       s.vy -= GRAVITY * cut * dt;
       const nextY = s.pos.y + s.vy * dt;
-      const ceiling = course && s.vy > 0 ? courseCeiling(course, s.pos.x, s.pos.z, s.pos.y, nextY) : null;
+      const ceiling =
+        s.vy <= 0
+          ? null
+          : course
+            ? courseCeiling(course, s.pos.x, s.pos.z, s.pos.y, nextY)
+            : island
+              ? terrainCeiling(island, s.pos.x, s.pos.z, s.pos.y, nextY)
+              : null;
       if (ceiling !== null) {
         s.pos.y = ceiling; // bonk: head hit a step's underside
         s.vy = 0;
@@ -356,12 +429,25 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
           s.vy = JUMP_SPEED * BOUNCE_BOOST;
           m.land = 0.8;
         }
+        // island drums: every landing is a beat, and the skin throws you back up
+        const landed = island && ground.solid !== null ? island[ground.solid] : null;
+        if (landed?.bounce) {
+          if (landed.sound) events.onVoice(landed.sound.voice, landed.sound.midi, Math.min(1, 0.45 + impact / 18));
+          if (landed.tag) islandHits.set(landed.tag, now);
+          fx.current?.notes(s.pos.x, s.pos.y, s.pos.z, region.theme.accent);
+          s.airborne = true;
+          s.jumped = true;
+          s.springing = true;
+          s.vy = JUMP_SPEED * landed.bounce;
+          m.land = 0.8;
+        }
       }
     } else if (s.pos.y - ground.height > FALL_THRESHOLD) {
       s.airborne = true; // walked off a ledge (coyote time starts now)
       s.vy = 0;
     } else {
       s.pos.y = THREE.MathUtils.lerp(s.pos.y, ground.height, 1 - Math.exp(-dt * 18));
+      s.restY = ground.height;
     }
     // squash on landing eases out; stretch while rising fast
     m.land = Math.max(0, m.land - dt * 4);
@@ -374,6 +460,17 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       events.onPlatform(ground.platform);
     }
     if (course && !s.airborne && s.platform !== null) touchCrumble(course, s.platform, now);
+    // island terrain you walk onto plays its own instrument (drums sound on landing, above)
+    const solidUnder = s.airborne ? null : ground.solid;
+    if (island && solidUnder !== s.solid) {
+      s.solid = solidUnder;
+      const piece = solidUnder === null ? null : island[solidUnder];
+      if (piece?.sound && !piece.bounce) {
+        events.onVoice(piece.sound.voice, piece.sound.midi, 0.75);
+        if (piece.tag) islandHits.set(piece.tag, now);
+        fx.current?.notes(s.pos.x, s.pos.y, s.pos.z, region.theme.accent);
+      }
+    }
     if (midi !== s.midi) {
       s.midi = midi;
       events.onStep(midi);
@@ -458,6 +555,52 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       events.onCatStep(heard);
     }
 
+    // --- the island's ambient instruments and warp stones
+    if (island) {
+      const iso = isle.current;
+      /** play `tag` unless it played within `cooldown` seconds */
+      const strike = (tag: string, cooldown: number, play: () => void) => {
+        if (now - (iso.played.get(tag) ?? -Infinity) < cooldown) return;
+        iso.played.set(tag, now);
+        islandHits.set(tag, now);
+        play();
+      };
+      // organ pipes hum as you brush past
+      PIPES.forEach((pipe, i) => {
+        if (Math.hypot(s.pos.x - pipe.x, s.pos.z - pipe.z) - pipe.r < PIPE_HUM_REACH) {
+          strike(`pipe:${i}`, HUM_COOLDOWN, () => events.onVoice("pipe", pipe.midi, 0.6));
+        }
+      });
+      // harp strings: crossing one (in the spray, below its top) plucks it
+      if (s.pos.z > HARP.zMin - 0.3 && s.pos.z < HARP.zMax + 0.3 && s.pos.y < HARP.height) {
+        HARP_STRINGS.forEach((string, i) => {
+          if ((iso.lastX - string.x) * (s.pos.x - string.x) < 0) {
+            strike(`harp:${i}`, 0.08, () => events.onVoice("harp", string.midi, 0.7));
+          }
+        });
+      }
+      CRYSTALS.forEach((crystal, i) => {
+        if (Math.hypot(s.pos.x - crystal.x, s.pos.z - crystal.z) < CRYSTAL_REACH) {
+          strike(`crystal:${i}`, HUM_COOLDOWN, () => events.onVoice("crystal", crystal.midi, 0.6));
+        }
+      });
+      // the bell on the tower roof rings when you reach it
+      if (s.pos.y > BELL.y - 0.5 && Math.hypot(s.pos.x - BELL.x, s.pos.z - BELL.z) < BELL_REACH) {
+        strike("bell", BELL_COOLDOWN, () => {
+          BELL_CHORD.forEach((note, i) => events.onVoice("bell", note, i === 0 ? 0.9 : 0.55));
+          fx.current?.confetti(s.pos.x, s.pos.y, s.pos.z);
+        });
+      }
+      iso.lastX = s.pos.x;
+      iso.lastZ = s.pos.z;
+      // warp stone in reach (waking it is the page's call)
+      const stone = WARP_STONES.find((w) => Math.hypot(s.pos.x - w.x, s.pos.z - w.z) < WARP_REACH) ?? null;
+      if ((stone?.id ?? null) !== iso.warp) {
+        iso.warp = stone?.id ?? null;
+        events.onWarpNearby(iso.warp);
+      }
+    }
+
     // --- portals
     const inside = region.portals.find(
       (portal) =>
@@ -501,15 +644,36 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     lantern.current?.position.set(s.pos.x + 0.9, s.pos.y + 2.6, s.pos.z + 1.4);
     bubble.current?.position.set(s.pos.x, s.pos.y + EMOTE_BUBBLE_HEIGHT, s.pos.z);
     // The keyboard is 52 keys wide: the sun travels with Kordi so nearby shadows stay crisp
+    let sunX = 6;
+    if (island) {
+      // the island's sky follows the wall clock (everyone shares the same time of day)
+      const iso = isle.current;
+      if (now - iso.skyAt > 0.2) {
+        iso.skyAt = now;
+        const sky = skyAt(Date.now());
+        if (scene.background instanceof THREE.Color) scene.background.set(sky.background);
+        scene.fog?.color.set(sky.background);
+        if (light.current) {
+          light.current.color.set(sky.sunColor);
+          light.current.intensity = sky.sunIntensity;
+        }
+        if (hemi.current) {
+          hemi.current.color.set(sky.hemiSky);
+          hemi.current.groundColor.set(sky.hemiGround);
+          hemi.current.intensity = sky.ambient;
+        }
+      }
+      sunX = Math.cos(skyAt(Date.now()).azimuth) * 7;
+    }
     if (light.current) {
-      light.current.position.set(s.pos.x + 6, s.pos.y + 12, s.pos.z + 6);
+      light.current.position.set(s.pos.x + sunX, s.pos.y + 12, s.pos.z + 6);
       light.current.target.position.copy(s.pos);
       light.current.target.updateMatrixWorld();
     }
 
-    // Keyboard regions keep the camera level (jumps don't bob the view); the course climbs with you
+    // The camera follows the ground you stand on (not your jumps); the course climbs with you
     const follow = 1 - Math.exp(-dt * 4);
-    const cameraY = course ? s.pos.y : 0;
+    const cameraY = course ? s.pos.y : island ? s.restY : 0;
     const { camera: wantCamera, look } = scratch.current;
     camera.position.lerp(wantCamera.set(s.pos.x, cameraY, s.pos.z).add(cameraOffset), follow);
     lookTarget.current.lerp(look.set(s.pos.x, cameraY + 0.6, s.pos.z - 1.2), follow);
@@ -531,9 +695,14 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
         shadow-camera-bottom={-22}
         shadow-bias={-0.0005}
       />
-      <hemisphereLight args={[region.theme.sky, region.theme.ground, region.theme.ambient]} />
+      <hemisphereLight ref={hemi} args={[region.theme.sky, region.theme.ground, region.theme.ambient]} />
 
-      {course ? <CourseScene key={course.id} course={course} pressed={pressed} /> : <PianoFloor pressed={pressed} theme={region.theme} />}
+      {course ? (
+        <CourseScene key={course.id} course={course} pressed={pressed} />
+      ) : (
+        <PianoFloor pressed={pressed} theme={region.theme} ground={!region.island} />
+      )}
+      {region.island ? <IslandScene player={playerPos} awake={awake} /> : null}
       <RegionDecor region={region.id} party={interaction.party} />
       {items.map((item) => {
         switch (item.id) {

@@ -76,3 +76,19 @@ export function InteractPrompt({
     </button>
   );
 }
+
+/** "E — Warp": shown at a warp stone. */
+export function WarpPrompt({ onUse, copy }: { onUse: () => void; copy: PianoWorldCopy }) {
+  return (
+    <button
+      type="button"
+      onClick={onUse}
+      className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card/95 px-4 py-2 text-sm font-medium text-foreground shadow-md hover:bg-muted"
+    >
+      <kbd className="rounded border border-border bg-background px-1.5 text-xs text-muted-foreground pointer-coarse:hidden">
+        E
+      </kbd>
+      {copy.warpUse}
+    </button>
+  );
+}
