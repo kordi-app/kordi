@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ChordPracticeClient } from "./chord-practice-client";
+import { ChordPracticeView } from "../client-only-views";
 
 export const metadata: Metadata = {
   title: "Chord Practice | Kordi",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <ChordPracticeClient />;
+  return <ChordPracticeView />;
 }

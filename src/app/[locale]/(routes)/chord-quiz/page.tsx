@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ChordQuizClient } from "./chord-quiz-client";
+import { ChordQuizView } from "../client-only-views";
 
 export const metadata: Metadata = {
   title: "Chord Quiz | Kordi",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <ChordQuizClient />;
+  return <ChordQuizView />;
 }

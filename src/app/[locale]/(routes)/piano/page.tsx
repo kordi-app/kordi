@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PianoClient } from "./piano-client";
+import { PianoView } from "../client-only-views";
 
 export const metadata: Metadata = {
   title: "Piano | Kordi",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <PianoClient />;
+  return <PianoView />;
 }

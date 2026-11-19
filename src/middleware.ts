@@ -3,6 +3,11 @@ import createIntlMiddleware from "next-intl/middleware";
 import { routing } from "@/shared/config/i18n/routing";
 import { AUTH_COOKIES, PUBLIC_ROUTES } from "@/shared/config/auth";
 import { ROUTES } from "@/shared/config/routes";
+import {
+  clearAuthCookies,
+  reissueWithRefreshToken,
+  setAuthCookies,
+} from "@/shared/api/auth-tokens";
 
 const intlMiddleware = createIntlMiddleware(routing);
 
@@ -36,29 +41,19 @@ export default async function middleware(request: NextRequest) {
   }
 
   if (!accessToken && refreshToken) {
-    try {
-      const reissueRes = await fetch(
-        new URL("/api/auth/reissue", request.url),
-        {
-          method: "POST",
-          headers: { Cookie: request.headers.get("cookie") ?? "" },
-        },
-      );
-
-      if (!reissueRes.ok) {
-        return NextResponse.redirect(new URL(ROUTES.LOGIN, request.url));
-      }
-
-      // 같은 URL로 재진입: 새 쿠키를 심은 뒤 요청을 다시 태워야
-      // 이번 렌더(RSC)도 새 액세스 토큰으로 백엔드를 호출할 수 있다
-      const retry = NextResponse.redirect(request.url);
-      for (const cookie of reissueRes.headers.getSetCookie()) {
-        retry.headers.append("Set-Cookie", cookie);
-      }
-      return retry;
-    } catch {
-      return NextResponse.redirect(new URL(ROUTES.LOGIN, request.url));
+    // 자기 자신의 /api/auth/reissue를 HTTP로 다시 부르지 않고 Spring에 직접 재발급 요청
+    const tokens = await reissueWithRefreshToken(refreshToken);
+    if (!tokens) {
+      const toLogin = NextResponse.redirect(new URL(ROUTES.LOGIN, request.url));
+      clearAuthCookies(toLogin);
+      return toLogin;
     }
+
+    // 같은 URL로 재진입: 새 쿠키를 심은 뒤 요청을 다시 태워야
+    // 이번 렌더(RSC)도 새 액세스 토큰으로 백엔드를 호출할 수 있다
+    const retry = NextResponse.redirect(request.url);
+    setAuthCookies(retry, tokens);
+    return retry;
   }
 
   return response;

@@ -1,2 +1,2 @@
-export { useQuizGame } from "./lib/use-quiz-game";
+export { useDrillGame } from "./lib/use-drill-game";
 export { useMetronome } from "./lib/use-metronome";

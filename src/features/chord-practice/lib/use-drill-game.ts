@@ -2,27 +2,27 @@
 
 import { useCallback, useRef } from "react";
 import type { ActiveNote } from "@/entities/note";
-import type { QuizSettings } from "@/entities/chord-practice";
-import { useQuizState } from "../model/use-quiz-state";
+import type { DrillSettings } from "@/entities/chord-practice";
+import { useDrillState } from "../model/use-drill-state";
 import { useMetronome } from "./use-metronome";
 import { useChordGenerator } from "./use-chord-generator";
 import { useChordValidator } from "./use-chord-validator";
 
-export function useQuizGame(
-  settings: QuizSettings,
+export function useDrillGame(
+  settings: DrillSettings,
   activeNotes: ActiveNote[]
 ) {
   const isPractice = settings.gameMode === "practice";
 
   const {
     state,
-    start: startQuiz,
-    stop: stopQuiz,
-    pause: pauseQuiz,
-    resume: resumeQuiz,
+    start: startDrill,
+    stop: stopDrill,
+    pause: pauseDrill,
+    resume: resumeDrill,
     markCorrect,
     markTimeout,
-  } = useQuizState();
+  } = useDrillState();
 
   const { generateNext } = useChordGenerator(settings);
   const barCountRef = useRef(0);
@@ -74,30 +74,30 @@ export function useQuizGame(
   const start = useCallback(() => {
     const first = generateNext(null);
     const second = generateNext(first.name);
-    startQuiz({ ...first }, { ...second });
+    startDrill({ ...first }, { ...second });
     barCountRef.current = 0;
     chordStartBarRef.current = 0;
     if (!isPractice) {
       metronome.start();
     }
-  }, [generateNext, startQuiz, metronome, isPractice]);
+  }, [generateNext, startDrill, metronome, isPractice]);
 
   const stop = useCallback(() => {
     metronome.stop();
-    stopQuiz();
-  }, [metronome, stopQuiz]);
+    stopDrill();
+  }, [metronome, stopDrill]);
 
   const pause = useCallback(() => {
     metronome.stop();
-    pauseQuiz();
-  }, [metronome, pauseQuiz]);
+    pauseDrill();
+  }, [metronome, pauseDrill]);
 
   const resume = useCallback(() => {
     if (!isPractice) {
       metronome.start();
     }
-    resumeQuiz();
-  }, [metronome, resumeQuiz, isPractice]);
+    resumeDrill();
+  }, [metronome, resumeDrill, isPractice]);
 
   return {
     state,

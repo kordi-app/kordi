@@ -1,13 +1,13 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import type { QuizState } from "@/entities/chord-practice";
+import type { DrillState } from "@/entities/chord-practice";
 
-interface QuizScoreProps {
-  state: QuizState;
+interface DrillScoreProps {
+  state: DrillState;
 }
 
-export function QuizScore({ state }: QuizScoreProps) {
+export function DrillScore({ state }: DrillScoreProps) {
   const t = useTranslations("chordPractice");
   const accuracy =
     state.totalAttempted > 0

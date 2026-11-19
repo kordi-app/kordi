@@ -1,10 +1,10 @@
-import ky from "ky";
+import { bffClient } from "@/shared/api";
 import type { QuizChordItem, QuizDifficulty } from "../model/types";
 
 export function getQuizChords(
   difficulty: QuizDifficulty,
 ): Promise<QuizChordItem[]> {
-  return ky
-    .get("/api/backend/quiz/chords", { searchParams: { difficulty } })
+  return bffClient
+    .get("quiz/chords", { searchParams: { difficulty } })
     .json<QuizChordItem[]>();
 }

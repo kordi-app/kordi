@@ -2,12 +2,12 @@
 
 import { useTranslations } from "next-intl";
 import { UserPlus } from "lucide-react";
-import type { User } from "@/entities/user";
+import type { PublicUser } from "@/entities/user";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import { Button } from "@/shared/ui/button";
 
 interface SearchResultCardProps {
-  user: User;
+  user: PublicUser;
   onSend: () => void;
   disabled?: boolean;
 }

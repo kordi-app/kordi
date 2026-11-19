@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { HTTPError } from "ky";
-import { apiClient } from "@/shared/api";
+import { apiClient } from "@/shared/api/server";
+import type { ApiEnvelope } from "@/shared/api";
 import { errorResponse } from "@/shared/api/proxy";
 import {
   reissueTokens,
@@ -10,8 +11,8 @@ import {
 /**
  * Catch-all BFF proxy: /api/backend/* → Spring API.
  * - apiClient translates the httpOnly auth cookie into a Bearer header.
- * - The Spring ApiResponse envelope is unwrapped so browsers receive the
- *   data payload directly.
+ * - The Spring ApiResponse envelope ({ data }) is unwrapped so browsers
+ *   receive the bare payload (null for void endpoints).
  * - On 401 the refresh token is exchanged for a new pair, the call is
  *   retried once, and the new cookies ride back on the response.
  * Auth routes (cookie writes/redirects) stay as dedicated handlers under
@@ -38,14 +39,12 @@ async function handle(
       method,
       ...(body !== undefined && { json: body }),
       ...(authorization && { headers: { Authorization: authorization } }),
-    }).json<Record<string, unknown>>();
-    // Spring ApiResponse의 @JsonUnwrapped 때문에 객체 응답은 껍데기 없이
-    // 평탄화되어 온다(리스트만 data 키 유지). 어느 쪽이든 payload를 반환.
-    return res.data ?? res;
+    }).json<Partial<ApiEnvelope<unknown>>>();
+    return res.data ?? null;
   };
 
   try {
-    return NextResponse.json((await call()) ?? null);
+    return NextResponse.json(await call());
   } catch (err) {
     if (!(err instanceof HTTPError) || err.response.status !== 401) {
       return errorResponse(err);
@@ -56,7 +55,7 @@ async function handle(
 
     try {
       const result = await call(`Bearer ${tokens.accessToken}`);
-      const response = NextResponse.json(result ?? null);
+      const response = NextResponse.json(result);
       setAuthCookies(response, tokens);
       return response;
     } catch (retryErr) {

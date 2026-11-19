@@ -14,12 +14,3 @@ export async function errorResponse(err: unknown): Promise<NextResponse> {
   }
   return NextResponse.json({ message: "Internal error" }, { status: 500 });
 }
-
-export async function proxyBackend<T>(run: () => Promise<T>): Promise<NextResponse> {
-  try {
-    const result = await run();
-    return NextResponse.json(result ?? null);
-  } catch (err) {
-    return errorResponse(err);
-  }
-}

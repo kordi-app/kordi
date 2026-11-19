@@ -27,13 +27,28 @@ export interface ScoreRecord {
 
 export type QuizPhase = "select" | "playing" | "result";
 
+export type QuizAnswerResult = "correct" | "incorrect" | "timeout";
+
+export interface QuizAnswer {
+  result: QuizAnswerResult;
+  score: number;
+}
+
 export interface QuizGameState {
   phase: QuizPhase;
   difficulty: QuizDifficulty | null;
   questions: QuizChordItem[];
   currentIndex: number;
   timeLeft: number;
-  scores: number[];
-  answers: ("correct" | "incorrect" | "timeout")[];
-  totalScore: number;
+  /** One entry per answered question, in order. */
+  answers: QuizAnswer[];
+}
+
+/** Derived values — computed from `answers` rather than stored in state. */
+export function getTotalScore(answers: QuizAnswer[]): number {
+  return answers.reduce((sum, answer) => sum + answer.score, 0);
+}
+
+export function getCorrectCount(answers: QuizAnswer[]): number {
+  return answers.filter((answer) => answer.result === "correct").length;
 }

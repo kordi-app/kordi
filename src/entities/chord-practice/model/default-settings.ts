@@ -1,6 +1,6 @@
-import type { QuizSettings } from "./types";
+import type { DrillSettings } from "./types";
 
-export const DEFAULT_QUIZ_SETTINGS: QuizSettings = {
+export const DEFAULT_DRILL_SETTINGS: DrillSettings = {
   gameMode: "practice",
   difficulty: "beginner",
   customChordTypes: ["", "m"],

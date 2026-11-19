@@ -2,26 +2,26 @@
 
 import { useTranslations } from "next-intl";
 import { X } from "lucide-react";
-import type { QuizSettings } from "@/entities/chord-practice";
-import { QuizSettingsContent } from "./quiz-settings-content";
+import type { DrillSettings } from "@/entities/chord-practice";
+import { DrillSettingsContent } from "./drill-settings-content";
 
-interface QuizSettingsPanelProps {
+interface DrillSettingsPanelProps {
   ns: string;
-  settings: QuizSettings;
-  onChange: (settings: QuizSettings) => void;
+  settings: DrillSettings;
+  onChange: (settings: DrillSettings) => void;
   onClose: () => void;
   isOpen: boolean;
   inline?: boolean;
 }
 
-export function QuizSettingsPanel({
+export function DrillSettingsPanel({
   ns,
   settings,
   onChange,
   onClose,
   isOpen,
   inline = false,
-}: QuizSettingsPanelProps) {
+}: DrillSettingsPanelProps) {
   const t = useTranslations(ns);
 
   if (!isOpen) return null;
@@ -35,7 +35,7 @@ export function QuizSettingsPanel({
         <h2 className="mb-4 font-heading text-lg font-semibold uppercase text-foreground">
           {t("settings")}
         </h2>
-        <QuizSettingsContent ns={ns} settings={settings} onChange={onChange} />
+        <DrillSettingsContent ns={ns} settings={settings} onChange={onChange} />
       </div>
     );
   }
@@ -60,7 +60,7 @@ export function QuizSettingsPanel({
             <X className="size-4" />
           </button>
         </div>
-        <QuizSettingsContent ns={ns} settings={settings} onChange={onChange} />
+        <DrillSettingsContent ns={ns} settings={settings} onChange={onChange} />
       </aside>
     </div>
   );

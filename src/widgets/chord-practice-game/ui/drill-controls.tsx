@@ -2,11 +2,11 @@
 
 import { useTranslations } from "next-intl";
 import { Settings } from "lucide-react";
-import type { QuizStatus } from "@/entities/chord-practice";
+import type { DrillStatus } from "@/entities/chord-practice";
 
-interface QuizControlsProps {
+interface DrillControlsProps {
   ns: string;
-  status: QuizStatus;
+  status: DrillStatus;
   bpm: number;
   onStart: () => void;
   onStop: () => void;
@@ -20,7 +20,7 @@ const PRIMARY =
 const GHOST =
   "rounded-lg border border-border bg-card px-5 py-2 text-xs font-semibold uppercase tracking-widest text-foreground transition-all hover:bg-muted";
 
-export function QuizControls({
+export function DrillControls({
   ns,
   status,
   onStart,
@@ -28,7 +28,7 @@ export function QuizControls({
   onPause,
   onResume,
   onSettingsOpen,
-}: QuizControlsProps) {
+}: DrillControlsProps) {
   const t = useTranslations(ns);
 
   return (

@@ -1,9 +1,10 @@
-import { apiClient } from "@/shared/api";
+import { unwrap, type ApiEnvelope } from "@/shared/api";
+import { apiClient } from "@/shared/api/server";
 import type { ScoreRecord } from "../model/types";
 
-export async function getMyScores(): Promise<ScoreRecord[]> {
-  const response = await apiClient
+export function getMyScores(): Promise<ScoreRecord[]> {
+  return apiClient
     .get("api/scores/me")
-    .json<{ data: ScoreRecord[] }>();
-  return response.data;
+    .json<ApiEnvelope<ScoreRecord[]>>()
+    .then(unwrap);
 }

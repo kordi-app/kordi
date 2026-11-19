@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { AUTH_COOKIES } from "@/shared/config/auth";
 import {
+  clearAuthCookies,
   reissueTokens,
   setAuthCookies,
 } from "@/shared/api/auth-tokens.server";
@@ -13,8 +13,7 @@ export async function POST() {
       { error: "Refresh failed" },
       { status: 401 },
     );
-    response.cookies.delete(AUTH_COOKIES.ACCESS_TOKEN);
-    response.cookies.delete(AUTH_COOKIES.REFRESH_TOKEN);
+    clearAuthCookies(response);
     return response;
   }
 

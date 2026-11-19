@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { QUIZ_TIME_PER_QUESTION_MS } from "@/features/chord-quiz";
+import { QUIZ_TIME_PER_QUESTION_MS } from "@/entities/chord-quiz";
 import { cn } from "@/shared/lib/utils";
 
 interface QuizProgressProps {

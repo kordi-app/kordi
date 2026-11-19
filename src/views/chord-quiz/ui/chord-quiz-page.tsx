@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { usePianoInput } from "@/features/piano-player";
+import { getTotalScore } from "@/entities/chord-quiz";
 import { useQuizOrchestrator } from "@/features/chord-quiz";
 import { PianoKeyboard, MidiStatus } from "@/widgets/piano-keyboard";
 import { ChordPrompt } from "@/widgets/chord-prompt";
@@ -34,6 +35,7 @@ export function ChordQuizPage() {
   } = useQuizOrchestrator({ activeNotes, isAudioStarted, startAudio });
 
   const isPlaying = state.phase === "playing";
+  const totalScore = getTotalScore(state.answers);
 
   return (
     <>
@@ -80,7 +82,7 @@ export function ChordQuizPage() {
               currentIndex={state.currentIndex}
               totalCount={state.questions.length}
               timeLeft={state.timeLeft}
-              totalScore={state.totalScore}
+              totalScore={totalScore}
             />
 
             <div className="flex flex-col items-center gap-6">

@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useChordCheck } from "@/shared/lib/music/use-chord-check";
 import type { ActiveNote } from "@/entities/note";
-import type { QuizChordItem } from "@/entities/chord-quiz";
+import { scoreForTimeLeft, type QuizChordItem } from "@/entities/chord-quiz";
 
 interface UseQuizChordCheckOptions {
   currentChord: QuizChordItem | null;
@@ -35,10 +35,7 @@ export function useQuizChordCheck({
     finalizeIncorrect: true,
     // Timer ticks re-run validation so a chord held through the cooldown still registers
     revalidateKey: timeLeft,
-    onCorrect: () => {
-      const remainingSeconds = timeLeft / 1000;
-      onCorrect(Math.floor(remainingSeconds * 10));
-    },
+    onCorrect: () => onCorrect(scoreForTimeLeft(timeLeft)),
     onIncorrect,
   });
 }

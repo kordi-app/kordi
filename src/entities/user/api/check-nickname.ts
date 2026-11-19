@@ -1,8 +1,8 @@
-import { publicApiClient } from "@/shared/api/public-client";
+import { publicApiClient, unwrap, type ApiEnvelope } from "@/shared/api";
 
 export function checkNickname(nickname: string): Promise<boolean> {
   return publicApiClient
-    .get("api/users/check-nickname", { searchParams: { nickname } })
-    .json<{ data: boolean }>()
-    .then((res) => res.data);
+    .get("users/check-nickname", { searchParams: { nickname } })
+    .json<ApiEnvelope<boolean>>()
+    .then(unwrap);
 }

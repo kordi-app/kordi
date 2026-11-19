@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useChordCheck } from "@/shared/lib/music/use-chord-check";
 import type { ActiveNote } from "@/entities/note";
-import type { QuizResult } from "@/entities/chord-practice";
+import type { DrillResult } from "@/entities/chord-practice";
 
 const COOLDOWN_MS = 600;
 const INCORRECT_FLASH_MS = 500;
@@ -23,8 +23,14 @@ export function useChordValidator({
   onCorrect,
   onIncorrect,
 }: UseChordValidatorOptions) {
-  const [feedbackState, setFeedbackState] = useState<QuizResult>(null);
+  const [feedbackState, setFeedbackState] = useState<DrillResult>(null);
   const midiNotes = useMemo(() => activeNotes.map((n) => n.midi), [activeNotes]);
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Don't let a pending "incorrect" flash fire after unmount
+  useEffect(() => () => {
+    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+  }, []);
 
   useChordCheck({
     targetChordName,
@@ -38,7 +44,8 @@ export function useChordValidator({
     },
     onIncorrect: () => {
       setFeedbackState("incorrect");
-      setTimeout(() => {
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+      flashTimerRef.current = setTimeout(() => {
         setFeedbackState((s) => (s === "incorrect" ? null : s));
       }, INCORRECT_FLASH_MS);
       onIncorrect();

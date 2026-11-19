@@ -1,7 +1,12 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import type { QuizGameState } from "@/entities/chord-quiz";
+import {
+  QUIZ_MAX_TOTAL_SCORE,
+  getCorrectCount,
+  getTotalScore,
+  type QuizGameState,
+} from "@/entities/chord-quiz";
 import { toDisplayChordName } from "@/shared/lib/music";
 import { MonoCard } from "@/shared/ui/mono-card";
 import { MonoButton } from "@/shared/ui/mono-button";
@@ -23,7 +28,7 @@ export function QuizResult({
   onBackToSelect,
 }: QuizResultProps) {
   const t = useTranslations("chordQuiz");
-  const correctCount = state.answers.filter((a) => a === "correct").length;
+  const correctCount = getCorrectCount(state.answers);
   const incorrectCount = state.questions.length - correctCount;
 
   return (
@@ -34,10 +39,10 @@ export function QuizResult({
 
       <div className="rounded-lg border border-border bg-primary px-10 py-6 text-center text-primary-foreground">
         <div className="font-heading text-4xl font-semibold tabular-nums">
-          {state.totalScore}
+          {getTotalScore(state.answers)}
         </div>
         <div className="mt-1 text-xs font-semibold uppercase tracking-widest opacity-70">
-          / 1000 {t("maxScore")}
+          / {QUIZ_MAX_TOTAL_SCORE} {t("maxScore")}
         </div>
       </div>
 
@@ -60,10 +65,10 @@ export function QuizResult({
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-semibold uppercase tracking-widest opacity-70">
-                {t(state.answers[i] ?? "timeout")}
+                {t(state.answers[i]?.result ?? "timeout")}
               </span>
               <span className="font-heading font-semibold tabular-nums text-foreground">
-                {state.scores[i] ?? 0}
+                {state.answers[i]?.score ?? 0}
               </span>
             </div>
           </div>

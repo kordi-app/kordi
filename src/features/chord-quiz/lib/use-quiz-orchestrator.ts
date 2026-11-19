@@ -1,13 +1,18 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState, useCallback } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ActiveNote } from "@/entities/note";
-import { quizQueries, type QuizDifficulty } from "@/entities/chord-quiz";
 import {
-  useQuizGameState,
+  quizQueries,
+  getCorrectCount,
+  getTotalScore,
   QUIZ_TIME_PER_QUESTION_MS,
-} from "./use-quiz-game-state";
+  type QuizAnswer,
+  type QuizChordItem,
+  type QuizDifficulty,
+} from "@/entities/chord-quiz";
+import { useQuizGameState } from "./use-quiz-game-state";
 import { useQuizFeedback } from "./use-quiz-feedback";
 import { useQuizTimer } from "./use-quiz-timer";
 import { useQuizChordCheck } from "./use-quiz-chord-check";
@@ -19,76 +24,78 @@ interface UseQuizOrchestratorArgs {
   startAudio: () => void;
 }
 
+/** Questions fetched and waiting for the countdown to finish. */
+interface PendingQuiz {
+  difficulty: QuizDifficulty;
+  chords: QuizChordItem[];
+}
+
 /**
  * Orchestrates the complete chord-quiz flow (difficulty select → countdown →
  * playing → result), hiding state/mutation/timer wiring from the page.
+ *
+ * Every transition is driven from an event handler (select, countdown done,
+ * answer, retry) rather than effects watching state, so there are no
+ * "already started / already saved" guard flags to keep in sync.
  */
 export function useQuizOrchestrator({
   activeNotes,
   isAudioStarted,
   startAudio,
 }: UseQuizOrchestratorArgs) {
-  const [selectedDifficulty, setSelectedDifficulty] =
-    useState<QuizDifficulty | null>(null);
-  const scoreSavedRef = useRef(false);
+  const queryClient = useQueryClient();
+  const [isFetching, setIsFetching] = useState(false);
+  const [pendingQuiz, setPendingQuiz] = useState<PendingQuiz | null>(null);
 
-  const {
-    state,
-    startQuiz,
-    answerCorrect,
-    answerIncorrect,
-    answerTimeout,
-    tick,
-    reset,
-  } = useQuizGameState();
-
+  const { state, startQuiz, answer, tick, reset } = useQuizGameState();
   const { feedbackState, showCorrect, showIncorrect, showTimeout } =
     useQuizFeedback();
-
-  const { data: chords, isFetching } = useQuery({
-    // Fallback key when null; gated by `enabled` so no network request fires.
-    ...quizQueries.chords(selectedDifficulty ?? "EASY"),
-    enabled: selectedDifficulty !== null,
-  });
-
   const scoreMutation = useMutation({ mutationFn: saveScore });
-
-  // The countdown is simply the "select" phase with everything needed to start.
-  // startQuiz moves the machine to "playing", which ends it.
-  const showCountdown =
-    state.phase === "select" &&
-    selectedDifficulty !== null &&
-    chords !== undefined &&
-    chords.length > 0;
-
-  // Save score once quiz enters "result" phase
-  useEffect(() => {
-    if (state.phase !== "result" || !state.difficulty || scoreSavedRef.current) {
-      return;
-    }
-    scoreSavedRef.current = true;
-    scoreMutation.mutate({
-      difficulty: state.difficulty,
-      totalScore: state.totalScore,
-      correctCount: state.answers.filter((a) => a === "correct").length,
-      totalCount: state.questions.length,
-    });
-  }, [
-    state.phase,
-    state.difficulty,
-    state.totalScore,
-    state.answers,
-    state.questions.length,
-    scoreMutation,
-  ]);
 
   const currentChord =
     state.phase === "playing" ? state.questions[state.currentIndex] : null;
 
+  /** Fetches a fresh random question set and shows the countdown. */
+  const loadQuiz = useCallback(
+    async (difficulty: QuizDifficulty) => {
+      setIsFetching(true);
+      try {
+        // staleTime 0 → every call draws a new random set from the server
+        const chords = await queryClient.fetchQuery(
+          quizQueries.chords(difficulty),
+        );
+        if (chords.length > 0) setPendingQuiz({ difficulty, chords });
+      } catch {
+        // stay on the select screen; the user can pick again
+      } finally {
+        setIsFetching(false);
+      }
+    },
+    [queryClient],
+  );
+
+  const recordAnswer = useCallback(
+    (next: QuizAnswer) => {
+      if (state.phase !== "playing" || !state.difficulty) return;
+      answer(next);
+
+      const answers = [...state.answers, next];
+      if (answers.length === state.questions.length) {
+        scoreMutation.mutate({
+          difficulty: state.difficulty,
+          totalScore: getTotalScore(answers),
+          correctCount: getCorrectCount(answers),
+          totalCount: answers.length,
+        });
+      }
+    },
+    [state, answer, scoreMutation],
+  );
+
   const handleTimeout = useCallback(() => {
     showTimeout();
-    answerTimeout();
-  }, [answerTimeout, showTimeout]);
+    recordAnswer({ result: "timeout", score: 0 });
+  }, [recordAnswer, showTimeout]);
 
   useQuizTimer({
     duration: QUIZ_TIME_PER_QUESTION_MS,
@@ -101,15 +108,15 @@ export function useQuizOrchestrator({
   const handleCorrect = useCallback(
     (score: number) => {
       showCorrect();
-      answerCorrect(score);
+      recordAnswer({ result: "correct", score });
     },
-    [answerCorrect, showCorrect],
+    [recordAnswer, showCorrect],
   );
 
   const handleIncorrect = useCallback(() => {
     showIncorrect();
-    answerIncorrect();
-  }, [answerIncorrect, showIncorrect]);
+    recordAnswer({ result: "incorrect", score: 0 });
+  }, [recordAnswer, showIncorrect]);
 
   useQuizChordCheck({
     currentChord,
@@ -120,41 +127,40 @@ export function useQuizOrchestrator({
     onIncorrect: handleIncorrect,
   });
 
-  const handleCountdownComplete = useCallback(() => {
-    if (selectedDifficulty && chords) {
-      startQuiz(selectedDifficulty, chords);
-    }
-  }, [selectedDifficulty, chords, startQuiz]);
-
   const handleSelectDifficulty = useCallback(
     (difficulty: QuizDifficulty) => {
+      if (isFetching) return;
       if (!isAudioStarted) startAudio();
-      setSelectedDifficulty(difficulty);
+      void loadQuiz(difficulty);
     },
-    [isAudioStarted, startAudio],
+    [isFetching, isAudioStarted, startAudio, loadQuiz],
   );
 
-  // reset() returns the machine to "select" with the difficulty still chosen and
-  // the chords still cached, so the countdown restarts on its own.
+  const handleCountdownComplete = useCallback(() => {
+    if (!pendingQuiz) return;
+    startQuiz(pendingQuiz.difficulty, pendingQuiz.chords);
+    setPendingQuiz(null);
+  }, [pendingQuiz, startQuiz]);
+
   const handleRetry = useCallback(() => {
+    const difficulty = state.difficulty;
     scoreMutation.reset();
-    scoreSavedRef.current = false;
     reset();
-  }, [reset, scoreMutation]);
+    if (difficulty) void loadQuiz(difficulty);
+  }, [state.difficulty, scoreMutation, reset, loadQuiz]);
 
   const handleBackToSelect = useCallback(() => {
     scoreMutation.reset();
-    scoreSavedRef.current = false;
-    setSelectedDifficulty(null);
+    setPendingQuiz(null);
     reset();
-  }, [reset, scoreMutation]);
+  }, [scoreMutation, reset]);
 
   return {
     // flow state
     state,
     currentChord,
     feedbackState,
-    showCountdown,
+    showCountdown: pendingQuiz !== null,
     isFetching,
     scoreMutation,
     // handlers

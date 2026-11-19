@@ -1,14 +1,13 @@
 "use client";
 
 import { useReducer, useCallback } from "react";
-import type {
-  QuizGameState,
-  QuizChordItem,
-  QuizDifficulty,
+import {
+  QUIZ_TIME_PER_QUESTION_MS,
+  type QuizAnswer,
+  type QuizChordItem,
+  type QuizDifficulty,
+  type QuizGameState,
 } from "@/entities/chord-quiz";
-
-// 서버 검증(ScoreService.MAX_SCORE_PER_QUESTION)과 짝 — 시간을 바꾸면 서버 상한도 함께 변경
-export const QUIZ_TIME_PER_QUESTION_MS = 20000;
 
 const INITIAL_STATE: QuizGameState = {
   phase: "select",
@@ -16,9 +15,7 @@ const INITIAL_STATE: QuizGameState = {
   questions: [],
   currentIndex: 0,
   timeLeft: QUIZ_TIME_PER_QUESTION_MS,
-  scores: [],
   answers: [],
-  totalScore: 0,
 };
 
 type Action =
@@ -27,9 +24,7 @@ type Action =
       difficulty: QuizDifficulty;
       questions: QuizChordItem[];
     }
-  | { type: "ANSWER_CORRECT"; score: number }
-  | { type: "ANSWER_INCORRECT" }
-  | { type: "ANSWER_TIMEOUT" }
+  | { type: "ANSWER"; answer: QuizAnswer }
   | { type: "TICK"; timeLeft: number }
   | { type: "RESET" };
 
@@ -42,41 +37,15 @@ function reducer(state: QuizGameState, action: Action): QuizGameState {
         difficulty: action.difficulty,
         questions: action.questions,
       };
-    case "ANSWER_CORRECT": {
-      const newScores = [...state.scores, action.score];
-      const newAnswers = [...state.answers, "correct" as const];
-      const nextIndex = state.currentIndex + 1;
-      const isLast = nextIndex >= state.questions.length;
+    case "ANSWER": {
+      // A timeout and a correct chord can land in the same frame — only the first counts
+      if (state.phase !== "playing") return state;
+      const answers = [...state.answers, action.answer];
+      const isLast = answers.length >= state.questions.length;
       return {
         ...state,
-        scores: newScores,
-        answers: newAnswers,
-        totalScore: state.totalScore + action.score,
-        currentIndex: isLast ? state.currentIndex : nextIndex,
-        timeLeft: QUIZ_TIME_PER_QUESTION_MS,
-        phase: isLast ? "result" : "playing",
-      };
-    }
-    case "ANSWER_INCORRECT": {
-      const nextIndex = state.currentIndex + 1;
-      const isLast = nextIndex >= state.questions.length;
-      return {
-        ...state,
-        scores: [...state.scores, 0],
-        answers: [...state.answers, "incorrect" as const],
-        currentIndex: isLast ? state.currentIndex : nextIndex,
-        timeLeft: QUIZ_TIME_PER_QUESTION_MS,
-        phase: isLast ? "result" : "playing",
-      };
-    }
-    case "ANSWER_TIMEOUT": {
-      const nextIndex = state.currentIndex + 1;
-      const isLast = nextIndex >= state.questions.length;
-      return {
-        ...state,
-        scores: [...state.scores, 0],
-        answers: [...state.answers, "timeout" as const],
-        currentIndex: isLast ? state.currentIndex : nextIndex,
+        answers,
+        currentIndex: isLast ? state.currentIndex : state.currentIndex + 1,
         timeLeft: QUIZ_TIME_PER_QUESTION_MS,
         phase: isLast ? "result" : "playing",
       };
@@ -100,16 +69,8 @@ export function useQuizGameState() {
     [],
   );
 
-  const answerCorrect = useCallback((score: number) => {
-    dispatch({ type: "ANSWER_CORRECT", score });
-  }, []);
-
-  const answerIncorrect = useCallback(() => {
-    dispatch({ type: "ANSWER_INCORRECT" });
-  }, []);
-
-  const answerTimeout = useCallback(() => {
-    dispatch({ type: "ANSWER_TIMEOUT" });
+  const answer = useCallback((answer: QuizAnswer) => {
+    dispatch({ type: "ANSWER", answer });
   }, []);
 
   const tick = useCallback((timeLeft: number) => {
@@ -120,13 +81,5 @@ export function useQuizGameState() {
     dispatch({ type: "RESET" });
   }, []);
 
-  return {
-    state,
-    startQuiz,
-    answerCorrect,
-    answerIncorrect,
-    answerTimeout,
-    tick,
-    reset,
-  };
+  return { state, startQuiz, answer, tick, reset };
 }

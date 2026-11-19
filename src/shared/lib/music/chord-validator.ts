@@ -2,14 +2,15 @@ import { CHORD_TEMPLATES, type ChordType } from "./chord-templates";
 import { NOTE_INDEX } from "./note-names";
 import { toPitchClasses, pitchClassesEqual } from "./pitch-class";
 
+// Longest suffix first so "m7b5" wins over "7" / "m" / "" when matching
+const CHORD_TYPES_LONGEST_FIRST = Object.keys(CHORD_TEMPLATES).toSorted(
+  (a, b) => b.length - a.length
+);
+
 function parseChordName(
   name: string
 ): { rootIndex: number; type: ChordType } | null {
-  const sortedTypes = Object.keys(CHORD_TEMPLATES).sort(
-    (a, b) => b.length - a.length
-  );
-
-  for (const type of sortedTypes) {
+  for (const type of CHORD_TYPES_LONGEST_FIRST) {
     if (!name.endsWith(type) && type !== "") continue;
 
     const rootStr = type === "" ? name : name.slice(0, -type.length);

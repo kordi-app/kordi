@@ -1,9 +1,9 @@
 "use client";
 
 import { useReducer, useCallback } from "react";
-import type { QuizState, QuizChord } from "@/entities/chord-practice";
+import type { DrillState, DrillChord } from "@/entities/chord-practice";
 
-const INITIAL_STATE: QuizState = {
+const INITIAL_STATE: DrillState = {
   status: "idle",
   currentChord: null,
   nextChord: null,
@@ -15,17 +15,17 @@ const INITIAL_STATE: QuizState = {
   lastResult: null,
 };
 
-type QuizAction =
-  | { type: "START"; current: QuizChord; next: QuizChord }
+type DrillAction =
+  | { type: "START"; current: DrillChord; next: DrillChord }
   | { type: "STOP" }
   | { type: "PAUSE" }
   | { type: "RESUME" }
-  | { type: "MARK_CORRECT"; next: QuizChord }
+  | { type: "MARK_CORRECT"; next: DrillChord }
   | { type: "MARK_INCORRECT" }
-  | { type: "MARK_TIMEOUT"; next: QuizChord }
+  | { type: "MARK_TIMEOUT"; next: DrillChord }
   | { type: "RESET" };
 
-function reducer(state: QuizState, action: QuizAction): QuizState {
+function reducer(state: DrillState, action: DrillAction): DrillState {
   switch (action.type) {
     case "START":
       return {
@@ -77,11 +77,11 @@ function reducer(state: QuizState, action: QuizAction): QuizState {
   }
 }
 
-export function useQuizState() {
+export function useDrillState() {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
 
   const start = useCallback(
-    (current: QuizChord, next: QuizChord) =>
+    (current: DrillChord, next: DrillChord) =>
       dispatch({ type: "START", current, next }),
     []
   );
@@ -89,7 +89,7 @@ export function useQuizState() {
   const pause = useCallback(() => dispatch({ type: "PAUSE" }), []);
   const resume = useCallback(() => dispatch({ type: "RESUME" }), []);
   const markCorrect = useCallback(
-    (next: QuizChord) => dispatch({ type: "MARK_CORRECT", next }),
+    (next: DrillChord) => dispatch({ type: "MARK_CORRECT", next }),
     []
   );
   const markIncorrect = useCallback(
@@ -97,7 +97,7 @@ export function useQuizState() {
     []
   );
   const markTimeout = useCallback(
-    (next: QuizChord) => dispatch({ type: "MARK_TIMEOUT", next }),
+    (next: DrillChord) => dispatch({ type: "MARK_TIMEOUT", next }),
     []
   );
   const reset = useCallback(() => dispatch({ type: "RESET" }), []);

@@ -1,14 +1,9 @@
-import ky from "ky";
+import { bffClient } from "@/shared/api";
 import type { Friendship } from "../model/types";
+import { FRIENDSHIP_ENDPOINTS } from "./endpoints";
 
-export function getFriends(): Promise<Friendship[]> {
-  return ky.get("/api/backend/friendships").json<Friendship[]>();
-}
+const get = (path: string) => bffClient.get(path).json<Friendship[]>();
 
-export function getSentRequests(): Promise<Friendship[]> {
-  return ky.get("/api/backend/friendships/sent").json<Friendship[]>();
-}
-
-export function getReceivedRequests(): Promise<Friendship[]> {
-  return ky.get("/api/backend/friendships/received").json<Friendship[]>();
-}
+export const getFriends = () => get(FRIENDSHIP_ENDPOINTS.friends);
+export const getSentRequests = () => get(FRIENDSHIP_ENDPOINTS.sent);
+export const getReceivedRequests = () => get(FRIENDSHIP_ENDPOINTS.received);

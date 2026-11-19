@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { DEFAULT_QUIZ_SETTINGS, type QuizSettings } from "@/entities/chord-practice";
+import { DEFAULT_DRILL_SETTINGS, type DrillSettings } from "@/entities/chord-practice";
 import { usePianoInput } from "@/features/piano-player";
-import { useQuizGame } from "@/features/chord-practice";
+import { useDrillGame } from "@/features/chord-practice";
 import {
   PianoKeyboard,
   MidiStatus,
@@ -13,15 +13,15 @@ import {
 import { ChordPrompt } from "@/widgets/chord-prompt";
 import {
   MetronomeDisplay,
-  QuizScore,
-  QuizControls,
-  QuizSettingsPanel,
+  DrillScore,
+  DrillControls,
+  DrillSettingsPanel,
 } from "@/widgets/chord-practice-game";
 import { cn } from "@/shared/lib/utils";
 
 export function ChordPracticePage() {
   const t = useTranslations("chordPractice");
-  const [settings, setSettings] = useState<QuizSettings>(DEFAULT_QUIZ_SETTINGS);
+  const [settings, setSettings] = useState<DrillSettings>(DEFAULT_DRILL_SETTINGS);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const {
@@ -35,7 +35,7 @@ export function ChordPracticePage() {
   } = usePianoInput();
 
   const { state, feedbackState, metronome, start, stop, pause, resume } =
-    useQuizGame(settings, activeNotes);
+    useDrillGame(settings, activeNotes);
 
   if (!isAudioStarted) {
     return (
@@ -59,7 +59,7 @@ export function ChordPracticePage() {
 
         {isIdle ? (
           <div className="mx-auto w-full max-w-2xl">
-            <QuizSettingsPanel
+            <DrillSettingsPanel
               ns="chordPractice"
               settings={settings}
               onChange={setSettings}
@@ -86,12 +86,12 @@ export function ChordPracticePage() {
               />
             )}
 
-            <QuizScore state={state} />
+            <DrillScore state={state} />
           </div>
         )}
 
         <div className="flex justify-center">
-          <QuizControls
+          <DrillControls
             ns="chordPractice"
             status={state.status}
             bpm={settings.bpm}
@@ -132,7 +132,7 @@ export function ChordPracticePage() {
       </div>
 
       {!isIdle && (
-        <QuizSettingsPanel
+        <DrillSettingsPanel
           ns="chordPractice"
           settings={settings}
           onChange={setSettings}

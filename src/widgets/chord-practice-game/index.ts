@@ -1,4 +1,4 @@
 export { MetronomeDisplay } from "./ui/metronome-display";
-export { QuizScore } from "./ui/quiz-score";
-export { QuizControls } from "./ui/quiz-controls";
-export { QuizSettingsPanel } from "./ui/quiz-settings-panel";
+export { DrillScore } from "./ui/drill-score";
+export { DrillControls } from "./ui/drill-controls";
+export { DrillSettingsPanel } from "./ui/drill-settings-panel";

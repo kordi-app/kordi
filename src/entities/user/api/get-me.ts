@@ -1,15 +1,13 @@
 import { cache } from "react";
-import { apiClient } from "@/shared/api";
+import { unwrap, type ApiEnvelope } from "@/shared/api";
+import { apiClient } from "@/shared/api/server";
 import type { User } from "../model/types";
 
 /**
  * Cached per-request via React.cache so multiple server components in the
  * same request tree share a single network call.
  */
-export const getMe = cache(async (): Promise<User> => {
-  // 객체 응답은 @JsonUnwrapped로 평탄화되어 오고, 서버 통일 후에는 data 키로 온다
-  const res = await apiClient
-    .get("api/users/me")
-    .json<{ data?: User } & User>();
-  return res.data ?? res;
-});
+export const getMe = cache(
+  (): Promise<User> =>
+    apiClient.get("api/users/me").json<ApiEnvelope<User>>().then(unwrap),
+);

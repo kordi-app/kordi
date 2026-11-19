@@ -1,8 +1,8 @@
-import ky from "ky";
-import type { User } from "../model/types";
+import { bffClient } from "@/shared/api";
+import type { PublicUser } from "../model/types";
 
-export function searchUserByNickname(nickname: string): Promise<User> {
-  return ky
-    .get("/api/backend/users/search", { searchParams: { nickname } })
-    .json<User>();
+export function searchUserByNickname(nickname: string): Promise<PublicUser> {
+  return bffClient
+    .get("users/search", { searchParams: { nickname } })
+    .json<PublicUser>();
 }

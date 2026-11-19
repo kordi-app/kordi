@@ -3,7 +3,7 @@ import type { ChordType, TimeSignature } from "@/shared/lib/music";
 export type Difficulty = "beginner" | "intermediate" | "advanced" | "custom";
 export type GameMode = "practice" | "timeattack";
 
-export interface QuizSettings {
+export interface DrillSettings {
   gameMode: GameMode;
   difficulty: Difficulty;
   customChordTypes: ChordType[];
@@ -16,26 +16,26 @@ export interface QuizSettings {
   showNextChord: boolean;
 }
 
-export interface QuizChord {
+export interface DrillChord {
   name: string;
   rootIndex: number;
   type: ChordType;
   pitchClasses: number[];
 }
 
-export type QuizStatus = "idle" | "countdown" | "playing" | "paused";
-export type QuizResult = "correct" | "incorrect" | "timeout" | null;
+export type DrillStatus = "idle" | "countdown" | "playing" | "paused";
+export type DrillResult = "correct" | "incorrect" | "timeout" | null;
 
-export interface QuizState {
-  status: QuizStatus;
-  currentChord: QuizChord | null;
-  nextChord: QuizChord | null;
+export interface DrillState {
+  status: DrillStatus;
+  currentChord: DrillChord | null;
+  nextChord: DrillChord | null;
   score: number;
   streak: number;
   bestStreak: number;
   totalAttempted: number;
   totalCorrect: number;
-  lastResult: QuizResult;
+  lastResult: DrillResult;
 }
 
 export const DIFFICULTY_CHORD_TYPES: Record<Difficulty, ChordType[]> = {
