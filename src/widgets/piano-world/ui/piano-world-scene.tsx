@@ -26,7 +26,7 @@ type Direction = "up" | "down" | "left" | "right";
 type InputState = Record<Direction, boolean>;
 
 const SPEED = 4.2;
-const CAMERA_OFFSET = new THREE.Vector3(0, 7, 8.5);
+const CAMERA_OFFSET = new THREE.Vector3(0, 12, 14);
 const KEY_TO_DIRECTION: Record<string, Direction> = {
   ArrowUp: "up",
   ArrowDown: "down",
@@ -173,10 +173,10 @@ function World({
         intensity={2.2}
         castShadow
         shadow-mapSize={[2048, 2048]}
-        shadow-camera-left={-14}
-        shadow-camera-right={14}
-        shadow-camera-top={14}
-        shadow-camera-bottom={-14}
+        shadow-camera-left={-22}
+        shadow-camera-right={22}
+        shadow-camera-top={22}
+        shadow-camera-bottom={-22}
         shadow-bias={-0.0005}
       />
       <PianoFloor pressed={pressed} />
@@ -390,10 +390,10 @@ export default function PianoWorldScene({
         shadows
         dpr={[1, 2]}
         frameloop={visible ? "always" : "never"}
-        camera={{ position: [0, 7, 12], fov: 42, near: 0.1, far: 100 }}
+        camera={{ position: [0, 12, 18], fov: 45, near: 0.1, far: 150 }}
       >
         <color attach="background" args={["#fcfbf8"]} />
-        <fog attach="fog" args={["#fcfbf8", 18, 38]} />
+        <fog attach="fog" args={["#fcfbf8", 30, 60]} />
         <hemisphereLight args={["#ffffff", "#e8dfd0", 1.9]} />
         <World
           input={input}
