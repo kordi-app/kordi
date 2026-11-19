@@ -20,7 +20,7 @@ const BLACK_PRESSED = "#5b5048";
 export const PianoFloor = memo(function PianoFloor({
   pressed,
 }: {
-  pressed: number | null;
+  pressed: ReadonlySet<number>;
 }) {
   const caseWidth = WHITE_COUNT * WHITE_W + 0.6;
 
@@ -28,7 +28,7 @@ export const PianoFloor = memo(function PianoFloor({
     <group>
       {/* floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[80, 80]} />
+        <planeGeometry args={[160, 80]} />
         <meshStandardMaterial color="#f7f3ec" roughness={1} />
       </mesh>
 
@@ -39,7 +39,7 @@ export const PianoFloor = memo(function PianoFloor({
       </mesh>
 
       {KEYS.map((key) => {
-        const isPressed = key.midi === pressed;
+        const isPressed = pressed.has(key.midi);
         const y = CASE_H + key.height / 2 - (isPressed ? PRESS_DEPTH : 0);
         return (
           <mesh

@@ -130,10 +130,16 @@
   "home": {
     "world": {
       "title": "Take a walk on the keys",
-      "hint": "Move Kordi with the arrow keys or WASD — every key you step on sounds.",
+      "hint": "Move Kordi with the arrow keys or WASD — every key you step on sounds, and so do the steps of others in your channel.",
       "soundOff": "Sound starts on your first key press",
       "soundLoading": "Loading piano sounds…",
-      "soundOn": "Sound on"
+      "soundOn": "Sound on",
+      "guest": "Guest",
+      "channel": "Channel {channel}",
+      "online": "{count} online",
+      "connecting": "Connecting to others…",
+      "full": "It's busy — walking solo for now",
+      "offline": "Disconnected — walking solo, reconnecting"
     }
   },
   "piano": {

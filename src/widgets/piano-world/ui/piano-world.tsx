@@ -9,6 +9,12 @@ const PianoWorldScene = dynamic(() => import("./piano-world-scene"), {
   loading: () => <div className="h-full w-full animate-pulse bg-muted" />,
 });
 
-export function PianoWorld({ copy }: { copy: PianoWorldCopy }) {
-  return <PianoWorldScene copy={copy} />;
+export function PianoWorld({
+  copy,
+  playerName,
+}: {
+  copy: PianoWorldCopy;
+  playerName: string;
+}) {
+  return <PianoWorldScene copy={copy} playerName={playerName} />;
 }

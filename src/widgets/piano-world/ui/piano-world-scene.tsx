@@ -12,9 +12,15 @@ import {
 } from "@/shared/lib/audio";
 import { midiToNoteName } from "@/shared/lib/music";
 import { cn } from "@/shared/lib/utils";
-import { BOUNDS, CASE_H, PRESS_DEPTH, keyAt } from "../model/layout";
+import { BOUNDS, CASE_H, PRESS_DEPTH, SPAWN, keyAt } from "../model/layout";
+import {
+  useWorldPresence,
+  type PresenceInfo,
+  type RemotePlayer,
+} from "../model/use-world-presence";
 import { KordiModel, type KordiMotion } from "./kordi-model";
 import { PianoFloor } from "./piano-floor";
+import { RemoteKordi } from "./remote-kordi";
 
 type Direction = "up" | "down" | "left" | "right";
 type InputState = Record<Direction, boolean>;
@@ -38,6 +44,12 @@ export interface PianoWorldCopy {
   soundOff: string;
   soundLoading: string;
   soundOn: string;
+  /** "{channel}" and "{count}" are filled in */
+  channel: string;
+  online: string;
+  connecting: string;
+  full: string;
+  offline: string;
 }
 
 type AudioState = "off" | "loading" | "on";
@@ -51,19 +63,30 @@ function lerpAngle(from: number, to: number, t: number) {
 function World({
   input,
   onKeyChange,
+  remotes,
+  others,
+  sendPosition,
+  onRemoteNote,
 }: {
   input: React.RefObject<InputState>;
   onKeyChange: (midi: number | null) => void;
+  remotes: React.RefObject<Map<string, RemotePlayer>>;
+  others: { id: string; name: string }[];
+  sendPosition: (x: number, z: number, h: number, m: number | null) => void;
+  onRemoteNote: (id: string, midi: number | null) => void;
 }) {
   const kordi = useRef<THREE.Group>(null);
+  const light = useRef<THREE.DirectionalLight>(null);
   const motion = useRef<KordiMotion>({ phase: 0, amount: 0 });
   const sim = useRef({
-    pos: new THREE.Vector3(0, CASE_H, 3.6),
+    pos: new THREE.Vector3(SPAWN.x, CASE_H, SPAWN.z),
     heading: 0, // face the camera on arrival
     current: null as number | null,
   });
-  const lookTarget = useRef(new THREE.Vector3());
-  const [pressed, setPressed] = useState<number | null>(null);
+  const lookTarget = useRef(new THREE.Vector3(SPAWN.x, 0.6, SPAWN.z - 1.2));
+  const remoteNotes = useRef(new Map<string, number | null>());
+  const [pressed, setPressed] = useState<ReadonlySet<number>>(() => new Set());
+  const pressedKey = useRef("");
   const camera = useThree((state) => state.camera);
 
   useFrame((_, rawDelta) => {
@@ -93,15 +116,44 @@ function World({
     const midi = key?.midi ?? null;
     if (midi !== s.current) {
       s.current = midi;
-      setPressed(midi);
       onKeyChange(midi);
     }
     const surface = key ? CASE_H + key.height - PRESS_DEPTH : 0;
     s.pos.y = THREE.MathUtils.lerp(s.pos.y, surface, 1 - Math.exp(-dt * 18));
+    sendPosition(s.pos.x, s.pos.z, s.heading, midi);
+
+    // Keys held down by me and by everyone else in the channel
+    const down = new Set<number>();
+    if (midi !== null) down.add(midi);
+    for (const remote of remotes.current.values()) {
+      if (remote.m !== null) down.add(remote.m);
+      if (remoteNotes.current.get(remote.id) !== remote.m) {
+        remoteNotes.current.set(remote.id, remote.m);
+        onRemoteNote(remote.id, remote.m);
+      }
+    }
+    for (const id of remoteNotes.current.keys()) {
+      if (!remotes.current.has(id)) {
+        remoteNotes.current.delete(id);
+        onRemoteNote(id, null);
+      }
+    }
+    const signature = [...down].sort((a, b) => a - b).join(",");
+    if (signature !== pressedKey.current) {
+      pressedKey.current = signature;
+      setPressed(down);
+    }
 
     if (kordi.current) {
       kordi.current.position.copy(s.pos);
       kordi.current.rotation.y = s.heading;
+    }
+
+    // The keyboard is 52 keys wide: the sun travels with Kordi so shadows stay crisp nearby
+    if (light.current) {
+      light.current.position.set(s.pos.x + 6, 12, s.pos.z + 6);
+      light.current.target.position.set(s.pos.x, 0, s.pos.z);
+      light.current.target.updateMatrixWorld();
     }
 
     const follow = 1 - Math.exp(-dt * 4);
@@ -115,10 +167,61 @@ function World({
 
   return (
     <>
+      <directionalLight
+        ref={light}
+        position={[SPAWN.x + 6, 12, SPAWN.z + 6]}
+        intensity={2.2}
+        castShadow
+        shadow-mapSize={[2048, 2048]}
+        shadow-camera-left={-14}
+        shadow-camera-right={14}
+        shadow-camera-top={14}
+        shadow-camera-bottom={-14}
+        shadow-bias={-0.0005}
+      />
       <PianoFloor pressed={pressed} />
       {/* scaled up so the character reads at a glance against the giant keys */}
       <KordiModel ref={kordi} motion={motion} scale={1.6} />
+      {others.map((other) => (
+        <RemoteKordi key={other.id} id={other.id} name={other.name} remotes={remotes} />
+      ))}
     </>
+  );
+}
+
+const MAX_LISTED = 8;
+
+/** Who else is here: channel, people in it, and everyone online. */
+function PresencePanel({ info, copy }: { info: PresenceInfo; copy: PianoWorldCopy }) {
+  if (info.status !== "online") {
+    const label =
+      info.status === "full" ? copy.full : info.status === "offline" ? copy.offline : copy.connecting;
+    return (
+      <div className="rounded-full border border-border bg-card/90 px-3 py-1 text-xs text-muted-foreground">
+        {label}
+      </div>
+    );
+  }
+  const listed = info.others.slice(0, MAX_LISTED);
+  const hidden = info.others.length - listed.length;
+  return (
+    <div className="max-w-64 rounded-xl border border-border bg-card/90 px-3 py-2 text-xs shadow-sm">
+      <div className="flex items-center gap-2 text-foreground">
+        <span className="size-1.5 rounded-full bg-success" />
+        <span className="font-medium">
+          {copy.channel.replace("{channel}", String(info.channel ?? ""))}
+        </span>
+        <span className="text-muted-foreground">
+          {copy.online.replace("{count}", info.online.toLocaleString())}
+        </span>
+      </div>
+      {listed.length > 0 ? (
+        <p className="mt-1 truncate text-muted-foreground">
+          {listed.map((p) => p.name).join(", ")}
+          {hidden > 0 ? ` +${hidden}` : ""}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -159,7 +262,14 @@ function DirectionButton({
  * Kordi walking on a giant keyboard: arrow keys / WASD (or the on-screen pad
  * on touch screens) move the character, and the key underfoot sounds.
  */
-export default function PianoWorldScene({ copy }: { copy: PianoWorldCopy }) {
+export default function PianoWorldScene({
+  copy,
+  playerName,
+}: {
+  copy: PianoWorldCopy;
+  playerName: string;
+}) {
+  const { remotes, info, sendPosition } = useWorldPresence(playerName);
   const containerRef = useRef<HTMLDivElement>(null);
   const input = useRef<InputState>({ up: false, down: false, left: false, right: false });
   // Assume visible until the observer reports otherwise, so the first frame always draws
@@ -200,6 +310,18 @@ export default function PianoWorldScene({ copy }: { copy: PianoWorldCopy }) {
     if (soundingRef.current !== null) playNoteOff(soundingRef.current);
     soundingRef.current = midi;
     if (midi !== null && audioRef.current === "on") playNoteOn(midi, 0.75);
+  }, []);
+
+  // Other people's footsteps play too, quieter than your own
+  const remoteSounding = useRef(new Map<string, number>());
+  const handleRemoteNote = useCallback((id: string, midi: number | null) => {
+    const previous = remoteSounding.current.get(id);
+    if (previous !== undefined) playNoteOff(previous);
+    remoteSounding.current.delete(id);
+    if (midi !== null && audioRef.current === "on") {
+      playNoteOn(midi, 0.35);
+      remoteSounding.current.set(id, midi);
+    }
   }, []);
 
   useEffect(() => {
@@ -250,6 +372,7 @@ export default function PianoWorldScene({ copy }: { copy: PianoWorldCopy }) {
   useEffect(
     () => () => {
       if (soundingRef.current !== null) playNoteOff(soundingRef.current);
+      for (const midi of remoteSounding.current.values()) playNoteOff(midi);
     },
     [],
   );
@@ -272,18 +395,14 @@ export default function PianoWorldScene({ copy }: { copy: PianoWorldCopy }) {
         <color attach="background" args={["#fcfbf8"]} />
         <fog attach="fog" args={["#fcfbf8", 18, 38]} />
         <hemisphereLight args={["#ffffff", "#e8dfd0", 1.9]} />
-        <directionalLight
-          position={[6, 12, 6]}
-          intensity={2.2}
-          castShadow
-          shadow-mapSize={[2048, 2048]}
-          shadow-camera-left={-12}
-          shadow-camera-right={12}
-          shadow-camera-top={12}
-          shadow-camera-bottom={-12}
-          shadow-bias={-0.0005}
+        <World
+          input={input}
+          onKeyChange={handleKeyChange}
+          remotes={remotes}
+          others={info.others}
+          sendPosition={sendPosition}
+          onRemoteNote={handleRemoteNote}
         />
-        <World input={input} onKeyChange={handleKeyChange} />
       </Canvas>
 
       {/* HUD */}
@@ -305,7 +424,9 @@ export default function PianoWorldScene({ copy }: { copy: PianoWorldCopy }) {
         </div>
       </div>
 
-      <div className="pointer-events-none absolute bottom-4 left-4 flex items-center gap-2 rounded-full border border-border bg-card/90 px-3 py-1 text-xs text-muted-foreground md:bottom-5 md:left-6">
+      <div className="pointer-events-none absolute bottom-4 left-4 flex flex-col items-start gap-2 md:bottom-5 md:left-6">
+        <PresencePanel info={info} copy={copy} />
+      <div className="flex items-center gap-2 rounded-full border border-border bg-card/90 px-3 py-1 text-xs text-muted-foreground">
         <span
           className={cn(
             "size-1.5 rounded-full",
@@ -313,6 +434,7 @@ export default function PianoWorldScene({ copy }: { copy: PianoWorldCopy }) {
           )}
         />
         {audioLabel}
+      </div>
       </div>
 
       {/* touch pad */}
