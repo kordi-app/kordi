@@ -31,7 +31,7 @@ export const PianoFloor = memo(function PianoFloor({
     <group>
       {/* floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[160, 80]} />
+        <planeGeometry args={[400, 300]} />
         <meshStandardMaterial color={theme.floor} roughness={1} />
       </mesh>
 

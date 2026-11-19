@@ -20,7 +20,6 @@ export interface KordiMotion {
 }
 
 const CREAM = "#f4efe6";
-const KEY_WHITE = "#fbf8f2";
 const INK = "#221d19";
 const CHEEK = "#f2aaa2";
 const FOOT = "#b48c5c";
@@ -30,7 +29,7 @@ const BODY_DEPTH = 0.9;
 /**
  * Kordi built from primitives to match the 2D mascot: a soft bean body,
  * dot eyes with highlights, pink cheeks, a small smile, stubby arms, brown
- * feet — and the three-white/two-black keyboard on the belly.
+ * feet.
  * Faces +z; the parent group handles position and heading.
  */
 export const KordiModel = forwardRef<
@@ -173,21 +172,6 @@ export const KordiModel = forwardRef<
           </group>
         ) : null}
 
-        {/* belly keyboard: three white keys with two black keys on top */}
-        <group position={[0, 0.5, 0.43]}>
-          {[-0.17, 0, 0.17].map((x) => (
-            <mesh key={x} position={[x, 0, 0]} castShadow>
-              <boxGeometry args={[0.16, 0.34, 0.06]} />
-              <meshStandardMaterial color={KEY_WHITE} roughness={0.35} />
-            </mesh>
-          ))}
-          {[-0.085, 0.085].map((x) => (
-            <mesh key={x} position={[x, 0.07, 0.04]}>
-              <boxGeometry args={[0.08, 0.2, 0.05]} />
-              <meshStandardMaterial color={INK} roughness={0.3} />
-            </mesh>
-          ))}
-        </group>
       </group>
       </group>
     </group>

@@ -422,7 +422,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       <hemisphereLight args={[region.theme.sky, region.theme.ground, region.theme.ambient]} />
 
       {course ? <CourseScene pressed={pressed} /> : <PianoFloor pressed={pressed} theme={region.theme} />}
-      <RegionDecor region={region.id} theme={region.theme} party={interaction.party} />
+      <RegionDecor region={region.id} party={interaction.party} />
       {items.map((item) => {
         switch (item.id) {
           case "cat":

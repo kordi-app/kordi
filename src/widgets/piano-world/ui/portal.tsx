@@ -84,42 +84,63 @@ function makeGlowTexture() {
 }
 
 /**
- * A standing oval of see-through swirling light — the gate turns to face the camera, its
- * two swirl layers counter-rotate inside a glowing rim, light pools on the
- * floor and sparks drift up through it.
+ * Swirl layers stacked front-to-back inside the gate. Each turns at its own
+ * speed and sits at its own depth, so moving around the portal shows real
+ * parallax — it reads as a volume of light rather than a picture of one.
+ */
+const LAYERS = [
+  { z: -0.2, scale: 1, speed: 0.7, opacity: 0.16 },
+  { z: -0.07, scale: 0.88, speed: -1.1, opacity: 0.22 },
+  { z: 0.07, scale: 0.74, speed: 1.6, opacity: 0.28 },
+  { z: 0.2, scale: 0.58, speed: -2.2, opacity: 0.34 },
+] as const;
+const ORBIT_COUNT = 26;
+
+/**
+ * A see-through vortex standing upright: stacked counter-rotating swirl
+ * layers, a soft halo behind, motes orbiting around it in depth, sparks
+ * rising inside, and light pooling on the floor. No hard outline — the edge
+ * is just where the light fades.
  */
 export function Portal({ portal, glow }: { portal: PortalDef; glow: boolean }) {
   const gate = useRef<THREE.Group>(null);
-  const swirlA = useRef<THREE.Mesh>(null);
-  const swirlB = useRef<THREE.Mesh>(null);
-  const rim = useRef<THREE.Mesh>(null);
+  const layers = useRef<(THREE.Mesh | null)[]>([]);
+  const halo = useRef<THREE.Mesh>(null);
   const pool = useRef<THREE.Mesh>(null);
   const sparks = useRef<THREE.Points>(null);
+  const orbit = useRef<THREE.Points>(null);
   const scratch = useRef(new THREE.Vector3());
 
   const assets = useMemo(() => {
     const swirl = makeSwirlTexture();
-    const swirlBack = swirl.clone(); // separate rotation state for the second layer
+    // each layer needs its own texture so it can spin independently
+    const swirls = LAYERS.map((_, i) => (i === 0 ? swirl : swirl.clone()));
     const glowTexture = makeGlowTexture();
+
     const positions = new Float32Array(SPARK_COUNT * 3);
     const speeds = new Float32Array(SPARK_COUNT);
     for (let i = 0; i < SPARK_COUNT; i++) {
       positions[i * 3] = (hash(i, 1) - 0.5) * GATE_WIDTH * 0.8;
       positions[i * 3 + 1] = hash(i, 2) * GATE_HEIGHT;
-      positions[i * 3 + 2] = (hash(i, 3) - 0.5) * 0.3;
+      positions[i * 3 + 2] = (hash(i, 3) - 0.5) * 0.4;
       speeds[i] = 0.5 + hash(i, 4) * 0.8;
     }
     const sparkGeometry = new THREE.BufferGeometry();
     sparkGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    return { swirl, swirlBack, glowTexture, sparkGeometry, speeds };
+
+    const orbitGeometry = new THREE.BufferGeometry();
+    orbitGeometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(ORBIT_COUNT * 3), 3));
+    const orbitPhase = Float32Array.from({ length: ORBIT_COUNT }, (_, i) => hash(i, 5) * Math.PI * 2);
+
+    return { swirls, glowTexture, sparkGeometry, speeds, orbitGeometry, orbitPhase };
   }, []);
 
   useEffect(
     () => () => {
-      assets.swirl.dispose();
-      assets.swirlBack.dispose();
+      assets.swirls.forEach((t) => t.dispose());
       assets.glowTexture.dispose();
       assets.sparkGeometry.dispose();
+      assets.orbitGeometry.dispose();
     },
     [assets],
   );
@@ -138,16 +159,28 @@ export function Portal({ portal, glow }: { portal: PortalDef; glow: boolean }) {
       const pitch = Math.atan2(camera.position.y - world.y, Math.hypot(dx, dz));
       gate.current.rotation.set(-pitch * GATE_LEAN, Math.atan2(dx, dz), 0, "YXZ");
     }
-    const spin = (mesh: THREE.Mesh | null, speed: number) => {
-      const map = (mesh?.material as THREE.MeshBasicMaterial | undefined)?.map;
-      if (map) map.rotation += dt * speed;
-    };
-    spin(swirlA.current, -1.6);
-    spin(swirlB.current, 0.9);
 
-    const pulse = 1 + Math.sin(t * 3) * 0.04;
-    if (rim.current) rim.current.scale.set((GATE_WIDTH / 2) * pulse, (GATE_HEIGHT / 2) * pulse, 1);
+    layers.current.forEach((mesh, i) => {
+      const map = (mesh?.material as THREE.MeshBasicMaterial | undefined)?.map;
+      if (map) map.rotation += dt * LAYERS[i].speed;
+    });
+
+    const pulse = 1 + Math.sin(t * 2.6) * 0.05;
+    if (halo.current) halo.current.scale.set(GATE_WIDTH * 2.1 * pulse, GATE_HEIGHT * 1.6 * pulse, 1);
     if (pool.current) pool.current.scale.set(pulse, pulse, 1);
+
+    // motes circling the gate, sweeping in front of and behind it
+    if (orbit.current) {
+      const attribute = orbit.current.geometry.getAttribute("position") as THREE.BufferAttribute;
+      const array = attribute.array as Float32Array;
+      for (let i = 0; i < ORBIT_COUNT; i++) {
+        const angle = assets.orbitPhase[i] + t * (0.9 + (i % 3) * 0.25);
+        array[i * 3] = Math.cos(angle) * GATE_WIDTH * 0.62;
+        array[i * 3 + 1] = Math.sin(angle * 0.5 + assets.orbitPhase[i]) * GATE_HEIGHT * 0.42;
+        array[i * 3 + 2] = Math.sin(angle) * 0.5;
+      }
+      attribute.needsUpdate = true;
+    }
 
     if (!sparks.current) return;
     const attribute = sparks.current.geometry.getAttribute("position") as THREE.BufferAttribute;
@@ -176,33 +209,44 @@ export function Portal({ portal, glow }: { portal: PortalDef; glow: boolean }) {
     color: portal.color,
     side: THREE.DoubleSide,
   } as const;
+  // normal blending on light regions needs more opacity to read as light at all
+  const fade = (portal.hidden ? 0.45 : 1) * (glow ? 1 : 1.9);
 
   return (
     <group position={[portal.x, portal.y ?? 0, portal.z]} scale={portal.hidden ? 0.55 : 1}>
       {/* light pooling on the floor */}
       <mesh ref={pool} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
         <planeGeometry args={[GATE_WIDTH * 1.8, GATE_WIDTH * 1.2]} />
-        <meshBasicMaterial map={assets.glowTexture} {...material} opacity={portal.hidden ? 0.25 : 0.5} />
+        <meshBasicMaterial map={assets.glowTexture} {...material} opacity={0.5 * fade} />
       </mesh>
 
       <group ref={gate} position={[0, GATE_CENTER_Y, 0]}>
-        {/* the swirl, squeezed into an upright oval; two layers turn opposite ways */}
-        <mesh ref={swirlB} scale={[GATE_WIDTH, GATE_HEIGHT, 1]} position={[0, 0, -0.02]}>
-          <circleGeometry args={[0.5, 48]} />
-          <meshBasicMaterial map={assets.swirlBack} {...material} opacity={portal.hidden ? 0.12 : 0.28} />
+        {/* soft halo behind, so the light seems to spill outward */}
+        <mesh ref={halo} position={[0, 0, -0.32]}>
+          <planeGeometry args={[1, 1]} />
+          <meshBasicMaterial map={assets.glowTexture} {...material} opacity={0.32 * fade} />
         </mesh>
-        <mesh ref={swirlA} scale={[GATE_WIDTH * 0.92, GATE_HEIGHT * 0.92, 1]}>
-          <circleGeometry args={[0.5, 48]} />
-          <meshBasicMaterial map={assets.swirl} {...material} opacity={portal.hidden ? 0.2 : 0.45} />
-        </mesh>
-        {/* glowing rim */}
-        <mesh ref={rim} scale={[GATE_WIDTH / 2, GATE_HEIGHT / 2, 1]}>
-          <torusGeometry args={[1, 0.035, 8, 64]} />
-          <meshBasicMaterial {...material} opacity={portal.hidden ? 0.3 : 0.7} />
-        </mesh>
-        {/* rising sparks inside the gate */}
-        <points ref={sparks} geometry={assets.sparkGeometry} position={[0, -GATE_HEIGHT / 2, 0.05]}>
-          <pointsMaterial map={assets.glowTexture} size={0.14} sizeAttenuation {...material} opacity={0.8} />
+        {/* stacked swirl layers, each at its own depth and speed */}
+        {LAYERS.map((layer, i) => (
+          <mesh
+            key={i}
+            ref={(el) => {
+              layers.current[i] = el;
+            }}
+            position={[0, 0, layer.z]}
+            scale={[GATE_WIDTH * layer.scale, GATE_HEIGHT * layer.scale, 1]}
+          >
+            <circleGeometry args={[0.5, 48]} />
+            <meshBasicMaterial map={assets.swirls[i]} {...material} opacity={layer.opacity * fade} />
+          </mesh>
+        ))}
+        {/* motes orbiting the gate in depth */}
+        <points ref={orbit} geometry={assets.orbitGeometry}>
+          <pointsMaterial map={assets.glowTexture} size={0.12} sizeAttenuation {...material} opacity={0.9 * fade} />
+        </points>
+        {/* sparks rising inside the gate */}
+        <points ref={sparks} geometry={assets.sparkGeometry} position={[0, -GATE_HEIGHT / 2, 0]}>
+          <pointsMaterial map={assets.glowTexture} size={0.12} sizeAttenuation {...material} opacity={0.75 * fade} />
         </points>
       </group>
     </group>
