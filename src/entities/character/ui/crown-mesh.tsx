@@ -31,8 +31,8 @@ export function CrownMesh({ kind = "gold" }: { kind?: "gold" | "star" }) {
         const z = Math.sin(angle) * 0.24;
         return kind === "star" ? (
           // little stars instead of spikes, glowing like the night they came from
-          <mesh key={i} position={[x, 0.2, z]} rotation={[0, -angle + Math.PI / 2, 0]} scale={0.075}>
-            <extrudeGeometry args={[STAR_SHAPE, { depth: 0.6, bevelEnabled: false }]} />
+          <mesh key={i} position={[x, 0.2, z]} rotation={[0, -angle + Math.PI / 2, 0]} scale={0.075} geometry={STAR_GEOMETRY}>
+            
             <meshStandardMaterial color={style.tip} emissive={style.tip} emissiveIntensity={0.8} toneMapped={false} />
           </mesh>
         ) : (
@@ -60,3 +60,6 @@ const STAR_SHAPE = (() => {
   shape.closePath();
   return shape;
 })();
+
+/** One star shared by every star crown (built once, never per render). */
+const STAR_GEOMETRY = new THREE.ExtrudeGeometry(STAR_SHAPE, { depth: 0.6, bevelEnabled: false });

@@ -117,7 +117,8 @@ export function CourseCard({ run, isGuest, copy }: { run: CourseRun; isGuest: bo
     return () => clearInterval(timer);
   }, [run.startedAt]);
 
-  const elapsed = run.startedAt !== null ? now - run.startedAt : (run.finishedMs ?? 0);
+  // `now` only ticks during a run: right after a start it can still predate it
+  const elapsed = run.startedAt !== null ? Math.max(0, now - run.startedAt) : (run.finishedMs ?? 0);
   const justFinished = run.finishedMs !== null && run.startedAt === null;
   const night = run.course === "night";
 

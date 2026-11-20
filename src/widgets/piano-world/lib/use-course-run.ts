@@ -79,7 +79,8 @@ export function useCourseRun(onFinish: () => void, initialCourse: CourseId = "cl
   const applyServerRecord = useCallback(
     (record: CourseRecordMessage) => {
       const current = runRef.current;
-      if (record.course !== current.course) return;
+      // only onto the finish it belongs to: not a new run started before it arrived
+      if (record.course !== current.course || current.startedAt !== null || current.finishedMs === null) return;
       commit({
         ...current,
         best: record.best ?? current.best,

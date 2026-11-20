@@ -51,6 +51,12 @@ const DAY = { background: "#fcfbf8", sun: "#ffffff", sky: "#ffffff", ground: "#e
 const DUSK = { background: "#ffd9b8", sun: "#ffb27a", sky: "#ffd0a8", ground: "#c9a890", reflection: "#f2b48a" };
 const NIGHT = { background: "#0d1330", sun: "#9fb0ff", sky: "#3a4a8a", ground: "#141a30", reflection: "#1c2a55" };
 
+/** The shadow light counts as the sun above this elevation (see skyAt: elevation = sin(2π·phase) + 0.25). */
+const DAY_ELEVATION = 0.05;
+/** Cycle phases where that happens: from DAY_START, for DAY_LENGTH of the cycle. */
+const DAY_START = Math.asin(DAY_ELEVATION - 0.25) / (Math.PI * 2);
+const DAY_LENGTH = 0.5 - 2 * DAY_START;
+
 /**
  * The shadow-casting light's direction. The sun crosses from east (+x) to
  * west (−x) on the camera's side of the sky, so shadows fall away up the
@@ -59,9 +65,12 @@ const NIGHT = { background: "#0d1330", sun: "#9fb0ff", sky: "#3a4a8a", ground: "
  * the same arc. Never lower than ~22° so shadows stay readable.
  */
 function lightDirection(phase: number, elevation: number): [number, number, number] {
-  const day = elevation > 0.05;
+  const day = elevation > DAY_ELEVATION;
   // 0 at sunrise/moonrise … 1 at sunset/moonset
-  const arc = day ? (phase + 0.04) / 0.58 : (phase - 0.54 + (phase < 0.54 ? 1 : 0)) / 0.42;
+  // wrap around midnight of the cycle, so the light never jumps across the sky at dawn or dusk
+  const arc = day
+    ? ((phase - DAY_START + 1) % 1) / DAY_LENGTH
+    : ((phase - DAY_START - DAY_LENGTH + 2) % 1) / (1 - DAY_LENGTH);
   const across = Math.cos(Math.min(1, Math.max(0, arc)) * Math.PI); // +1 east … −1 west
   const height = Math.max(0.38, Math.sin(Math.min(1, Math.max(0, arc)) * Math.PI) * 1.25);
   const x = across * 0.9;
