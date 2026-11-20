@@ -204,8 +204,7 @@
         "chordCard": "Draw today's chord",
         "teacher": "Ask for a tip",
         "musicBox": "Write a wish",
-        "jukebox": "Play the jukebox",
-        "jukeboxStop": "Stop the jukebox",
+        "jukebox": "Change the mood on the jukebox",
         "discoBall": "Start the party!"
       },
       "catReactions": [
@@ -243,7 +242,6 @@
       "wishNote": "What you write isn't saved anywhere. Send it and it rises as light.",
       "wishSend": "Send it with the music box",
       "wishSent": "Your wish rises as light",
-      "jukeboxNowPlaying": "Beethoven, Für Elise (public domain)",
       "warpStones": {
         "plaza": "Keyboard Plaza",
         "bridge": "Xylophone Bridge",
@@ -256,7 +254,13 @@
       "warpUse": "Warp",
       "warpWoke": "A warp stone woke up · {name}",
       "warpHere": "You are here",
-      "warpAsleep": "Not found yet"
+      "warpAsleep": "Not found yet",
+      "jukeboxStyle": "The band switches to {style}",
+      "loungeStyles": {
+        "swing": "swing",
+        "bossa": "bossa nova",
+        "ballad": "a ballad"
+      }
     }
   },
   "piano": {

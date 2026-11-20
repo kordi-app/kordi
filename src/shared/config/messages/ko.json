@@ -204,8 +204,7 @@
         "chordCard": "오늘의 코드 뽑기",
         "teacher": "선생님께 팁 듣기",
         "musicBox": "오르골에 소원 적기",
-        "jukebox": "주크박스 틀기",
-        "jukeboxStop": "주크박스 끄기",
+        "jukebox": "주크박스로 분위기 바꾸기",
         "discoBall": "파티 시작!"
       },
       "catReactions": [
@@ -243,7 +242,6 @@
       "wishNote": "적은 내용은 어디에도 저장되지 않아요. 보내면 빛이 되어 하늘로 올라가요.",
       "wishSend": "오르골에 담아 보내기",
       "wishSent": "소원이 빛이 되어 올라가요",
-      "jukeboxNowPlaying": "베토벤 「엘리제를 위하여」 (퍼블릭 도메인)",
       "warpStones": {
         "plaza": "건반 광장",
         "bridge": "실로폰 다리",
@@ -256,7 +254,13 @@
       "warpUse": "워프석으로 이동",
       "warpWoke": "워프석이 깨어났어요 · {name}",
       "warpHere": "지금 여기",
-      "warpAsleep": "아직 찾지 못했어요"
+      "warpAsleep": "아직 찾지 못했어요",
+      "jukeboxStyle": "밴드가 {style} 연주해요",
+      "loungeStyles": {
+        "swing": "스윙으로",
+        "bossa": "보사노바로",
+        "ballad": "발라드로"
+      }
     }
   },
   "piano": {

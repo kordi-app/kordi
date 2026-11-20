@@ -493,7 +493,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
           case "musicBox":
             return <MusicBox key={item.id} item={item} playing={interaction.musicBoxPlaying} />;
           case "jukebox":
-            return <Jukebox key={item.id} item={item} playing={interaction.jukeboxPlaying} />;
+            return <Jukebox key={item.id} item={item} playing />;
           case "discoBall":
             return <DiscoBall key={item.id} item={item} party={interaction.party} />;
         }

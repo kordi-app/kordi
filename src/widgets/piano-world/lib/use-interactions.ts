@@ -5,7 +5,8 @@ import { CHORD_CARD_COUNT, chordCard, type ChordCard } from "../model/chord-card
 import type { PianoWorldCopy } from "../model/copy";
 import type { InteractableId } from "../model/interactables";
 import type { WarpStoneId } from "../model/island";
-import { FUR_ELISE, MUSIC_BOX, playSequence } from "../model/sequencer";
+import { MUSIC_BOX, playSequence } from "../model/sequencer";
+import { nextLoungeStyle } from "./lounge-band";
 
 /** Overlay panels opened by interactables */
 export type Panel =
@@ -19,7 +20,6 @@ export interface InteractionScene {
   petting: boolean;
   party: boolean;
   musicBoxPlaying: boolean;
-  jukeboxPlaying: boolean;
   /** bumped to fire hearts over the cat */
   hearts: number;
   /** bumped to send a lantern up from the music box */
@@ -52,7 +52,6 @@ export function useInteractions(copy: PianoWorldCopy, audio: AudioApi, onCelebra
     petting: false,
     party: false,
     musicBoxPlaying: false,
-    jukeboxPlaying: false,
     hearts: 0,
     lantern: 0,
   });
@@ -91,7 +90,7 @@ export function useInteractions(copy: PianoWorldCopy, audio: AudioApi, onCelebra
   const stopMusic = useCallback(() => {
     stopTune.current?.();
     stopTune.current = null;
-    patch({ jukeboxPlaying: false, musicBoxPlaying: false });
+    patch({ musicBoxPlaying: false });
   }, [patch]);
 
   const strum = useCallback((midi: number[]) => audio.chime(midi, 0.55, 90, 2200), [audio]);
@@ -119,18 +118,12 @@ export function useInteractions(copy: PianoWorldCopy, audio: AudioApi, onCelebra
         case "musicBox":
           setPanel({ kind: "wish" });
           break;
-        case "jukebox":
-          if (stopTune.current) {
-            stopMusic();
-          } else {
-            patch({ jukeboxPlaying: true });
-            stopTune.current = playSequence(FUR_ELISE, 132, 0.55, () => {
-              stopTune.current = null;
-              patch({ jukeboxPlaying: false });
-            });
-            say(copy.jukeboxNowPlaying);
-          }
+        case "jukebox": {
+          // the lounge's band changes what it plays: swing → bossa nova → ballad
+          const style = nextLoungeStyle();
+          say(copy.jukeboxStyle.replace("{style}", copy.loungeStyles[style]));
           break;
+        }
         case "discoBall":
           patch({ party: true });
           onCelebrate();
@@ -138,7 +131,7 @@ export function useInteractions(copy: PianoWorldCopy, audio: AudioApi, onCelebra
           break;
       }
     },
-    [after, audio, copy, onCelebrate, patch, say, setPanel, stopMusic, strum],
+    [after, audio, copy, onCelebrate, patch, say, setPanel, strum],
   );
 
   /** The wish text is never sent or stored — it only ever lived in the panel's textarea. */

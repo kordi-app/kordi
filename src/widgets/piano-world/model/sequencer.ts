@@ -39,16 +39,6 @@ export function playSequence(steps: Step[], bpm: number, velocity = 0.6, onEnd?:
   };
 }
 
-/** Beethoven, Für Elise — opening (public domain). */
-export const FUR_ELISE: Step[] = [
-  [76, 0.5], [75, 0.5], [76, 0.5], [75, 0.5], [76, 0.5], [71, 0.5], [74, 0.5], [72, 0.5], [69, 1.5],
-  [60, 0.5], [64, 0.5], [69, 0.5], [71, 1.5],
-  [64, 0.5], [68, 0.5], [71, 0.5], [72, 1.5],
-  [64, 0.5], [76, 0.5], [75, 0.5], [76, 0.5], [75, 0.5], [76, 0.5], [71, 0.5], [74, 0.5], [72, 0.5], [69, 1.5],
-  [60, 0.5], [64, 0.5], [69, 0.5], [71, 1.5],
-  [64, 0.5], [72, 0.5], [71, 0.5], [69, 2],
-];
-
 /** Twinkle Twinkle up high, plucked like a music box (traditional, public domain). */
 export const MUSIC_BOX: Step[] = [
   [84, 1], [84, 1], [91, 1], [91, 1], [93, 1], [93, 1], [91, 2],

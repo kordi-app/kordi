@@ -52,17 +52,15 @@ export function SpeechBubble({ text }: { text: string | null }) {
 /** "E — Pet the cat": also a tap target on touch screens. */
 export function InteractPrompt({
   nearby,
-  jukeboxPlaying,
   onInteract,
   copy,
 }: {
   nearby: InteractableId | null;
-  jukeboxPlaying: boolean;
   onInteract: (id: InteractableId) => void;
   copy: PianoWorldCopy;
 }) {
   if (!nearby) return null;
-  const label = copy.interact[nearby === "jukebox" && jukeboxPlaying ? "jukeboxStop" : nearby];
+  const label = copy.interact[nearby];
   return (
     <button
       type="button"

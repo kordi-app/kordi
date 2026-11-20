@@ -1,3 +1,4 @@
+import type { LoungeStyle } from "../lib/lounge-band";
 import type { ChordCardKey } from "./chord-cards";
 import type { EmoteId, InteractableId } from "./interactables";
 import type { Melody } from "./melodies";
@@ -15,7 +16,7 @@ export interface PianoWorldCopy {
   regions: Record<RegionId, string>;
   // emotes & interactables
   emotes: Record<EmoteId, string>;
-  interact: Record<InteractableId | "jukeboxStop", string>;
+  interact: Record<InteractableId, string>;
   catReactions: string[];
   teacherTips: string[];
   cards: Record<ChordCardKey, string>;
@@ -27,7 +28,9 @@ export interface PianoWorldCopy {
   wishNote: string;
   wishSend: string;
   wishSent: string;
-  jukeboxNowPlaying: string;
+  /** "{style}" is filled in: what the lounge band switched to */
+  jukeboxStyle: string;
+  loungeStyles: Record<LoungeStyle, string>;
   // melody game
   melodies: Record<Melody["key"], string>;
   melodyNext: string;

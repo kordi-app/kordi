@@ -264,7 +264,6 @@ export default function PianoWorldScene({
       {panel ? null : interactions.nearby ? (
         <InteractPrompt
           nearby={interactions.nearby}
-          jukeboxPlaying={interactions.scene.jukeboxPlaying}
           onInteract={interact}
           copy={copy}
         />

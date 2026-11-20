@@ -77,6 +77,12 @@ export function walkingBar(h: Harmony, next: Harmony): number[] {
   return [root, root + third, root + fifth, approach];
 }
 
+/** Root and fifth of the chord, low (for bossa and ballad bass lines). */
+export function rootAndFifth(h: Harmony): [number, number] {
+  const root = fold(h.root, 28);
+  return [root, root + QUALITIES[h.quality][1]];
+}
+
 /** The melody stays in a comfortable singing range. */
 const LOW = 62; // D4
 const HIGH = 79; // G5
@@ -94,10 +100,14 @@ function nearest(pc: number, near: number) {
 }
 
 /**
- * The line you play: each step is one note that fits the chord the band is on.
- * A new chord → its guide tone (smooth voice leading); otherwise a walk along
- * the key's scale with the odd turn and leap; on the last beat before a change,
- * often a half-step approach into the next guide tone. `random` is injectable for tests.
+ * The line you play. Each step is a short phrase (one note, now and then two)
+ * that fits the chord the band is on, so any key you step on sounds like jazz:
+ * - a new chord → its guide tone (smooth voice leading)
+ * - strong beats (1 and 3) → a chord tone; weak beats → a scale step
+ * - sometimes a bebop "enclosure": the note above, then the target
+ * - sometimes a blue note (♭3 or ♭5) bent back to the chord
+ * - just before a change, often a half-step approach into the next guide tone
+ * `random` is injectable for tests.
  */
 export function createImproviser(random: () => number = Math.random) {
   let note = 69; // A4
@@ -109,25 +119,52 @@ export function createImproviser(random: () => number = Math.random) {
     while (!MAJOR_SCALE.includes((((midi - key) % 12) + 12) % 12)) midi += dir;
     return midi;
   };
+  /** the chord tone (3rd, 5th, 7th or 9th) nearest to `from`, one step along `dir` */
+  const chordToneStep = (from: number, dir: number, h: Harmony) => {
+    const tones = QUALITIES[h.quality].map((interval) => (h.root + interval) % 12);
+    let midi = from + dir;
+    while (!tones.includes(((midi % 12) + 12) % 12)) midi += dir;
+    return midi;
+  };
+  const clamp = (midi: number) => Math.max(LOW, Math.min(HIGH, midi));
 
   return {
-    /** `now` is the band's harmony, `next` the one coming; `beatsLeft` until it changes. */
-    next(now: Harmony, next: Harmony, beatsLeft: number): number {
+    /**
+     * `now` is the band's harmony, `next` the one coming; `beat` is 0–3 in the
+     * bar and `beatsLeft` the beats until the chord changes. Returns 1–2 notes
+     * (a second one lands an eighth later).
+     */
+    next(now: Harmony, next: Harmony, beat: number, beatsLeft: number): number[] {
       const symbol = chordSymbol(now);
       if (symbol !== lastChord) {
         lastChord = symbol;
         note = nearest((now.key + CHORDS[now.degree].guide) % 12, note);
-      } else if (beatsLeft <= 1 && chordSymbol(next) !== symbol && random() < 0.6) {
-        note = nearest((next.key + CHORDS[next.degree].guide) % 12, note) - 1;
-      } else {
-        if (note >= HIGH - 2) direction = -1;
-        else if (note <= LOW + 2) direction = 1;
-        else if (random() < 0.3) direction = -direction;
-        note = scaleStep(note, direction, now.key);
-        if (random() < 0.2) note = scaleStep(note, direction, now.key); // the odd leap of a third
+        return [note];
       }
-      note = Math.max(LOW, Math.min(HIGH, note));
-      return note;
+      if (beatsLeft <= 1 && chordSymbol(next) !== symbol && random() < 0.6) {
+        note = nearest((next.key + CHORDS[next.degree].guide) % 12, note) - 1;
+        return [clamp(note)];
+      }
+      if (note >= HIGH - 3) direction = -1;
+      else if (note <= LOW + 3) direction = 1;
+      else if (random() < 0.3) direction = -direction;
+
+      const strong = beat % 2 === 0;
+      const target = clamp(strong ? chordToneStep(note, direction, now) : scaleStep(note, direction, now.key));
+      const roll = random();
+      if (roll < 0.18) {
+        // bebop enclosure: the scale note above, then the target
+        note = target;
+        return [clamp(scaleStep(target, 1, now.key)), target];
+      }
+      if (roll < 0.28 && now.degree !== "ii") {
+        // a blue note, resolving to the chord tone a half step away
+        const blue = nearest((now.key + (random() < 0.5 ? 3 : 6)) % 12, target);
+        note = clamp(blue + 1);
+        return [clamp(blue), note];
+      }
+      note = target;
+      return [note];
     },
   };
 }

@@ -1,16 +1,75 @@
 import * as Tone from "tone";
-import { compVoicing, createImproviser, harmonyAt, walkingBar } from "../model/standards";
+import { compVoicing, createImproviser, harmonyAt, rootAndFifth, walkingBar, type Harmony } from "../model/standards";
 
 /**
- * The lounge's jazz trio, all synthesized: swing ride and hi-hat, a walking
- * bass, and Rhodes comping round ii–V–I in every key — and a vibraphone that
- * plays your line, one note per step, landing on the next swung eighth.
+ * The lounge's jazz trio, all synthesized, round ii–V–I in every key — and a
+ * vibraphone that plays your line, one note per step, on the next eighth.
+ * The jukebox switches what the band plays: swing, bossa nova or a ballad.
  *
  * One band at a time; start() is idempotent and stop() frees everything.
  */
-const BPM = 112;
+export type LoungeStyle = "swing" | "bossa" | "ballad";
+export const LOUNGE_STYLES: readonly LoungeStyle[] = ["swing", "bossa", "ballad"];
+
+/** A note in a bar: where (bar-relative transport time), how long, how hard. */
+type Hit = [at: string, duration: string, velocity: number];
+/** A bass note: where, which (from the bar's harmony), how long. */
+type BassHit = [at: string, pick: (h: Harmony, next: Harmony) => number, duration: string];
+
+interface StyleDef {
+  bpm: number;
+  swing: number;
+  /** the cymbal (ride wash) */
+  cymbal: Hit[];
+  /** the hi-hat / shaker */
+  hat: Hit[];
+  /** a woody rim click (bossa's clave) */
+  rim: Hit[];
+  bass: BassHit[];
+  comp: Hit[];
+}
+
+const walk = (beat: number) => (h: Harmony, next: Harmony) => walkingBar(h, next)[beat];
+const root = (h: Harmony) => rootAndFifth(h)[0];
+const fifth = (h: Harmony) => rootAndFifth(h)[1];
+
+const STYLES: Record<LoungeStyle, StyleDef> = {
+  swing: {
+    bpm: 112,
+    swing: 0.55,
+    // "ding, ding-a, ding, ding-a"
+    cymbal: [["0:0", "16n", 0.6], ["0:1", "16n", 0.6], ["0:1:2", "32n", 0.35], ["0:2", "16n", 0.6], ["0:3", "16n", 0.6], ["0:3:2", "32n", 0.35]],
+    hat: [["0:1", "32n", 1], ["0:3", "32n", 1]],
+    rim: [],
+    // walking: a note a beat, approaching the next chord
+    bass: [0, 1, 2, 3].map((beat): BassHit => [`0:${beat}`, walk(beat), "8n"]),
+    // the Charleston: on 1 and on the "and" of 2
+    comp: [["0:0", "4n", 0.55], ["0:1:2", "8n", 0.45]],
+  },
+  bossa: {
+    bpm: 132,
+    swing: 0,
+    cymbal: [],
+    // shaker eighths, leaning on the off-beats
+    hat: [0, 1, 2, 3].flatMap((beat): Hit[] => [[`0:${beat}`, "32n", 0.45], [`0:${beat}:2`, "32n", 0.8]]),
+    rim: [["0:0", "32n", 0.8], ["0:1:2", "32n", 0.7], ["0:3", "32n", 0.7]],
+    // root and fifth, each anticipated by an eighth
+    bass: [["0:0", root, "4n."], ["0:1:2", fifth, "8n"], ["0:2", fifth, "4n."], ["0:3:2", root, "8n"]],
+    comp: [["0:0", "8n", 0.45], ["0:1:2", "8n", 0.4], ["0:3", "8n", 0.4]],
+  },
+  ballad: {
+    bpm: 68,
+    swing: 0.6,
+    cymbal: [["0:0", "8n", 0.35], ["0:2", "8n", 0.3]],
+    hat: [["0:1", "32n", 0.6], ["0:3", "32n", 0.6]],
+    rim: [],
+    bass: [["0:0", root, "2n"], ["0:2", fifth, "2n"]],
+    comp: [["0:0", "2n.", 0.42], ["0:3:2", "8n", 0.3]],
+  },
+};
+
 /** Levels, set so the band plus your line sits around the piano's loudness (K-weighted RMS). */
-const LEVELS = { ride: -30, hat: -32, bass: -14, comp: -20, vibes: -10 };
+const LEVELS = { cymbal: -30, hat: -32, rim: -26, bass: -14, comp: -20, vibes: -10 };
 
 interface Band {
   nodes: Tone.ToneAudioNode[];
@@ -20,31 +79,37 @@ interface Band {
 }
 
 let band: Band | null = null;
+let style: LoungeStyle = "swing";
 
-/** Bar and beat (0-based) the transport is on right now. */
-function where() {
-  const [bars, beats] = String(Tone.getTransport().position).split(":").map(Number);
-  return { bar: bars, beat: Math.floor(beats) };
-}
+const note = (midi: number) => Tone.Frequency(midi, "midi").toNote();
+/** The bar (0-based) a transport time falls in. */
+const barAt = (time: number) => {
+  const transport = Tone.getTransport();
+  return Math.floor(transport.getTicksAtTime(time) / (transport.PPQ * 4));
+};
 
-/** Start the band (once audio has been started by a gesture). */
+/** Start the band in the current style (once audio has been started by a gesture). */
 export function startLoungeBand() {
   if (band || Tone.getContext().state !== "running") return;
+  const def = STYLES[style];
   const transport = Tone.getTransport();
-  transport.bpm.value = BPM;
-  transport.swing = 0.55;
+  transport.bpm.value = def.bpm;
+  transport.swing = def.swing;
   transport.swingSubdivision = "8n";
 
-  // ride: "ding, ding-a, ding, ding-a" — a shimmering wash of filtered noise with a long tail
+  // cymbal: a shimmering wash of filtered noise with a long tail
   // (MetalSynth throws when retriggered on a repeating schedule, so noise it is)
-  const rideTone = new Tone.Filter({ type: "bandpass", frequency: 8500, Q: 1.4 }).toDestination();
-  const ride = new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.55, sustain: 0 } }).connect(rideTone);
-  ride.volume.value = LEVELS.ride;
+  const cymbalTone = new Tone.Filter({ type: "bandpass", frequency: 8500, Q: 1.4 }).toDestination();
+  const cymbal = new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.55, sustain: 0 } }).connect(cymbalTone);
+  cymbal.volume.value = LEVELS.cymbal;
 
-  // hi-hat foot on 2 and 4
-  const hatFilter = new Tone.Filter({ type: "highpass", frequency: 6000 }).toDestination();
-  const hat = new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.04, sustain: 0 } }).connect(hatFilter);
+  const hatTone = new Tone.Filter({ type: "highpass", frequency: 6000 }).toDestination();
+  const hat = new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.04, sustain: 0 } }).connect(hatTone);
   hat.volume.value = LEVELS.hat;
+
+  // a dry, woody click
+  const rim = new Tone.MembraneSynth({ pitchDecay: 0.008, octaves: 1.5, envelope: { attack: 0.001, decay: 0.06, sustain: 0 } }).toDestination();
+  rim.volume.value = LEVELS.rim;
 
   // upright-ish bass: a plucked, rounded tone
   const bass = new Tone.MonoSynth({
@@ -84,36 +149,30 @@ export function startLoungeBand() {
   vibes.connect(vibesTrem);
   vibes.volume.value = LEVELS.vibes;
 
+  // each part's hits repeat every bar, at their place in it
+  const every = (at: string, play: (time: number) => void) => transport.scheduleRepeat(play, "1m", at);
   const events = [
-    // ride on every beat, plus the swung "a" after 2 and 4
-    transport.scheduleRepeat((time) => ride.triggerAttackRelease("16n", time, 0.6), "4n", 0),
-    transport.scheduleRepeat((time) => ride.triggerAttackRelease("32n", time, 0.35), "2n", "0:1:2"),
-    transport.scheduleRepeat((time) => hat.triggerAttackRelease("32n", time), "2n", "0:1"),
-    // walking bass: a bar's line, one note per beat
-    transport.scheduleRepeat(
-      (time) => {
-        const { bar } = where();
-        walkingBar(harmonyAt(bar), harmonyAt(bar + 1)).forEach((midi, beat) =>
-          bass.triggerAttackRelease(Tone.Frequency(midi, "midi").toNote(), "8n", time + beat * Tone.Time("4n").toSeconds(), 0.85),
-        );
-      },
-      "1m",
-      0,
+    ...def.cymbal.map(([at, d, v]) => every(at, (t) => cymbal.triggerAttackRelease(d, t, v))),
+    ...def.hat.map(([at, d, v]) => every(at, (t) => hat.triggerAttackRelease(d, t, v))),
+    ...def.rim.map(([at, d, v]) => every(at, (t) => rim.triggerAttackRelease("G5", d, t, v))),
+    ...def.bass.map(([at, pick, d]) =>
+      every(at, (t) => {
+        const bar = barAt(t);
+        bass.triggerAttackRelease(note(pick(harmonyAt(bar), harmonyAt(bar + 1))), d, t, 0.85);
+      }),
     ),
-    // comping: the Charleston — on 1, and on the "and" of 2
-    transport.scheduleRepeat(
-      (time) => {
-        const notes = compVoicing(harmonyAt(where().bar)).map((m) => Tone.Frequency(m, "midi").toNote());
-        comp.triggerAttackRelease(notes, "4n", time, 0.55);
-        comp.triggerAttackRelease(notes, "8n", time + Tone.Time("0:1:2").toSeconds(), 0.45);
-      },
-      "1m",
-      0,
+    ...def.comp.map(([at, d, v]) =>
+      every(at, (t) => comp.triggerAttackRelease(compVoicing(harmonyAt(barAt(t))).map(note), d, t, v)),
     ),
   ];
 
   transport.start("+0.05");
-  band = { nodes: [ride, rideTone, hat, hatFilter, bass, comp, compTrem, vibes, vibesTrem, vibesRoom], events, vibes, improviser: createImproviser() };
+  band = {
+    nodes: [cymbal, cymbalTone, hat, hatTone, rim, bass, comp, compTrem, vibes, vibesTrem, vibesRoom],
+    events,
+    vibes,
+    improviser: createImproviser(),
+  };
 }
 
 /** Stop the band and free its synths. */
@@ -130,17 +189,35 @@ export function stopLoungeBand() {
 
 export const isLoungeBandPlaying = () => band !== null;
 
+/** The jukebox: switch to the next style (restarting the band in it, if it's playing). */
+export function nextLoungeStyle(): LoungeStyle {
+  style = LOUNGE_STYLES[(LOUNGE_STYLES.indexOf(style) + 1) % LOUNGE_STYLES.length];
+  if (band) {
+    stopLoungeBand();
+    startLoungeBand();
+  }
+  return style;
+}
+
 /**
- * Your step: the improviser picks a note for the chord the band is on, and
- * the vibraphone plays it on the next (swung) eighth. Returns the note.
+ * Your step: the improviser picks a short phrase for the chord the band is on,
+ * and the vibraphone plays it from the next eighth (swung when the style
+ * swings). Returns the phrase's last note.
  */
 export function playLoungeStep(velocity = 0.75): number | null {
   if (!band) return null;
-  const { bar, beat } = where();
-  const midi = band.improviser.next(harmonyAt(bar), harmonyAt(bar + 1), 4 - beat);
+  const transport = Tone.getTransport();
+  const ticks = transport.ticks;
+  const bar = Math.floor(ticks / (transport.PPQ * 4));
+  const beat = Math.floor(ticks / transport.PPQ) % 4;
+  // the I lasts two bars: count the beats to the real change
+  const beatsLeft = (harmonyAt(bar + 1).degree === harmonyAt(bar).degree ? 8 : 4) - beat;
+  const phrase = band.improviser.next(harmonyAt(bar), harmonyAt(bar + 1), beat, beatsLeft);
   const { vibes } = band;
-  Tone.getTransport().scheduleOnce((time) => {
-    vibes.triggerAttackRelease(Tone.Frequency(midi, "midi").toNote(), "8n", time, velocity);
+  transport.scheduleOnce((time) => {
+    phrase.forEach((midi, i) =>
+      vibes.triggerAttackRelease(note(midi), "8n", time + i * Tone.Time("8n").toSeconds(), velocity * (i ? 0.85 : 1)),
+    );
   }, "@8n");
-  return midi;
+  return phrase[phrase.length - 1];
 }
