@@ -111,62 +111,62 @@
 
 /* Light mode (Lovable Cream System — primary theme) */
 :root {
-  --background: #f7f4ed;
-  --foreground: #2a2521;
-  --card: #fcfbf8;
-  --card-foreground: #2a2521;
-  --popover: #fcfbf8;
-  --popover-foreground: #2a2521;
+  --background: #f5f4f1;
+  --foreground: #252422;
+  --card: #fbfaf8;
+  --card-foreground: #252422;
+  --popover: #fbfaf8;
+  --popover-foreground: #252422;
 
-  --primary: #2f2b27;
-  --primary-foreground: #fcfbf8;
-  --secondary: #efebe2;
-  --secondary-foreground: rgba(42, 37, 33, 0.82);
-  --muted: #f4f1e9;
-  --muted-foreground: #6a625b;
-  --accent: #efebe2;
-  --accent-foreground: #2a2521;
+  --primary: #252422;
+  --primary-foreground: #fbfaf8;
+  --secondary: #ebe9e5;
+  --secondary-foreground: rgba(37, 36, 34, 0.82);
+  --muted: #f0efeb;
+  --muted-foreground: #6b6965;
+  --accent: #ebe9e5;
+  --accent-foreground: #252422;
   --destructive: #b3372c;
 
-  --border: #eceae4;
-  --input: rgba(42, 37, 33, 0.4);
-  --ring: rgba(42, 37, 33, 0.25);
+  --border: #e4e2dd;
+  --input: rgba(37, 36, 34, 0.4);
+  --ring: rgba(37, 36, 34, 0.25);
 
-  --chart-1: #2a2521;
-  --chart-2: #6a625b;
-  --chart-3: #8c8478;
+  --chart-1: #252422;
+  --chart-2: #6b6965;
+  --chart-3: #8a8781;
   --chart-4: #2f7a55;
   --chart-5: #b26a00;
 
   --radius: 0.375rem;
 
-  --sidebar: #f4f1e9;
-  --sidebar-foreground: #2a2521;
-  --sidebar-primary: #2f2b27;
-  --sidebar-primary-foreground: #fcfbf8;
-  --sidebar-accent: #efebe2;
-  --sidebar-accent-foreground: #2a2521;
-  --sidebar-border: #eceae4;
-  --sidebar-ring: rgba(59, 130, 246, 0.5);
+  --sidebar: #f0efeb;
+  --sidebar-foreground: #252422;
+  --sidebar-primary: #252422;
+  --sidebar-primary-foreground: #fbfaf8;
+  --sidebar-accent: #ebe9e5;
+  --sidebar-accent-foreground: #252422;
+  --sidebar-border: #e4e2dd;
+  --sidebar-ring: rgba(37, 36, 34, 0.25);
 
-  /* Lovable tokens — grays are #2a2521 at varying opacity, not arbitrary hexes */
-  --brand: #2f2b27;
-  --brand-hover: rgba(42, 37, 33, 0.82);
-  --brand-accent: #6a625b;
+  /* Lovable tokens — grays are #252422 at varying opacity, not arbitrary hexes */
+  --brand: #252422;
+  --brand-hover: rgba(37, 36, 34, 0.82);
+  --brand-accent: #6b6965;
 
-  --surface: #f7f4ed;
-  --surface-container-lowest: #fcfbf8;
-  --surface-container-low: #f4f1e9;
-  --surface-container: #efebe2;
-  --surface-container-high: #eceae4;
-  --surface-container-highest: #e4e0d6;
+  --surface: #f5f4f1;
+  --surface-container-lowest: #fbfaf8;
+  --surface-container-low: #f0efeb;
+  --surface-container: #ebe9e5;
+  --surface-container-high: #e4e2dd;
+  --surface-container-highest: #dcdad4;
 
-  --on-surface: #2a2521;
-  --on-surface-variant: #6a625b;
-  --on-secondary-container: #6a625b;
+  --on-surface: #252422;
+  --on-surface-variant: #6b6965;
+  --on-secondary-container: #6b6965;
 
-  --outline: #8c8478;
-  --outline-variant: #eceae4;
+  --outline: #8a8781;
+  --outline-variant: #e4e2dd;
 
   /* Functional states stay legible on cream — muted/earthy, not saturated.
      The quiz depends on correct/incorrect reading instantly, so these keep
@@ -179,54 +179,54 @@
 /* Dark mode mirrors light: the Lovable system is light-native (the source
    design has no dark mode at all) and kordi ships no theme toggle. */
 .dark {
-  --background: #f7f4ed;
-  --foreground: #2a2521;
-  --card: #fcfbf8;
-  --card-foreground: #2a2521;
-  --popover: #fcfbf8;
-  --popover-foreground: #2a2521;
+  --background: #f5f4f1;
+  --foreground: #252422;
+  --card: #fbfaf8;
+  --card-foreground: #252422;
+  --popover: #fbfaf8;
+  --popover-foreground: #252422;
 
-  --primary: #2f2b27;
-  --primary-foreground: #fcfbf8;
-  --secondary: #efebe2;
-  --secondary-foreground: rgba(42, 37, 33, 0.82);
-  --muted: #f4f1e9;
-  --muted-foreground: #6a625b;
-  --accent: #efebe2;
-  --accent-foreground: #2a2521;
+  --primary: #252422;
+  --primary-foreground: #fbfaf8;
+  --secondary: #ebe9e5;
+  --secondary-foreground: rgba(37, 36, 34, 0.82);
+  --muted: #f0efeb;
+  --muted-foreground: #6b6965;
+  --accent: #ebe9e5;
+  --accent-foreground: #252422;
   --destructive: #b3372c;
 
-  --border: #eceae4;
-  --input: rgba(42, 37, 33, 0.4);
-  --ring: rgba(42, 37, 33, 0.25);
+  --border: #e4e2dd;
+  --input: rgba(37, 36, 34, 0.4);
+  --ring: rgba(37, 36, 34, 0.25);
 
-  --sidebar: #f4f1e9;
-  --sidebar-foreground: #2a2521;
-  --sidebar-primary: #2f2b27;
-  --sidebar-primary-foreground: #fcfbf8;
-  --sidebar-accent: #efebe2;
-  --sidebar-accent-foreground: #2a2521;
-  --sidebar-border: #eceae4;
-  --sidebar-ring: rgba(59, 130, 246, 0.5);
+  --sidebar: #f0efeb;
+  --sidebar-foreground: #252422;
+  --sidebar-primary: #252422;
+  --sidebar-primary-foreground: #fbfaf8;
+  --sidebar-accent: #ebe9e5;
+  --sidebar-accent-foreground: #252422;
+  --sidebar-border: #e4e2dd;
+  --sidebar-ring: rgba(37, 36, 34, 0.25);
 
-  /* Lovable tokens — grays are #2a2521 at varying opacity, not arbitrary hexes */
-  --brand: #2f2b27;
-  --brand-hover: rgba(42, 37, 33, 0.82);
-  --brand-accent: #6a625b;
+  /* Lovable tokens — grays are #252422 at varying opacity, not arbitrary hexes */
+  --brand: #252422;
+  --brand-hover: rgba(37, 36, 34, 0.82);
+  --brand-accent: #6b6965;
 
-  --surface: #f7f4ed;
-  --surface-container-lowest: #fcfbf8;
-  --surface-container-low: #f4f1e9;
-  --surface-container: #efebe2;
-  --surface-container-high: #eceae4;
-  --surface-container-highest: #e4e0d6;
+  --surface: #f5f4f1;
+  --surface-container-lowest: #fbfaf8;
+  --surface-container-low: #f0efeb;
+  --surface-container: #ebe9e5;
+  --surface-container-high: #e4e2dd;
+  --surface-container-highest: #dcdad4;
 
-  --on-surface: #2a2521;
-  --on-surface-variant: #6a625b;
-  --on-secondary-container: #6a625b;
+  --on-surface: #252422;
+  --on-surface-variant: #6b6965;
+  --on-secondary-container: #6b6965;
 
-  --outline: #8c8478;
-  --outline-variant: #eceae4;
+  --outline: #8a8781;
+  --outline-variant: #e4e2dd;
 
   /* Functional states stay legible on cream — muted/earthy, not saturated.
      The quiz depends on correct/incorrect reading instantly, so these keep
@@ -433,15 +433,15 @@
 }
 
 @utility neon-glow {
-  box-shadow: 0 0 0 1px rgba(42, 37, 33, 0.12);
+  box-shadow: 0 0 0 1px rgba(37, 36, 34, 0.12);
 }
 
 @utility neon-glow-sm {
-  box-shadow: 0 0 0 1px rgba(42, 37, 33, 0.08);
+  box-shadow: 0 0 0 1px rgba(37, 36, 34, 0.08);
 }
 
 @utility neon-border {
-  border-color: rgba(42, 37, 33, 0.4);
+  border-color: rgba(37, 36, 34, 0.4);
 }
 
 /* ─────────────────────────────────────────────────────────────

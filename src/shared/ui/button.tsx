@@ -24,12 +24,12 @@ const buttonVariants = cva(
       variant: {
         /** The main action: charcoal with a soft inset edge */
         default:
-          "bg-primary text-primary-foreground shadow-[inset_0_0.5px_0_rgba(255,255,255,0.18),0_1px_2px_rgba(42,37,33,0.12)] hover:bg-[#3d3833]",
+          "bg-primary text-primary-foreground shadow-[inset_0_0.5px_0_rgba(255,255,255,0.18),0_1px_2px_rgba(37, 36, 34,0.12)] hover:bg-[#3a3936]",
         /** A quieter filled action */
-        secondary: "bg-secondary text-foreground hover:bg-[#e6e0d4] aria-expanded:bg-[#e6e0d4]",
+        secondary: "bg-secondary text-foreground hover:bg-[#e3e1dc] aria-expanded:bg-[#e3e1dc]",
         /** Secondary action on a surface */
         outline:
-          "border-[rgba(42,37,33,0.16)] bg-card text-foreground hover:border-[rgba(42,37,33,0.26)] hover:bg-accent aria-expanded:bg-accent",
+          "border-[rgba(37, 36, 34,0.16)] bg-card text-foreground hover:border-[rgba(37, 36, 34,0.26)] hover:bg-accent aria-expanded:bg-accent",
         /** Inline / low-emphasis action */
         ghost: "text-foreground/80 hover:bg-accent hover:text-foreground aria-expanded:bg-accent",
         /** Irreversible action (usually the confirm step) */
