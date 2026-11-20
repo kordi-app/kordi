@@ -249,7 +249,7 @@ export default function PianoWorldScene({
         )}
       />
 
-      <RegionLabel region={region} copy={copy} song={audio.song} />
+      <RegionLabel region={region} copy={copy} />
       {region.island ? <ZoneBanner name={zone ? copy.warpStones[zone] : null} /> : null}
       {region.feature === "melody" && nearKeys ? (
         <MelodyCard melody={melody.melody} progress={melody.progress} copy={copy} />

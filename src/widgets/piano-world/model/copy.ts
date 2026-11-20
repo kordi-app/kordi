@@ -2,7 +2,7 @@ import type { ChordCardKey } from "./chord-cards";
 import type { EmoteId, InteractableId } from "./interactables";
 import type { Melody } from "./melodies";
 import type { WarpStoneId } from "./island";
-import type { RegionFeature, RegionId } from "./regions";
+import type { RegionId } from "./regions";
 
 /** All user-facing text for the piano world, resolved by the page from i18n. */
 export interface PianoWorldCopy {
@@ -13,7 +13,6 @@ export interface PianoWorldCopy {
   nameNouns: string[];
   // places
   regions: Record<RegionId, string>;
-  features: Record<Exclude<RegionFeature, "melody" | "course">, string>;
   // emotes & interactables
   emotes: Record<EmoteId, string>;
   interact: Record<InteractableId | "jukeboxStop", string>;

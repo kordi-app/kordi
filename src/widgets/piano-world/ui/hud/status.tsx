@@ -10,33 +10,13 @@ import type { AudioState } from "../../lib/use-world-audio";
 const CHIP = "rounded-full border border-border bg-card/90 shadow-sm";
 const MAX_LISTED = 8;
 
-/** Top-left: where you are, and what this place is about. */
-export function RegionLabel({
-  region,
-  copy,
-  song,
-}: {
-  region: RegionDef;
-  copy: PianoWorldCopy;
-  /** the lounge's tune, credited under the description */
-  song?: { title: string; composer: string; year: number };
-}) {
-  const feature = region.feature === "melody" || region.feature === "course" ? null : region.feature;
+/** Top-left: where you are. */
+export function RegionLabel({ region, copy }: { region: RegionDef; copy: PianoWorldCopy }) {
   return (
     <div className="pointer-events-none absolute left-0 top-0 p-5 md:p-6">
       <div className={cn(CHIP, "px-3.5 py-1.5 text-sm font-medium text-foreground")}>
         {copy.regions[region.id]}
       </div>
-      {feature ? (
-        <p className="mt-2 max-w-60 rounded-lg border border-border bg-card/85 px-3 py-1.5 text-xs text-muted-foreground">
-          {copy.features[feature]}
-          {feature === "standards" && song ? (
-            <span className="mt-0.5 block text-foreground">
-              ♪ {song.title} · {song.composer} ({song.year})
-            </span>
-          ) : null}
-        </p>
-      ) : null}
     </div>
   );
 }

@@ -72,7 +72,6 @@ export async function HomePage() {
           nightHint: t("nightHint"),
           courseBest: t("courseBest"),
           courseDone: t("courseDone"),
-          features: t.raw("features") as PianoWorldCopy["features"],
           regions: {
             hall: t("regions.hall"),
             neon: t("regions.neon"),
