@@ -346,8 +346,7 @@
       "body": "Body colour",
       "hat": "Hat",
       "face": "Face",
-      "accessory": "Accessory",
-      "rewards": "Jump course rewards"
+      "accessory": "Accessory"
     },
     "body": {
       "cream": "Cream",
@@ -377,13 +376,7 @@
       "bowtie": "Bow tie",
       "glasses": "Glasses"
     },
-    "reward": {
-      "clouds": "Reward for Cloud Keys (stage 1)",
-      "night": "Reward for Night Keys (stage 2)"
-    },
     "none": "None",
-    "owned": "Owned",
-    "notOwned": "Not yet",
     "save": "Save",
     "reset": "Undo",
     "saved": "Your Kordi is saved",

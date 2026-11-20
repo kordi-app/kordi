@@ -346,8 +346,7 @@
       "body": "몸 색",
       "hat": "모자",
       "face": "얼굴",
-      "accessory": "액세서리",
-      "rewards": "점프 코스 보상"
+      "accessory": "액세서리"
     },
     "body": {
       "cream": "크림",
@@ -377,13 +376,7 @@
       "bowtie": "나비넥타이",
       "glasses": "안경"
     },
-    "reward": {
-      "clouds": "구름 건반(1단계) 완주 보상",
-      "night": "밤의 건반(2단계) 완주 보상"
-    },
     "none": "없음",
-    "owned": "획득",
-    "notOwned": "미획득",
     "save": "저장",
     "reset": "되돌리기",
     "saved": "캐릭터를 저장했어요",

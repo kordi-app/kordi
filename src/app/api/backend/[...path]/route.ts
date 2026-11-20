@@ -19,7 +19,7 @@ import {
  * /api/auth.
  */
 
-type Method = "get" | "post" | "patch" | "delete";
+type Method = "get" | "post" | "put" | "patch" | "delete";
 type Props = { params: Promise<{ path: string[] }> };
 
 async function handle(
@@ -77,6 +77,11 @@ export async function GET(request: NextRequest, { params }: Props) {
 
 export async function POST(request: NextRequest, { params }: Props) {
   return handle(request, params, "post");
+}
+
+// PUT /characters/me (saving Kordi's look) — without this the proxy answered 405
+export async function PUT(request: NextRequest, { params }: Props) {
+  return handle(request, params, "put");
 }
 
 export async function PATCH(request: NextRequest, { params }: Props) {

@@ -3,7 +3,6 @@
 import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { Lock } from "lucide-react";
 import { toast } from "sonner";
 import {
   ACCESSORY_IDS,
@@ -11,7 +10,7 @@ import {
   BODY_IDS,
   FACE_IDS,
   HAT_IDS,
-  REWARD_HATS,
+  isRewardHat,
   characterQueries,
   type Appearance,
   type MyCharacter,
@@ -33,33 +32,25 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 function Choice({
   selected,
-  locked = false,
   onSelect,
   children,
-  hint,
 }: {
   selected: boolean;
-  locked?: boolean;
   onSelect: () => void;
   children: ReactNode;
-  hint?: string;
 }) {
   return (
     <button
       type="button"
       aria-pressed={selected}
-      disabled={locked}
-      title={hint}
       onClick={onSelect}
       className={cn(
         "inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-sm transition-colors",
         selected
           ? "border-foreground bg-foreground text-background"
           : "border-border bg-card text-foreground hover:bg-muted",
-        locked && "cursor-not-allowed opacity-50 hover:bg-card",
       )}
     >
-      {locked ? <Lock className="size-3.5" aria-hidden /> : null}
       {children}
     </button>
   );
@@ -114,32 +105,13 @@ function Editor({ saved }: { saved: MyCharacter }) {
           <Choice selected={draft.hat === null} onSelect={() => set({ hat: null })}>
             {t("none")}
           </Choice>
-          {HAT_IDS.map((hat) => {
-            const course = REWARD_HATS[hat];
-            const locked = course !== undefined && !unlocked.has(hat);
-            return (
-              <Choice
-                key={hat}
-                selected={draft.hat === hat}
-                locked={locked}
-                hint={course ? t(`reward.${course}`) : undefined}
-                onSelect={() => set({ hat })}
-              >
-                {t(`hat.${hat}`)}
-              </Choice>
-            );
-          })}
+          {/* course reward hats only appear once you've earned them */}
+          {HAT_IDS.filter((hat) => !isRewardHat(hat) || unlocked.has(hat)).map((hat) => (
+            <Choice key={hat} selected={draft.hat === hat} onSelect={() => set({ hat })}>
+              {t(`hat.${hat}`)}
+            </Choice>
+          ))}
         </Section>
-
-        {HAT_IDS.some((hat) => REWARD_HATS[hat] && !unlocked.has(hat)) ? (
-          <ul className="-mt-4 space-y-0.5 text-t2 text-fg-neutral-muted">
-            {HAT_IDS.filter((hat) => REWARD_HATS[hat] && !unlocked.has(hat)).map((hat) => (
-              <li key={hat}>
-                🔒 {t(`hat.${hat}`)} · {t(`reward.${REWARD_HATS[hat]!}`)}
-              </li>
-            ))}
-          </ul>
-        ) : null}
 
         <Section title={t("sections.face")}>
           {FACE_IDS.map((face) => (
@@ -159,26 +131,6 @@ function Editor({ saved }: { saved: MyCharacter }) {
             </Choice>
           ))}
         </Section>
-
-        <section>
-          <h2 className="mb-3 text-sm font-semibold text-foreground">{t("sections.rewards")}</h2>
-          <ul className="flex flex-col gap-2">
-            {HAT_IDS.filter((hat) => REWARD_HATS[hat]).map((hat) => {
-              const owned = unlocked.has(hat);
-              return (
-                <li key={hat} className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-sm">
-                  <span className={cn("text-foreground", !owned && "text-muted-foreground")}>
-                    {t(`hat.${hat}`)}
-                    <span className="ml-2 text-xs text-muted-foreground">{t(`reward.${REWARD_HATS[hat]!}`)}</span>
-                  </span>
-                  <span className={cn("text-xs font-medium", owned ? "text-foreground" : "text-muted-foreground")}>
-                    {owned ? t("owned") : t("notOwned")}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
 
         <div className="flex gap-2">
           <Button type="button" disabled={!dirty || isPending} onClick={() => mutate(draft)}>
