@@ -21,6 +21,16 @@ type InstrumentFactory = () => Tone.PolySynth;
 // Every instrument is synthesized in the browser: no recorded samples to download
 // (or to credit), and loading is instant.
 
+/**
+ * Instruments are levelled to sound about as loud as the piano (measured offline with
+ * a K-weighted RMS of a struck C-major chord): a sawtooth or an organ at 0 dB came out
+ * ~10–15 dB louder and clipped.
+ */
+function withVolume<T extends { volume: { value: number } }>(instrument: T, db: number): T {
+  instrument.volume.value = db;
+  return instrument;
+}
+
 function makeSynth(options: Record<string, unknown>): Tone.PolySynth {
   const s = new Tone.PolySynth(Tone.Synth);
   s.set(options);
@@ -51,32 +61,48 @@ const INSTRUMENT_STRATEGIES: Record<InstrumentId, InstrumentFactory> = {
   },
 
   "electric-piano": () =>
-    makeFMSynth({
-      harmonicity: 3,
-      modulationIndex: 1.5,
-      oscillator: { type: "sine" },
-      envelope: { attack: 0.01, decay: 0.4, sustain: 0.3, release: 1.2 },
-      modulation: { type: "square" },
-      modulationEnvelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.5 },
-    }),
+    withVolume(
+      makeFMSynth({
+        harmonicity: 3,
+        modulationIndex: 1.5,
+        oscillator: { type: "sine" },
+        envelope: { attack: 0.01, decay: 0.4, sustain: 0.3, release: 1.2 },
+        modulation: { type: "square" },
+        modulationEnvelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.5 },
+      }),
+      -2,
+    ),
 
   "synth-pad": () =>
-    makeSynth({
-      oscillator: { type: "triangle8" },
-      envelope: { attack: 0.3, decay: 0.5, sustain: 0.7, release: 2 },
-    }),
+    withVolume(
+      makeSynth({
+        oscillator: { type: "triangle8" },
+        envelope: { attack: 0.3, decay: 0.5, sustain: 0.7, release: 2 },
+      }),
+      -15.5,
+    ),
 
   "organ": () =>
-    makeSynth({
-      oscillator: { type: "sine4" },
-      envelope: { attack: 0.01, decay: 0.1, sustain: 0.9, release: 0.3 },
-    }),
+    withVolume(
+      makeSynth({
+        oscillator: { type: "sine4" },
+        envelope: { attack: 0.01, decay: 0.1, sustain: 0.9, release: 0.3 },
+      }),
+      -15,
+    ),
 
-  "bright-synth": () =>
-    makeSynth({
+  // a sawtooth through a lowpass that opens on the attack and closes again: bright, not harsh
+  "bright-synth": () => {
+    const s = new Tone.PolySynth(Tone.MonoSynth);
+    s.set({
       oscillator: { type: "sawtooth" },
       envelope: { attack: 0.005, decay: 0.2, sustain: 0.4, release: 0.8 },
-    }),
+      filter: { type: "lowpass", Q: 1.5, rolloff: -24 },
+      filterEnvelope: { attack: 0.005, decay: 0.3, sustain: 0.35, release: 0.6, baseFrequency: 400, octaves: 3.2 },
+    });
+    s.maxPolyphony = 16;
+    return withVolume(s.toDestination(), -11);
+  },
 };
 
 export const INSTRUMENTS: InstrumentInfo[] = [

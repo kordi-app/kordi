@@ -29,7 +29,7 @@ const SPECS: Record<VoiceId, VoiceSpec> = {
         modulation: { type: "sine" },
         modulationEnvelope: { attack: 0.001, decay: 0.08, sustain: 0, release: 0.1 },
       });
-      s.volume.value = -6;
+      s.volume.value = 2; // levelled with the piano (it was ~13 dB quieter)
       return s.toDestination();
     },
     hold: 0.3,
@@ -38,7 +38,7 @@ const SPECS: Record<VoiceId, VoiceSpec> = {
     make: () => {
       const s = new Tone.PolySynth(Tone.MembraneSynth);
       s.set({ pitchDecay: 0.05, octaves: 5, envelope: { attack: 0.001, decay: 0.45, sustain: 0, release: 0.2 } });
-      s.volume.value = -2;
+      s.volume.value = -8; // levelled with the piano (it was ~4 dB louder, near clipping)
       return s.toDestination();
     },
     hold: 0.2,
