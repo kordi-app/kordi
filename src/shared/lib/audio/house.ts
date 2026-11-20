@@ -81,6 +81,7 @@ export function startHouse() {
   loops[3].start("8n");
 
   transport.bpm.value = BPM;
+  transport.swing = 0; // straight sixteenths (the lounge swings)
   transport.start("+0.05");
   groove = { nodes: [kick, clap, clapFilter, hat, hatFilter, bass, stab, stabVerb], loops, stab };
 }

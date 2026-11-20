@@ -1,95 +1,133 @@
 /**
- * The lounge's songbook: jazz standards in the public domain (in Korea and the
- * US), played one melody note per step whatever key you land on, with the
- * chord changes voiced under it. Melodies only (the lyrics are someone else's)
- * in our own voicings.
- *
- * Each event is one melody note (tied notes are one event, rests are skipped);
- * `chord` marks where the harmony changes.
+ * The lounge's music theory: ii–V–I, the progression at the heart of jazz,
+ * round all twelve keys, and an improviser for the line you play over it.
+ * Nothing borrowed from any song — the band's parts and your line are
+ * generated as you go. Pure functions (the band in lib/lounge-band.ts plays them).
  */
 
-export interface SongEvent {
-  /** melody note (MIDI) */
-  midi: number;
-  /** chord symbol that starts on this note: root + quality, e.g. "Bb^7", "Gm7", "F7" */
-  chord?: string;
+export type Degree = "ii" | "V" | "I";
+
+/** Where the band is: a bar of the form in a key. */
+export interface Harmony {
+  /** the key's tonic, pitch class 0–11 */
+  key: number;
+  degree: Degree;
+  /** chord root, pitch class */
+  root: number;
+  /** "m7" | "7" | "^7" */
+  quality: string;
 }
 
-export interface Song {
-  title: string;
-  composer: string;
-  year: number;
-  events: readonly SongEvent[];
-}
+const NAMES = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+/** Keys round the cycle of fourths (C, F, B♭, E♭ …), the way jazz players practise it. */
+const CYCLE = Array.from({ length: 12 }, (_, i) => (i * 5) % 12);
+const MAJOR_SCALE = [0, 2, 4, 5, 7, 9, 11];
 
-// note names → MIDI around the melody's range (C5 = 72)
-const F4 = 65, G4 = 67, Bb4 = 70, C5 = 72, D5 = 74, Eb5 = 75, E5 = 76;
-const n = (midi: number, chord?: string): SongEvent => (chord ? { midi, chord } : { midi });
-
-/** The A section's first six bars (the same in every A). */
-const A_OPENING: SongEvent[] = [
-  n(F4, "Bb^7"), n(G4, "Gm7"), // I got rhy-
-  n(Bb4, "Cm7"), n(C5, "F7"), // -thm
-  n(C5, "Bb^7"), n(Bb4, "Gm7"), // I got mu-
-  n(G4, "Cm7"), n(F4, "F7"), // -sic
-  n(F4, "Bb^7"), n(G4, "Bb7"), // I got my
-  n(Bb4, "Eb^7"), n(C5, "Ebm7"), n(Eb5), n(C5), // man, who could
-];
+/** One key = four bars: ii, V, then I for two. */
+export const BARS_PER_KEY = 4;
+const FORM: readonly Degree[] = ["ii", "V", "I", "I"];
 
 /**
- * George Gershwin, "I Got Rhythm" (1930), in B♭: AABA, 32 bars. Transcribed
- * from a lead sheet (OSU Jazz Camp audition packet, concert pitch); the
- * changes are the "rhythm changes" every jazz player knows.
+ * Root above the key, quality, and the guide tone the line lands on as each
+ * chord arrives: the 7th of ii falls a half step to the 3rd of V (C → B in
+ * C major), which resolves up to the 3rd of I (E).
  */
-const I_GOT_RHYTHM: Song = {
-  title: "I Got Rhythm",
-  composer: "George Gershwin",
-  year: 1930,
-  events: [
-    // A — first ending turns around
-    ...A_OPENING,
-    n(D5, "Dm7"), n(D5), n(C5, "G7"), n(D5), n(C5), n(Bb4, "Cm7"),
-    // A — second ending lands home
-    ...A_OPENING,
-    n(D5, "Cm7"), n(D5), n(C5, "F7"), n(D5), n(C5), n(Bb4, "Bb^7"),
-    // B — the bridge: dominants round the cycle of fifths
-    n(D5, "D7"), n(D5), n(D5), n(E5),
-    n(D5, "G7"), n(D5), n(D5), n(G4),
-    n(C5, "C7"), n(C5), n(C5), n(D5),
-    n(C5, "F7"), n(C5), n(C5), n(F4),
-    // A — last time, home
-    ...A_OPENING,
-    n(D5, "Cm7"), n(D5), n(C5, "F7"), n(D5), n(C5), n(Bb4, "Bb^7"),
-  ],
+const CHORDS: Record<Degree, { root: number; quality: string; guide: number }> = {
+  ii: { root: 2, quality: "m7", guide: 0 },
+  V: { root: 7, quality: "7", guide: 11 },
+  I: { root: 0, quality: "^7", guide: 4 },
 };
 
-export const SONGBOOK: readonly Song[] = [I_GOT_RHYTHM];
+/** The harmony in a given bar of the endless form. */
+export function harmonyAt(bar: number): Harmony {
+  const key = CYCLE[Math.floor(bar / BARS_PER_KEY) % 12];
+  const degree = FORM[bar % BARS_PER_KEY];
+  const { root, quality } = CHORDS[degree];
+  return { key, degree, root: (key + root) % 12, quality };
+}
 
-/** Each time round, the tune moves to a new key (semitones from the written key). */
-export const CHORUS_KEYS = [0, 2, 5, -2];
+export const chordSymbol = (h: Harmony) => `${NAMES[h.root]}${h.quality}`;
 
-const ROOTS: Record<string, number> = { C: 0, Db: 1, D: 2, Eb: 3, E: 4, F: 5, Gb: 6, G: 7, Ab: 8, A: 9, Bb: 10, B: 11 };
-/** chord tones above the root for each quality (3rd, 5th, 7th, 9th) */
+/** chord tones above the root (3rd, 5th, 7th, 9th) */
 const QUALITIES: Record<string, number[]> = {
-  "^7": [4, 7, 11, 14], // major seventh (add 9)
-  m7: [3, 7, 10, 14], // minor seventh (add 9)
-  "7": [4, 7, 10, 14], // dominant (add 9)
+  "^7": [4, 7, 11, 14],
+  m7: [3, 7, 10, 14],
+  "7": [4, 7, 10, 14],
 };
 
-/** Upper chord tones are folded into this window (D3 up to C#4), under the melody. */
+/** Upper chord tones are folded into this window (D3 up to C#4). */
 const VOICING_LOW = 50;
+const fold = (pc: number, low: number) => low + ((((pc - low) % 12) + 12) % 12);
+
+/** A rootless comping voicing: 3rd, 7th and 9th in the octave under the melody (the bass has the root). */
+export function compVoicing(h: Harmony): number[] {
+  const [third, , seventh, ninth] = QUALITIES[h.quality];
+  return [third, seventh, ninth].map((interval) => fold(h.root + interval, VOICING_LOW)).sort((a, b) => a - b);
+}
 
 /**
- * A soft jazz voicing for a chord symbol: the root low in the bass, then the
- * 3rd, 7th and 9th folded into the octave under the melody (the 5th left out,
- * as pianists usually do). `shift` transposes it with the tune.
+ * A walking bass line for one bar: root, two chord tones climbing, and a
+ * chromatic approach into the next bar's root. Kept between E1 and E2.
  */
-export function voiceChord(symbol: string, shift = 0): number[] {
-  const match = /^([A-G]b?)(\^7|m7|7)$/.exec(symbol);
-  if (!match) return [];
-  const root = (((ROOTS[match[1]] + shift) % 12) + 12) % 12;
-  const [third, , seventh, ninth] = QUALITIES[match[2]];
-  const fold = (pc: number) => VOICING_LOW + ((((pc - VOICING_LOW) % 12) + 12) % 12);
-  const upper = [third, seventh, ninth].map((interval) => fold(root + interval)).sort((a, b) => a - b);
-  return [36 + root, ...upper]; // bass: C2–B2
+export function walkingBar(h: Harmony, next: Harmony): number[] {
+  const [third, fifth] = QUALITIES[h.quality];
+  const root = fold(h.root, 28); // E1–D#2
+  const target = fold(next.root, 28);
+  const approach = target > root ? target - 1 : target + 1;
+  return [root, root + third, root + fifth, approach];
+}
+
+/** The melody stays in a comfortable singing range. */
+const LOW = 62; // D4
+const HIGH = 79; // G5
+
+/** Nearest MIDI note of pitch class `pc` to `near`, within the range. */
+function nearest(pc: number, near: number) {
+  let best = near;
+  for (let midi = LOW, distance = Infinity; midi <= HIGH; midi++) {
+    if ((((midi - pc) % 12) + 12) % 12 === 0 && Math.abs(midi - near) < distance) {
+      best = midi;
+      distance = Math.abs(midi - near);
+    }
+  }
+  return best;
+}
+
+/**
+ * The line you play: each step is one note that fits the chord the band is on.
+ * A new chord → its guide tone (smooth voice leading); otherwise a walk along
+ * the key's scale with the odd turn and leap; on the last beat before a change,
+ * often a half-step approach into the next guide tone. `random` is injectable for tests.
+ */
+export function createImproviser(random: () => number = Math.random) {
+  let note = 69; // A4
+  let direction = 1;
+  let lastChord = "";
+
+  const scaleStep = (from: number, dir: number, key: number) => {
+    let midi = from + dir;
+    while (!MAJOR_SCALE.includes((((midi - key) % 12) + 12) % 12)) midi += dir;
+    return midi;
+  };
+
+  return {
+    /** `now` is the band's harmony, `next` the one coming; `beatsLeft` until it changes. */
+    next(now: Harmony, next: Harmony, beatsLeft: number): number {
+      const symbol = chordSymbol(now);
+      if (symbol !== lastChord) {
+        lastChord = symbol;
+        note = nearest((now.key + CHORDS[now.degree].guide) % 12, note);
+      } else if (beatsLeft <= 1 && chordSymbol(next) !== symbol && random() < 0.6) {
+        note = nearest((next.key + CHORDS[next.degree].guide) % 12, note) - 1;
+      } else {
+        if (note >= HIGH - 2) direction = -1;
+        else if (note <= LOW + 2) direction = 1;
+        else if (random() < 0.3) direction = -direction;
+        note = scaleStep(note, direction, now.key);
+        if (random() < 0.2) note = scaleStep(note, direction, now.key); // the odd leap of a third
+      }
+      note = Math.max(LOW, Math.min(HIGH, note));
+      return note;
+    },
+  };
 }

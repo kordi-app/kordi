@@ -20,7 +20,7 @@ import {
   type WarpEffect,
 } from "@/shared/lib/audio";
 import { useCallbackRef } from "@/shared/lib/react/use-callback-ref";
-import { CHORUS_KEYS, SONGBOOK, voiceChord, type Song } from "../model/standards";
+import { isLoungeBandPlaying, playLoungeStep, startLoungeBand, stopLoungeBand } from "./lounge-band";
 import { debugSeam } from "./debug-seam";
 import type { RegionDef } from "../model/regions";
 
@@ -41,10 +41,6 @@ const MAX_ECHO_TAILS = 2;
  */
 const STEP_RING_MS = 450;
 const STEP_VELOCITY = 0.75;
-/** The lounge: the comping chord sits under the melody */
-const COMP_VELOCITY = 0.36;
-/** a chord rings at most this long if you stop walking */
-const COMP_RING_MS = 2200;
 const REMOTE_VELOCITY = 0.35;
 const CAT_VELOCITY = 0.18;
 
@@ -70,11 +66,6 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
   const echoTimers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
   const remoteHeld = useRef(new Map<string, number>());
   const remoteTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
-  /** the lounge's place in the songbook, and the chord sounding under the melody */
-  const standards = useRef({ song: 0, event: 0, chorus: 0 });
-  const comp = useRef<number[]>([]);
-  const compTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const [song, setSong] = useState<Song>(SONGBOOK[0]);
   const catHeld = useRef<number | null>(null);
   const chimeTimers = useRef(new Set<ReturnType<typeof setTimeout>>());
   const instrumentChain = useRef<Promise<void>>(Promise.resolve());
@@ -123,46 +114,9 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
     remoteHeld.current.clear();
     if (catHeld.current !== null) playNoteOff(catHeld.current);
     catHeld.current = null;
-    clearTimeout(compTimer.current);
-    comp.current.forEach(playNoteOff);
-    comp.current = [];
     setNote(null);
   }, []);
 
-  /**
-   * The lounge: whatever key you step on, the next note of the tune plays, and
-   * where the harmony changes its chord is voiced underneath. At the end of a
-   * chorus the tune moves to a new key; after all keys, on to the next song.
-   */
-  const nextStandardsNotes = useCallback((): number[] => {
-    const at = standards.current;
-    const tune = SONGBOOK[at.song];
-    const shift = CHORUS_KEYS[at.chorus];
-    const event = tune.events[at.event];
-    if (event.chord) {
-      clearTimeout(compTimer.current);
-      comp.current.forEach(playNoteOff);
-      const sounding = voiceChord(event.chord, shift);
-      comp.current = sounding;
-      sounding.forEach((n) => playNoteOn(n, COMP_VELOCITY));
-      compTimer.current = setTimeout(() => {
-        sounding.forEach(playNoteOff);
-        if (comp.current === sounding) comp.current = [];
-      }, COMP_RING_MS);
-    }
-    // advance: next note, next chorus (new key), next song
-    at.event += 1;
-    if (at.event >= tune.events.length) {
-      at.event = 0;
-      at.chorus += 1;
-      if (at.chorus >= CHORUS_KEYS.length) {
-        at.chorus = 0;
-        at.song = (at.song + 1) % SONGBOOK.length;
-        setSong(SONGBOOK[at.song]);
-      }
-    }
-    return [event.midi + shift];
-  }, []);
 
   /** Let go of the notes your step is sounding (in the cathedral they ring on). */
   const releaseHeld = useCallback(() => {
@@ -197,7 +151,6 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
   const handleStep = useCallback(
     (midi: number | null) => {
       setNote(midi);
-      const feature = regionRef.current.feature;
       releaseHeld();
       if (midi === null) return;
 
@@ -211,21 +164,24 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
         debugSeam?.voices.push({ id: "house-stab", midi, t: performance.now() });
         return;
       }
-      const notes = feature === "standards" ? nextStandardsNotes() : [midi];
-      if (feature === "standards") debugSeam?.voices.push({ id: "lounge", midi: notes[0], t: performance.now() });
-      notes.forEach((n, i) => {
-        const ringing = echoTimers.current.get(n);
-        if (ringing) {
-          clearTimeout(ringing);
-          echoTimers.current.delete(n);
-          playNoteOff(n); // restrike cleanly
-        }
-        playNoteOn(n, i === 0 ? STEP_VELOCITY : COMP_VELOCITY);
-      });
-      held.current = notes;
+      // the lounge: steps play your line on the vibraphone, over the trio
+      if (regionRef.current.music === "jazz" && isLoungeBandPlaying()) {
+        const played = playLoungeStep(STEP_VELOCITY);
+        if (played !== null) debugSeam?.voices.push({ id: "lounge", midi: played, t: performance.now() });
+        return;
+      }
+      // the key itself (in the cathedral it may still be ringing: restrike it cleanly)
+      const ringing = echoTimers.current.get(midi);
+      if (ringing) {
+        clearTimeout(ringing);
+        echoTimers.current.delete(midi);
+        playNoteOff(midi);
+      }
+      playNoteOn(midi, STEP_VELOCITY);
+      held.current = [midi];
       holdTimer.current = setTimeout(releaseHeld, STEP_RING_MS);
     },
-    [onStepRef, regionRef, releaseHeld, nextStandardsNotes],
+    [onStepRef, regionRef, releaseHeld],
   );
 
   const releaseRemote = useCallback((id: string) => {
@@ -242,7 +198,7 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
       releaseRemote(id);
       // in the lounge everyone plays their own tune, and in the house the stabs follow the
       // groove: other players' raw keys would only clash with it
-      if (regionRef.current.feature === "standards" || regionRef.current.music) return;
+      if (regionRef.current.music) return;
       if (midi !== null && audioRef.current === "on") {
         playNoteOn(midi, REMOTE_VELOCITY);
         remoteHeld.current.set(id, midi);
@@ -284,6 +240,7 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
       pending.forEach(clearTimeout);
       silence();
       stopHouse();
+      stopLoungeBand();
       disposeVoices();
       if (getCurrentInstrumentId() === before) return;
       if (before) void loadInstrument(before);
@@ -293,8 +250,12 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
 
   /** Start or stop the region's background music (call when the region or sound changes). */
   const syncMusic = useCallback((music: RegionDef["music"]) => {
-    if (music === "house" && audioRef.current === "on") startHouse();
-    else stopHouse();
+    const on = audioRef.current === "on";
+    // one band at a time (they share the transport): stop the other first
+    if (music !== "house") stopHouse();
+    if (music !== "jazz") stopLoungeBand();
+    if (on && music === "house") startHouse();
+    if (on && music === "jazz") startLoungeBand();
   }, []);
 
   /** read synchronously in event handlers */
@@ -332,8 +293,6 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
     chime,
     voice,
     warpEffect,
-    /** the lounge's current tune */
-    song,
     syncMusic,
   };
 }
