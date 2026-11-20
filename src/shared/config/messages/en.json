@@ -104,7 +104,8 @@
     "confirmDelete": "Remove?",
     "filterPlaceholder": "Find by name",
     "noMatch": "No friend by that name",
-    "loadFailed": "Couldn't load your friends"
+    "loadFailed": "Couldn't load your friends",
+    "closeSearch": "Close search"
   },
   "login": {
     "title": "Sign in",

@@ -5,7 +5,9 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { ErrorBoundary, Suspense } from "@suspensive/react";
 import { useTranslations } from "next-intl";
 import { friendshipQueries, type Friendship } from "@/entities/friendship";
-import { AddFriendDialog, FriendItem, ReceivedRequestItem, SentRequestItem } from "@/features/friendship";
+import { UserPlus } from "lucide-react";
+import { AddFriendSearch, FriendItem, ReceivedRequestItem, SentRequestItem } from "@/features/friendship";
+import { Button } from "@/shared/ui/button";
 import { LoadingState } from "@/shared/ui/empty-state";
 
 interface FriendsPanelProps {
@@ -15,14 +17,35 @@ interface FriendsPanelProps {
 /** Show the filter only once the list is long enough to need it. */
 const FILTER_FROM = 8;
 
+/**
+ * The friends page body: title, adding a friend (inline — the page and the
+ * sidebar stay in place), requests and the list.
+ */
 export function FriendsPanel({ currentUserId }: FriendsPanelProps) {
   const t = useTranslations("friends");
+  const [adding, setAdding] = useState(false);
   return (
-    <ErrorBoundary fallback={() => <p className="py-12 text-sm text-muted-foreground">{t("loadFailed")}</p>}>
-      <Suspense fallback={<LoadingState />}>
-        <FriendsPanelContent currentUserId={currentUserId} />
-      </Suspense>
-    </ErrorBoundary>
+    <>
+      <header className="mb-8 flex min-h-9 items-center justify-between gap-4">
+        <h1 className="text-t9 font-bold text-fg-neutral">{t("title")}</h1>
+        {adding ? null : (
+          <Button size="sm" onClick={() => setAdding(true)}>
+            <UserPlus />
+            {t("add")}
+          </Button>
+        )}
+      </header>
+      {adding ? (
+        <div className="mb-section">
+          <AddFriendSearch currentUserId={currentUserId} onClose={() => setAdding(false)} />
+        </div>
+      ) : null}
+      <ErrorBoundary fallback={() => <p className="py-12 text-t4 text-fg-neutral-muted">{t("loadFailed")}</p>}>
+        <Suspense fallback={<LoadingState />}>
+          <FriendsPanelContent currentUserId={currentUserId} onAdd={() => setAdding(true)} adding={adding} />
+        </Suspense>
+      </ErrorBoundary>
+    </>
   );
 }
 
@@ -41,7 +64,11 @@ function Section({ title, count, aside, children }: { title: string; count: numb
   );
 }
 
-function FriendsPanelContent({ currentUserId }: FriendsPanelProps) {
+function FriendsPanelContent({
+  currentUserId,
+  onAdd,
+  adding,
+}: FriendsPanelProps & { onAdd: () => void; adding: boolean }) {
   const t = useTranslations("friends");
   const { data: friends } = useSuspenseQuery(friendshipQueries.friends());
   const { data: received } = useSuspenseQuery(friendshipQueries.received());
@@ -84,9 +111,12 @@ function FriendsPanelContent({ currentUserId }: FriendsPanelProps) {
           <div className="py-10">
             <p className="text-t5 text-foreground">{t("empty.friends")}</p>
             <p className="mt-1 text-t3 text-muted-foreground">{t("empty.friendsHint")}</p>
-            <div className="mt-4">
-              <AddFriendDialog currentUserId={currentUserId} />
-            </div>
+            {adding ? null : (
+              <Button size="sm" variant="outline" className="mt-4" onClick={onAdd}>
+                <UserPlus />
+                {t("add")}
+              </Button>
+            )}
           </div>
         ) : shown.length === 0 ? (
           <p className="py-8 text-t3 text-muted-foreground">{t("noMatch")}</p>

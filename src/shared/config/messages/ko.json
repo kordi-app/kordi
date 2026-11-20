@@ -104,7 +104,8 @@
     "confirmDelete": "정말 삭제할까요?",
     "filterPlaceholder": "이름으로 찾기",
     "noMatch": "찾는 친구가 없어요",
-    "loadFailed": "친구 목록을 불러오지 못했어요"
+    "loadFailed": "친구 목록을 불러오지 못했어요",
+    "closeSearch": "검색 닫기"
   },
   "login": {
     "title": "로그인",
