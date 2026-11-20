@@ -95,6 +95,14 @@ export function AdventureStage({ view, clock }: { view: AdventureView; clock: Re
     missSeen: -Infinity,
     /** the penalty as shown: eases toward the real one, so a miss is a dash, not a teleport */
     shownPenalty: 0,
+    /**
+     * Animation phases that speed up with danger, accumulated frame by frame.
+     * (sin(time × rate) with a changing rate jumps by time × Δrate — with time
+     * in seconds since the page opened, that made Kordi tremble.)
+     */
+    heroPhase: 0,
+    monsterHopPhase: 0,
+    monsterFramePhase: 0,
     flash: 0,
     light: null as HTMLCanvasElement | null,
   });
@@ -187,7 +195,8 @@ export function AdventureStage({ view, clock }: { view: AdventureView; clock: Re
           // Kordi takes the hit: knocked back a touch, flinching while it lasts
           hit = lunge;
           heroX -= Math.round(lunge * 3);
-          heroBob = lunge > 0 ? 0 : Math.round(Math.sin(time * (2.5 + danger * 7)));
+          f.heroPhase += dt * (2.5 + danger * 7);
+          heroBob = lunge > 0 ? 0 : Math.round(Math.sin(f.heroPhase));
           heroFrame = lunge > 0.15 || danger > 0.88 ? "ouch" : heroFrame;
           batonRaise = 0.3;
           // a short, damped side-to-side jolt (not random jitter), plus a low rumble near the end
@@ -255,10 +264,12 @@ export function AdventureStage({ view, clock }: { view: AdventureView; clock: Re
       const monsterScene = v.scene;
       if (monsterAlpha > 0) {
         const fc = monsterFrameCount(monsterScene);
-        const mFrame = fc > 1 ? Math.floor(time * (6 + danger * 10)) % fc : 0;
+        f.monsterFramePhase += dt * (6 + danger * 10);
+        f.monsterHopPhase += dt * (3.5 + danger * 9);
+        const mFrame = fc > 1 ? Math.floor(f.monsterFramePhase) % fc : 0;
         const img = monsterSprite(monsterScene, mFrame, danger > 0.6, monsterFlash);
         const scale = boss ? 2 : 1;
-        const hop = Math.round(Math.abs(Math.sin(time * (3.5 + danger * 9))) * (2 + danger * 2));
+        const hop = Math.round(Math.abs(Math.sin(f.monsterHopPhase)) * (2 + danger * 2));
         ctx.globalAlpha = monsterAlpha;
         // shadow on the ground
         ctx.fillStyle = "rgba(10, 6, 20, 0.35)";
