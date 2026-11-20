@@ -5,7 +5,7 @@ export {
   playTimeoutSound,
 } from "./feedback-sounds";
 export {
-  getSampler,
+  loadDefaultInstrument,
   loadInstrument,
   playNoteOn,
   playNoteOff,

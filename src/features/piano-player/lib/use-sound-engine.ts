@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import type { ActiveNote } from "@/entities/note";
 import {
   ensureAudioStarted,
-  getSampler,
+  loadDefaultInstrument,
   playNoteOn,
   playNoteOff,
 } from "@/shared/lib/audio";
@@ -33,10 +33,10 @@ export function useSoundEngine({ noteOn, noteOff }: UseSoundEngineOptions) {
     try {
       await ensureAudioStarted();
       setIsAudioStarted(true);
-      await getSampler();
+      await loadDefaultInstrument();
       setIsLoaded(true);
     } catch {
-      // samples didn't arrive (network / timeout): let the next gesture try again
+      // audio could not start: let the next gesture try again
       startingRef.current = false;
     }
   }, []);

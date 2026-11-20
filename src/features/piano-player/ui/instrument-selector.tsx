@@ -14,7 +14,7 @@ import { cn } from "@/shared/lib/utils";
 export function InstrumentSelector() {
   const t = useTranslations("instruments");
   const [activeId, setActiveId] = useState<InstrumentId>(
-    getCurrentInstrumentId() ?? "grand-piano"
+    getCurrentInstrumentId() ?? "piano"
   );
   const [loading, setLoading] = useState(false);
 

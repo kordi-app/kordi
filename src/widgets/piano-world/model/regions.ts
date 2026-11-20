@@ -116,7 +116,7 @@ const goalPortal = (course: CourseDef, to: RegionId, color: string): PortalDef =
 export const REGIONS: Record<RegionId, RegionDef> = {
   hall: {
     id: "hall",
-    instrument: "grand-piano",
+    instrument: "piano",
     feature: "melody",
     camera: DEFAULT_CAMERA,
     portals: HALL_PORTALS,

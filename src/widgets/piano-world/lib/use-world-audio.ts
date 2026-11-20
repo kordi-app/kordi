@@ -26,8 +26,8 @@ export type AudioState = "off" | "loading" | "on";
 const ECHO_MS = 1400;
 /**
  * A step is a strike, not a held key: released after this long even if you
- * keep standing there. Every instrument but the grand piano is a synth that
- * sustains for as long as the note is held, so standing still would drone.
+ * keep standing there. The instruments are synths, and most sustain for as
+ * long as a note is held, so standing still would drone.
  */
 const STEP_RING_MS = 450;
 const STEP_VELOCITY = 0.75;

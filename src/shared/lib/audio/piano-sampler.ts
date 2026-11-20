@@ -3,7 +3,7 @@ import * as Tone from "tone";
 // --- Types ---
 
 export type InstrumentId =
-  | "grand-piano"
+  | "piano"
   | "electric-piano"
   | "synth-pad"
   | "organ"
@@ -14,22 +14,12 @@ export interface InstrumentInfo {
   labelKey: string;
 }
 
-type InstrumentFactory = () => Tone.Sampler | Tone.PolySynth;
+type InstrumentFactory = () => Tone.PolySynth;
 
 // --- Registry ---
 
-const SAMPLE_BASE_URL = "https://tonejs.github.io/audio/salamander/";
-
-const SALAMANDER_URLS: Record<string, string> = {
-  A0: "A0.mp3", C1: "C1.mp3", "D#1": "Ds1.mp3", "F#1": "Fs1.mp3",
-  A1: "A1.mp3", C2: "C2.mp3", "D#2": "Ds2.mp3", "F#2": "Fs2.mp3",
-  A2: "A2.mp3", C3: "C3.mp3", "D#3": "Ds3.mp3", "F#3": "Fs3.mp3",
-  A3: "A3.mp3", C4: "C4.mp3", "D#4": "Ds4.mp3", "F#4": "Fs4.mp3",
-  A4: "A4.mp3", C5: "C5.mp3", "D#5": "Ds5.mp3", "F#5": "Fs5.mp3",
-  A5: "A5.mp3", C6: "C6.mp3", "D#6": "Ds6.mp3", "F#6": "Fs6.mp3",
-  A6: "A6.mp3", C7: "C7.mp3", "D#7": "Ds7.mp3", "F#7": "Fs7.mp3",
-  A7: "A7.mp3", C8: "C8.mp3",
-};
+// Every instrument is synthesized in the browser: no recorded samples to download
+// (or to credit), and loading is instant.
 
 function makeSynth(options: Record<string, unknown>): Tone.PolySynth {
   const s = new Tone.PolySynth(Tone.Synth);
@@ -46,12 +36,19 @@ function makeFMSynth(options: Record<string, unknown>): Tone.PolySynth {
 }
 
 const INSTRUMENT_STRATEGIES: Record<InstrumentId, InstrumentFactory> = {
-  "grand-piano": () =>
-    new Tone.Sampler({
-      urls: SALAMANDER_URLS,
-      baseUrl: SAMPLE_BASE_URL,
-      release: 1,
-    }).toDestination(),
+  // a struck, decaying tone with a bright attack that mellows: piano-like, no samples
+  "piano": () => {
+    const s = makeFMSynth({
+      harmonicity: 2,
+      modulationIndex: 2.4,
+      oscillator: { type: "sine" },
+      envelope: { attack: 0.002, decay: 1.8, sustain: 0.08, release: 1.1 },
+      modulation: { type: "triangle" },
+      modulationEnvelope: { attack: 0.002, decay: 0.45, sustain: 0.04, release: 0.5 },
+    });
+    s.volume.value = -3;
+    return s;
+  },
 
   "electric-piano": () =>
     makeFMSynth({
@@ -83,7 +80,7 @@ const INSTRUMENT_STRATEGIES: Record<InstrumentId, InstrumentFactory> = {
 };
 
 export const INSTRUMENTS: InstrumentInfo[] = [
-  { id: "grand-piano", labelKey: "grandPiano" },
+  { id: "piano", labelKey: "piano" },
   { id: "electric-piano", labelKey: "electricPiano" },
   { id: "synth-pad", labelKey: "synthPad" },
   { id: "organ", labelKey: "organ" },
@@ -92,63 +89,22 @@ export const INSTRUMENTS: InstrumentInfo[] = [
 
 // --- Singleton State ---
 
-let current: Tone.Sampler | Tone.PolySynth | null = null;
+let current: Tone.PolySynth | null = null;
 let currentId: InstrumentId | null = null;
 
 // --- Public API ---
 
-/** Give up on the piano samples after this long (slow or blocked network). */
-const SAMPLE_TIMEOUT_MS = 20_000;
-
-/** Bumped on every load: a slower, older load that finishes later is thrown away. */
-let loadToken = 0;
-
 export async function loadInstrument(id: InstrumentId): Promise<void> {
   if (currentId === id && current) return;
-  const token = ++loadToken;
-
   current?.dispose();
-  current = null;
-  currentId = null;
-
-  if (id === "grand-piano") {
-    // Sampler loads its samples asynchronously. A failed or hung download
-    // must reject, or callers waiting on it (and their UI) stay stuck forever.
-    await new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        s.dispose();
-        reject(new Error("Piano samples timed out"));
-      }, SAMPLE_TIMEOUT_MS);
-      const s = new Tone.Sampler({
-        urls: SALAMANDER_URLS,
-        baseUrl: SAMPLE_BASE_URL,
-        release: 1,
-        onload: () => {
-          clearTimeout(timeout);
-          if (token !== loadToken) {
-            s.dispose(); // a newer instrument was picked meanwhile
-          } else {
-            current = s;
-            currentId = id;
-          }
-          resolve();
-        },
-        onerror: (error) => {
-          clearTimeout(timeout);
-          s.dispose();
-          reject(error);
-        },
-      }).toDestination();
-    });
-  } else {
-    current = INSTRUMENT_STRATEGIES[id]();
-    currentId = id;
-  }
+  current = INSTRUMENT_STRATEGIES[id]();
+  currentId = id;
 }
 
-export function getSampler(): Promise<void> {
+/** Make sure some instrument is ready (the piano, unless another was picked). */
+export function loadDefaultInstrument(): Promise<void> {
   if (current) return Promise.resolve();
-  return loadInstrument("grand-piano");
+  return loadInstrument("piano");
 }
 
 export function playNoteOn(midi: number, velocity: number): void {
