@@ -7,4 +7,5 @@ export const ROUTES = {
   ME: "/me",
   RANKING: "/ranking",
   FRIENDS: "/friends",
+  CHARACTER: "/character",
 } as const;

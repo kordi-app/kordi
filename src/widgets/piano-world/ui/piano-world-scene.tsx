@@ -2,7 +2,8 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { DEFAULT_APPEARANCE, characterQueries, type Appearance } from "@/entities/character";
 import { cn } from "@/shared/lib/utils";
 import type { PianoWorldCopy } from "../model/copy";
 import { EMOTES } from "../model/interactables";
@@ -55,7 +56,7 @@ export default function PianoWorldScene({
   const [zone, setZone] = useState<WarpStoneId | null>(null);
   const warpNearbyRef = useRef<WarpStoneId | null>(null);
   const melody = useMelodyGame(bumpCelebrate);
-  const course = useCourseRun(bumpCelebrate, region.course?.id);
+  const course = useCourseRun(bumpCelebrate, region.course?.id, !isGuest);
   const { emote, play: playEmote, cancel: cancelEmote, toggle: toggleEmote } = useEmote();
   const queryClient = useQueryClient();
   const { applyServerRecord } = course;
@@ -63,6 +64,8 @@ export default function PianoWorldScene({
     (record: CourseRecordMessage) => {
       applyServerRecord(record);
       if (record.saved) void queryClient.invalidateQueries({ queryKey: ["ranking", "course", record.course] });
+      // a first finish unlocks the crown and the server puts it on: refresh my look
+      if (record.reward) void queryClient.invalidateQueries({ queryKey: characterQueries.me().queryKey });
     },
     [applyServerRecord, queryClient],
   );
@@ -189,10 +192,22 @@ export default function PianoWorldScene({
     ],
   );
 
+  // Members wear what they chose (and earned) on the server; guests wear the best crown
+  // they've earned in this browser, put on automatically
+  const { data: character } = useQuery({ ...characterQueries.me(), enabled: !isGuest });
+  const rewards = isGuest ? course.localRewards : (character?.unlocked ?? []);
+  const appearance: Appearance = isGuest
+    ? {
+        ...DEFAULT_APPEARANCE,
+        hat: rewards.includes("star-crown") ? "star-crown" : rewards.includes("crown") ? "crown" : null,
+      }
+    : (character?.appearance ?? DEFAULT_APPEARANCE);
+
   const display: WorldDisplay = {
     emote,
     target: region.feature === "melody" ? melody.target : null,
-    crown: course.crown,
+    appearance,
+    rewards,
     interaction: interactions.scene,
     celebrate,
     awake,

@@ -55,7 +55,7 @@ import { CourseScene } from "./course-scene";
 import { EmoteBubble } from "./emote-bubble";
 import { IslandScene } from "./island-scene";
 import { debugSeam } from "../lib/debug-seam";
-import { KordiModel, type CrownKind, type KordiMotion } from "./kordi-model";
+import { KordiModel, type Appearance, type HatId, type KordiMotion } from "@/entities/character";
 import { PianoFloor } from "./piano-floor";
 import { Portal } from "./portal";
 import { RegionDecor } from "./region-decor";
@@ -122,8 +122,10 @@ export interface WorldDisplay {
   emote: EmoteId | null;
   /** melody game: the key to step on next */
   target: number | null;
-  /** reward for finishing a jump course (star = the night one) */
-  crown: CrownKind;
+  /** how my Kordi is dressed */
+  appearance: Appearance;
+  /** course reward items I own (their treasure no longer shows the crown) */
+  rewards: readonly HatId[];
   interaction: InteractionScene;
   /** bump to fire confetti over Kordi */
   celebrate: number;
@@ -151,7 +153,7 @@ interface WorldProps {
  */
 export function World({ region, arrival, input, takeJump, presence, display, events }: WorldProps) {
   const { remotes, others, sendPosition } = presence;
-  const { emote, target, crown, interaction, celebrate, awake } = display;
+  const { emote, target, appearance, rewards, interaction, celebrate, awake } = display;
   const camera = useThree((state) => state.camera);
   const scene = useThree((state) => state.scene);
   const hemi = useRef<THREE.HemisphereLight>(null);
@@ -660,7 +662,12 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       <hemisphereLight ref={hemi} args={[region.theme.sky, region.theme.ground, region.theme.ambient]} />
 
       {course ? (
-        <CourseScene key={course.id} course={course} pressed={pressed} />
+        <CourseScene
+          key={course.id}
+          course={course}
+          pressed={pressed}
+          rewardOwned={rewards.includes(course.id === "night" ? "star-crown" : "crown")}
+        />
       ) : (
         <PianoFloor pressed={pressed} theme={region.theme} ground={!region.island} />
       )}
@@ -707,7 +714,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       ))}
 
       {/* scaled up so the character reads at a glance against the giant keys */}
-      <KordiModel ref={kordi} motion={motion} scale={KORDI_SCALE} crown={crown} />
+      <KordiModel ref={kordi} motion={motion} scale={KORDI_SCALE} appearance={appearance} />
       {course?.beams ? (
         // a small lantern Kordi carries through the dark
         <group ref={lantern}>

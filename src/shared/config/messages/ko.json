@@ -24,7 +24,8 @@
       "quiz": "코드 퀴즈",
       "ranking": "랭킹",
       "friends": "친구",
-      "profile": "내 프로필"
+      "profile": "내 프로필",
+      "character": "내 캐릭터"
     }
   },
   "me": {
@@ -341,5 +342,56 @@
     "saved": "점수가 저장되었습니다",
     "loading": "문제를 불러오는 중...",
     "upNext": "다음"
+  },
+  "character": {
+    "title": "내 캐릭터 꾸미기",
+    "dragHint": "좌우로 끌어서 돌려 보세요",
+    "sections": {
+      "body": "몸 색",
+      "hat": "모자",
+      "face": "얼굴",
+      "accessory": "액세서리",
+      "rewards": "점프 코스 보상"
+    },
+    "body": {
+      "cream": "크림",
+      "sky": "하늘",
+      "pink": "분홍",
+      "mint": "민트",
+      "lemon": "레몬",
+      "lilac": "라일락",
+      "cocoa": "코코아"
+    },
+    "hat": {
+      "crown": "왕관",
+      "star-crown": "별 왕관",
+      "ribbon": "리본",
+      "beret": "베레모",
+      "headphones": "헤드폰",
+      "flower": "꽃"
+    },
+    "face": {
+      "default": "기본",
+      "smile": "웃는 눈",
+      "sparkle": "반짝 눈",
+      "sleepy": "졸린 눈"
+    },
+    "accessory": {
+      "scarf": "목도리",
+      "bowtie": "나비넥타이",
+      "glasses": "안경"
+    },
+    "reward": {
+      "clouds": "구름 건반(1단계) 완주 보상",
+      "night": "밤의 건반(2단계) 완주 보상"
+    },
+    "none": "없음",
+    "owned": "획득",
+    "notOwned": "미획득",
+    "save": "저장",
+    "reset": "되돌리기",
+    "saved": "캐릭터를 저장했어요",
+    "saveFailed": "저장하지 못했어요",
+    "loadFailed": "캐릭터 정보를 불러오지 못했어요"
   }
 }

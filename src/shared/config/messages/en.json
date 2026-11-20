@@ -24,7 +24,8 @@
       "quiz": "Chord Quiz",
       "ranking": "Ranking",
       "friends": "Friends",
-      "profile": "My Profile"
+      "profile": "My Profile",
+      "character": "My Kordi"
     }
   },
   "me": {
@@ -341,5 +342,56 @@
     "saved": "Score saved!",
     "loading": "Loading questions...",
     "upNext": "Up next"
+  },
+  "character": {
+    "title": "Dress up my Kordi",
+    "dragHint": "Drag sideways to turn",
+    "sections": {
+      "body": "Body colour",
+      "hat": "Hat",
+      "face": "Face",
+      "accessory": "Accessory",
+      "rewards": "Jump course rewards"
+    },
+    "body": {
+      "cream": "Cream",
+      "sky": "Sky",
+      "pink": "Pink",
+      "mint": "Mint",
+      "lemon": "Lemon",
+      "lilac": "Lilac",
+      "cocoa": "Cocoa"
+    },
+    "hat": {
+      "crown": "Crown",
+      "star-crown": "Star crown",
+      "ribbon": "Ribbon",
+      "beret": "Beret",
+      "headphones": "Headphones",
+      "flower": "Flower"
+    },
+    "face": {
+      "default": "Default",
+      "smile": "Smiling",
+      "sparkle": "Sparkly",
+      "sleepy": "Sleepy"
+    },
+    "accessory": {
+      "scarf": "Scarf",
+      "bowtie": "Bow tie",
+      "glasses": "Glasses"
+    },
+    "reward": {
+      "clouds": "Reward for Cloud Keys (stage 1)",
+      "night": "Reward for Night Keys (stage 2)"
+    },
+    "none": "None",
+    "owned": "Owned",
+    "notOwned": "Not yet",
+    "save": "Save",
+    "reset": "Undo",
+    "saved": "Your Kordi is saved",
+    "saveFailed": "Couldn't save",
+    "loadFailed": "Couldn't load your Kordi"
   }
 }

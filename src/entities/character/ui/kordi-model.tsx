@@ -3,10 +3,9 @@
 import { forwardRef, useRef, type MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { CrownMesh, type CrownKind } from "./crown-mesh";
-
-export type { CrownKind };
-import type { EmoteId } from "../model/interactables";
+import { BODY_COLORS, DEFAULT_APPEARANCE } from "../model/catalog";
+import type { Appearance, BodyColor, KordiEmote } from "../model/types";
+import { Accessory, Eyes, Hat } from "./character-parts";
 
 export interface KordiMotion {
   /** Walk-cycle phase; advances while moving. */
@@ -14,7 +13,7 @@ export interface KordiMotion {
   /** 0 when standing, 1 at full walking speed. */
   amount: number;
   /** Emote being performed, if any */
-  emote: EmoteId | null;
+  emote: KordiEmote | null;
   /** 0–1: fresh hard landing → squash (decays in the scene) */
   land: number;
   /** -0.4–1: vertical speed while airborne → stretch when rising */
@@ -29,7 +28,6 @@ export interface KordiMotion {
 const ARM_STIFFNESS = 90;
 const ARM_DAMPING = 9;
 
-const CREAM = "#f4efe6";
 const INK = "#221d19";
 const CHEEK = "#f2aaa2";
 const FOOT = "#b48c5c";
@@ -44,38 +42,45 @@ const PARTS = {
   foot: new THREE.SphereGeometry(1, 24, 16),
   body: new THREE.CapsuleGeometry(0.5, 0.42, 12, 32),
   arm: new THREE.SphereGeometry(1, 20, 16),
-  eye: new THREE.SphereGeometry(0.085, 28, 20),
-  glint: new THREE.SphereGeometry(0.03, 14, 10),
-  glintSmall: new THREE.SphereGeometry(0.013, 10, 8),
   cheek: new THREE.SphereGeometry(1, 16, 12),
   smile: new THREE.TorusGeometry(0.05, 0.011, 8, 24, Math.PI),
 };
 const SKIN = {
   foot: new THREE.MeshStandardMaterial({ color: FOOT, roughness: 0.6 }),
-  cream: new THREE.MeshStandardMaterial({ color: CREAM, roughness: 0.42 }),
-  eye: new THREE.MeshStandardMaterial({ color: INK, roughness: 0.12, metalness: 0.1 }),
-  glint: new THREE.MeshBasicMaterial({ color: "#ffffff" }),
   cheek: new THREE.MeshStandardMaterial({ color: CHEEK, roughness: 0.6 }),
   ink: new THREE.MeshStandardMaterial({ color: INK, roughness: 0.4 }),
 };
+
+/** One shared body material per colour (created on first use). */
+const BODY_SKINS = new Map<BodyColor, THREE.MeshStandardMaterial>();
+function bodySkin(color: BodyColor) {
+  let skin = BODY_SKINS.get(color);
+  if (!skin) {
+    skin = new THREE.MeshStandardMaterial({ color: BODY_COLORS[color], roughness: 0.42 });
+    BODY_SKINS.set(color, skin);
+  }
+  return skin;
+}
 
 /**
  * Kordi built from primitives to match the 2D mascot: a soft bean body,
  * dot eyes with highlights, pink cheeks, a small smile, stubby arms, brown
  * feet.
+ * feet — dressed in an {@link Appearance} (body colour, hat, face, accessory).
  * Faces +z; the parent group handles position and heading.
  */
 export const KordiModel = forwardRef<
   THREE.Group,
-  { motion: MutableRefObject<KordiMotion>; scale?: number; crown?: CrownKind }
->(function KordiModel({ motion, scale = 1, crown = null }, ref) {
+  { motion: MutableRefObject<KordiMotion>; scale?: number; appearance?: Appearance }
+>(function KordiModel({ motion, scale = 1, appearance = DEFAULT_APPEARANCE }, ref) {
+  const skin = bodySkin(appearance.body);
   const leftFoot = useRef<THREE.Mesh>(null);
   const rightFoot = useRef<THREE.Mesh>(null);
   const leftArm = useRef<THREE.Mesh>(null);
   const rightArm = useRef<THREE.Mesh>(null);
   const body = useRef<THREE.Group>(null);
   const squash = useRef<THREE.Group>(null);
-  const emoteClock = useRef<{ emote: EmoteId | null; time: number }>({ emote: null, time: 0 });
+  const emoteClock = useRef<{ emote: KordiEmote | null; time: number }>({ emote: null, time: 0 });
   const armTrail = useRef({ angle: 0, velocity: 0 });
 
   useFrame((_, dt) => {
@@ -162,33 +167,22 @@ export const KordiModel = forwardRef<
 
       <group ref={body}>
         {/* body: a capsule squashed front-to-back reads as the mascot's bean */}
-        <mesh position={[0, 0.72, 0]} scale={[1, 1, BODY_DEPTH]} castShadow geometry={PARTS.body} material={SKIN.cream} />
+        <mesh position={[0, 0.72, 0]} scale={[1, 1, BODY_DEPTH]} castShadow geometry={PARTS.body} material={skin} />
 
         {/* arms */}
-        <mesh ref={leftArm} position={[-0.53, 0.62, 0.02]} rotation={[0, 0, 0.5]} scale={[0.12, 0.2, 0.12]} castShadow geometry={PARTS.arm} material={SKIN.cream} />
-        <mesh ref={rightArm} position={[0.53, 0.62, 0.02]} rotation={[0, 0, -0.5]} scale={[0.12, 0.2, 0.12]} castShadow geometry={PARTS.arm} material={SKIN.cream} />
+        <mesh ref={leftArm} position={[-0.53, 0.62, 0.02]} rotation={[0, 0, 0.5]} scale={[0.12, 0.2, 0.12]} castShadow geometry={PARTS.arm} material={skin} />
+        <mesh ref={rightArm} position={[0.53, 0.62, 0.02]} rotation={[0, 0, -0.5]} scale={[0.12, 0.2, 0.12]} castShadow geometry={PARTS.arm} material={skin} />
 
-        {/* face — big glossy eyes like the mascot. Each is a shallow dome set
-            into the head's curve (surface z ≈ 0.416 at x ±0.19), so it shines
-            from the front without poking out in profile. */}
-        {[-0.19, 0.19].map((x) => (
-          <group key={x} position={[x, 0.95, 0.396]}>
-            <mesh scale={[1, 1.08, 0.45]} geometry={PARTS.eye} material={SKIN.eye} />
-            {/* main catchlight up and to the outside, a small one low on the inside */}
-            <mesh position={[Math.sign(x) * 0.028, 0.034, 0.036]} scale={[1, 1, 0.4]} geometry={PARTS.glint} material={SKIN.glint} />
-            <mesh position={[-Math.sign(x) * 0.026, -0.032, 0.034]} scale={[1, 1, 0.4]} geometry={PARTS.glintSmall} material={SKIN.glint} />
-          </group>
-        ))}
+        {/* face: big glossy eyes by default, set into the head's curve so they
+            shine from the front without poking out in profile */}
+        <Eyes face={appearance.face} />
         {[-0.32, 0.32].map((x) => (
           <mesh key={x} position={[x, 0.85, 0.345]} rotation={[0, x > 0 ? 0.6 : -0.6, 0]} scale={[0.09, 0.058, 0.02]} geometry={PARTS.cheek} material={SKIN.cheek} />
         ))}
         <mesh position={[0, 0.9, 0.447]} rotation={[0, 0, Math.PI]} geometry={PARTS.smile} material={SKIN.ink} />
 
-        {crown ? (
-          <group position={[0, 1.33, 0]} rotation={[0, 0, 0.12]} scale={0.95}>
-            <CrownMesh kind={crown} />
-          </group>
-        ) : null}
+        {appearance.hat ? <Hat hat={appearance.hat} /> : null}
+        {appearance.accessory ? <Accessory accessory={appearance.accessory} /> : null}
 
       </group>
       </group>

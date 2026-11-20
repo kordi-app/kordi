@@ -21,7 +21,7 @@ import {
   type CourseDef,
   type Platform,
 } from "../model/course";
-import { CrownMesh } from "./crown-mesh";
+import { CrownMesh } from "@/entities/character";
 import { useKeySprings } from "../lib/use-key-springs";
 
 const COLORS: Record<Platform["kind"], string> = {
@@ -70,8 +70,8 @@ function Cloud({ x, y, z, scale }: { x: number; y: number; z: number; scale: num
   );
 }
 
-/** The goal's treasure: a chest with a crown hovering over it. */
-function Treasure({ x, y, z, star }: { x: number; y: number; z: number; star: boolean }) {
+/** The goal's treasure: a chest with a crown hovering over it (just the chest once you own that crown). */
+function Treasure({ x, y, z, star, crown: showCrown }: { x: number; y: number; z: number; star: boolean; crown: boolean }) {
   const crown = useRef<THREE.Group>(null);
   useFrame(({ clock }) => {
     if (!crown.current) return;
@@ -89,9 +89,11 @@ function Treasure({ x, y, z, star }: { x: number; y: number; z: number; star: bo
         <boxGeometry args={[0.94, 0.08, 0.64]} />
         <meshStandardMaterial color="#e3b341" metalness={0.4} roughness={0.3} />
       </mesh>
-      <group ref={crown}>
-        <CrownMesh kind={star ? "star" : "gold"} />
-      </group>
+      {showCrown ? (
+        <group ref={crown}>
+          <CrownMesh kind={star ? "star" : "gold"} />
+        </group>
+      ) : null}
     </group>
   );
 }
@@ -281,10 +283,13 @@ function Lantern({ x, y, z }: { x: number; y: number; z: number }) {
 export const CourseScene = memo(function CourseScene({
   course,
   pressed,
+  rewardOwned,
 }: {
   course: CourseDef;
   /** keys held down right now; read every frame */
   pressed: RefObject<ReadonlySet<number>>;
+  /** you already have this course's crown: the treasure shows no crown */
+  rewardOwned: boolean;
 }) {
   const { platforms, beams } = course;
   const night = beams !== undefined;
@@ -461,7 +466,7 @@ export const CourseScene = memo(function CourseScene({
           </group>
         );
       })}
-      <Treasure {...goalSpots(course).treasure} star={night} />
+      <Treasure {...goalSpots(course).treasure} star={night} crown={!rewardOwned} />
     </group>
   );
 });

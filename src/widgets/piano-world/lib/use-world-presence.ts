@@ -49,6 +49,8 @@ export interface CourseRecordMessage {
   rank: number;
   /** made it onto the ranking (signed in and a new best) */
   saved: boolean;
+  /** a reward item this finish unlocked (already put on by the server) */
+  reward?: string | null;
 }
 
 export type PresenceStatus = "connecting" | "online" | "full" | "offline" | "disabled";

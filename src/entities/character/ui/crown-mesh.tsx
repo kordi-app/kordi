@@ -2,8 +2,6 @@
 
 import * as THREE from "three";
 
-/** gold = topped the cloud course; star = topped the night course too */
-export type CrownKind = "gold" | "star" | null;
 
 const STYLE = {
   gold: { color: "#f2c14e", emissive: "#a06a00", glow: 0.25, tip: "#f2c14e" },
@@ -11,7 +9,8 @@ const STYLE = {
 } as const;
 
 /** A small crown — the reward for topping a jump course. */
-export function CrownMesh({ kind = "gold" }: { kind?: Exclude<CrownKind, null> }) {
+/** gold = the cloud course's reward; star = the night course's */
+export function CrownMesh({ kind = "gold" }: { kind?: "gold" | "star" }) {
   const style = STYLE[kind];
   return (
     <group>

@@ -3,7 +3,7 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { KordiModel, type KordiMotion } from "./kordi-model";
+import { KordiModel, type KordiMotion } from "@/entities/character";
 import { CASE_H, KEYS, SPAWN, keyAt } from "../model/layout";
 import type { InteractableDef } from "../model/interactables";
 

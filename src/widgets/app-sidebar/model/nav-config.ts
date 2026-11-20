@@ -1,6 +1,7 @@
 import {
   KeyboardMusic,
   Piano,
+  Shirt,
   Timer,
   Trophy,
   Users,
@@ -37,6 +38,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: ROUTES.RANKING, icon: Trophy, labelKey: "sidebar.nav.ranking" },
       { href: ROUTES.FRIENDS, icon: Users, labelKey: "sidebar.nav.friends" },
+      { href: ROUTES.CHARACTER, icon: Shirt, labelKey: "sidebar.nav.character" },
     ],
   },
 ];
