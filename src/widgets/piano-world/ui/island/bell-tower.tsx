@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { DAY_MS } from "../../model/day-night";
+import { localDayFraction } from "../../model/day-night";
 import {
   BELFRY,
   BELL,
@@ -150,10 +150,10 @@ export function BellTower({ player }: { player: THREE.Vector3 }) {
       material.opacity += ((fade ? 0.22 : 1) - material.opacity) * ease;
       material.depthWrite = material.opacity > 0.95;
     }
-    // the clocks keep island time
+    // the clocks show the real local time
     if (now - last.current > 0.5) {
       last.current = now;
-      const phase = (Date.now() % DAY_MS) / DAY_MS;
+      const phase = localDayFraction(Date.now());
       for (const hand of hands.current) {
         if (!hand) continue;
         hand.rotation.z = -(hand.userData.minute ? phase * 24 : phase * 2) * Math.PI * 2;

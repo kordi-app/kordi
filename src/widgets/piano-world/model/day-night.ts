@@ -1,10 +1,17 @@
 /**
- * The island's day: one cycle every DAY_MS of wall-clock time, so everyone
- * in the world shares the same sky without the server keeping time.
- * Pure colour/intensity maths; the scene applies it each frame.
+ * The island's day follows the viewer's real local clock: morning sky in the
+ * morning, stars at night. No server time needed — everyone in the same time
+ * zone sees the same sky. Pure colour/intensity maths; the scene applies it.
  */
 
-export const DAY_MS = 8 * 60_000;
+/** Local hour at which the cycle's phase is 0 → sunrise ≈ 05:30, noon 12:30, sunset ≈ 19:30. */
+const PHASE_ZERO_HOUR = 6.5;
+
+/** Fraction of the viewer's local day since midnight (0–1). */
+export function localDayFraction(nowMs: number) {
+  const d = new Date(nowMs);
+  return (d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds() + d.getMilliseconds() / 1000) / 86_400;
+}
 
 export interface Sky {
   /** 0 = full day, 1 = deep night */
@@ -66,7 +73,7 @@ function lightDirection(phase: number, elevation: number): [number, number, numb
 
 /** The sky at a given wall-clock time (ms since epoch). */
 export function skyAt(nowMs: number): Sky {
-  const phase = (nowMs % DAY_MS) / DAY_MS;
+  const phase = (((localDayFraction(nowMs) - PHASE_ZERO_HOUR / 24) % 1) + 1) % 1;
   // a longer day than night: the sun spends ~60% of the cycle above the horizon
   const elevation = Math.sin(phase * Math.PI * 2) + 0.25;
   const night = 1 - smooth(-0.2, 0.3, elevation);
