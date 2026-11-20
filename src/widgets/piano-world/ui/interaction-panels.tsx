@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
+import { Button } from "@/shared/ui/button";
 import type { ChordCard } from "../model/chord-cards";
 import type { PianoWorldCopy } from "../model/copy";
 import { WARP_STONES, type WarpStoneId } from "../model/island";
@@ -87,13 +88,9 @@ export function ChordCardPanel({
       <p className="mt-1 text-sm text-muted-foreground">{card.labels.join(" – ")}</p>
       <MiniKeyboard positions={card.positions} />
       <p className="mt-4 text-sm leading-relaxed text-foreground">{copy.cards[card.key]}</p>
-      <button
-        type="button"
-        onClick={onPlay}
-        className="btn-inset mt-5 inline-flex h-9 w-full items-center justify-center text-sm font-medium"
-      >
+      <Button type="button" onClick={onPlay} className="mt-5 w-full">
         {copy.cardPlay}
-      </button>
+      </Button>
     </PanelShell>
   );
 }
@@ -127,16 +124,16 @@ export function WishPanel({
         className="mt-4 w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-foreground/40"
       />
       <p className="mt-2 text-xs text-muted-foreground">{copy.wishNote}</p>
-      <button
+      <Button
         type="button"
         onClick={() => {
           setText("");
           onSend();
         }}
-        className="btn-inset mt-4 inline-flex h-9 w-full items-center justify-center text-sm font-medium"
+        className="mt-4 w-full"
       >
         {copy.wishSend}
-      </button>
+      </Button>
     </PanelShell>
   );
 }

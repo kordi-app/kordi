@@ -9,7 +9,7 @@ import {
 } from "@/entities/chord-quiz";
 import { toDisplayChordName } from "@/shared/lib/music";
 import { MonoCard } from "@/shared/ui/mono-card";
-import { MonoButton } from "@/shared/ui/mono-button";
+import { Button } from "@/shared/ui/button";
 import { SectionHeader } from "@/shared/ui/section-header";
 
 interface QuizResultProps {
@@ -83,12 +83,12 @@ export function QuizResult({
       )}
 
       <div className="flex gap-3">
-        <MonoButton variant="solid" size="lg" onClick={onRetry}>
+        <Button size="lg" onClick={onRetry}>
           {t("retry")}
-        </MonoButton>
-        <MonoButton variant="outline" size="lg" onClick={onBackToSelect}>
+        </Button>
+        <Button variant="outline" size="lg" onClick={onBackToSelect}>
           {t("backToSelect")}
-        </MonoButton>
+        </Button>
       </div>
     </div>
   );

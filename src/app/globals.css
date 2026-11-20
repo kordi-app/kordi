@@ -130,7 +130,7 @@
 
   --border: #eceae4;
   --input: rgba(42, 37, 33, 0.4);
-  --ring: rgba(59, 130, 246, 0.5);
+  --ring: rgba(42, 37, 33, 0.25);
 
   --chart-1: #2a2521;
   --chart-2: #6a625b;
@@ -198,7 +198,7 @@
 
   --border: #eceae4;
   --input: rgba(42, 37, 33, 0.4);
-  --ring: rgba(59, 130, 246, 0.5);
+  --ring: rgba(42, 37, 33, 0.25);
 
   --sidebar: #f4f1e9;
   --sidebar-foreground: #2a2521;
