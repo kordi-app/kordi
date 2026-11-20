@@ -1,26 +1,24 @@
 "use client";
 
+import { useState, type ReactNode } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { ErrorBoundary, Suspense } from "@suspensive/react";
 import { useTranslations } from "next-intl";
-import { Inbox, Send } from "lucide-react";
-import { friendshipQueries } from "@/entities/friendship";
-import { ReceivedRequestItem, SentRequestItem } from "@/features/friendship";
+import { friendshipQueries, type Friendship } from "@/entities/friendship";
+import { AddFriendDialog, FriendItem, ReceivedRequestItem, SentRequestItem } from "@/features/friendship";
 import { LoadingState } from "@/shared/ui/empty-state";
-import { RequestsCard } from "./requests-card";
-import { NetworkTable } from "./network-table";
 
 interface FriendsPanelProps {
   currentUserId: number;
 }
 
+/** Show the filter only once the list is long enough to need it. */
+const FILTER_FROM = 8;
+
 export function FriendsPanel({ currentUserId }: FriendsPanelProps) {
+  const t = useTranslations("friends");
   return (
-    <ErrorBoundary
-      fallback={() => (
-        <p className="py-12 text-center text-sm opacity-60">Error loading</p>
-      )}
-    >
+    <ErrorBoundary fallback={() => <p className="py-12 text-sm text-muted-foreground">{t("loadFailed")}</p>}>
       <Suspense fallback={<LoadingState />}>
         <FriendsPanelContent currentUserId={currentUserId} />
       </Suspense>
@@ -28,37 +26,88 @@ export function FriendsPanel({ currentUserId }: FriendsPanelProps) {
   );
 }
 
+function Section({ title, count, aside, children }: { title: string; count: number; aside?: ReactNode; children: ReactNode }) {
+  return (
+    <section>
+      <div className="mb-1 flex items-center justify-between gap-3">
+        <h2 className="text-[15px] font-semibold text-foreground">
+          {title}
+          <span className="ml-1.5 font-normal text-muted-foreground tabular-nums">{count}</span>
+        </h2>
+        {aside}
+      </div>
+      {children}
+    </section>
+  );
+}
+
 function FriendsPanelContent({ currentUserId }: FriendsPanelProps) {
   const t = useTranslations("friends");
-
   const { data: friends } = useSuspenseQuery(friendshipQueries.friends());
   const { data: received } = useSuspenseQuery(friendshipQueries.received());
   const { data: sent } = useSuspenseQuery(friendshipQueries.sent());
+  const [filter, setFilter] = useState("");
+
+  const otherName = (f: Friendship) => (f.senderId === currentUserId ? f.receiverNickname : f.senderNickname);
+  const query = filter.trim().toLowerCase();
+  const shown = query ? friends.filter((f) => otherName(f).toLowerCase().includes(query)) : friends;
 
   return (
-    <div className="flex flex-col gap-8">
-      <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <RequestsCard
-          title={t("tabs.received")}
-          items={received}
-          emptyIcon={<Inbox className="size-6" />}
-          emptyLabel={t("empty.received")}
-          renderItem={(f) => <ReceivedRequestItem key={f.id} friendship={f} />}
-        />
-        <RequestsCard
-          title={t("tabs.sent")}
-          items={sent}
-          emptyIcon={<Send className="size-6" />}
-          emptyLabel={t("empty.sent")}
-          renderItem={(f) => <SentRequestItem key={f.id} friendship={f} />}
-        />
-      </section>
+    <div className="flex flex-col gap-10">
+      {received.length > 0 ? (
+        <Section title={t("tabs.received")} count={received.length}>
+          <div className="rounded-xl bg-muted/50 px-4 py-1.5">
+            {received.map((f) => (
+              <ReceivedRequestItem key={f.id} friendship={f} />
+            ))}
+          </div>
+        </Section>
+      ) : null}
 
-      <NetworkTable
-        title={t("sections.network")}
-        currentUserId={currentUserId}
-        items={friends}
-      />
+      <Section
+        title={t("tabs.friends")}
+        count={friends.length}
+        aside={
+          friends.length >= FILTER_FROM ? (
+            <input
+              type="search"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder={t("filterPlaceholder")}
+              aria-label={t("filterPlaceholder")}
+              className="h-8 w-40 rounded-lg border border-border bg-card px-3 text-[13px] text-foreground outline-none placeholder:text-muted-foreground focus:border-foreground/30"
+            />
+          ) : null
+        }
+      >
+        {friends.length === 0 ? (
+          <div className="py-10">
+            <p className="text-[15px] text-foreground">{t("empty.friends")}</p>
+            <p className="mt-1 text-[13px] text-muted-foreground">{t("empty.friendsHint")}</p>
+            <div className="mt-4">
+              <AddFriendDialog currentUserId={currentUserId} />
+            </div>
+          </div>
+        ) : shown.length === 0 ? (
+          <p className="py-8 text-[13px] text-muted-foreground">{t("noMatch")}</p>
+        ) : (
+          <div className="divide-y divide-border/60">
+            {shown.map((f) => (
+              <FriendItem key={f.id} friendshipId={f.id} name={otherName(f)} />
+            ))}
+          </div>
+        )}
+      </Section>
+
+      {sent.length > 0 ? (
+        <Section title={t("tabs.sent")} count={sent.length}>
+          <div className="divide-y divide-border/60">
+            {sent.map((f) => (
+              <SentRequestItem key={f.id} friendship={f} />
+            ))}
+          </div>
+        </Section>
+      ) : null}
     </div>
   );
 }

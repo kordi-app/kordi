@@ -68,27 +68,12 @@
     "searchHint": "Type at least 2 characters",
     "searching": "Searching...",
     "noResult": "No user found with that nickname",
-    "foundUser": "Found this user",
-    "friendSince": "Friend",
     "wantsToBeFriend": "Wants to be your friend",
     "sendRequest": "Send Request",
     "accept": "Accept",
     "reject": "Reject",
-    "cancelRequest": "Cancel",
-    "delete": "Remove Friend",
-    "message": "Message",
-    "pending": "Pending",
+    "cancelRequest": "Cancel request",
     "loading": "Loading...",
-    "musicians": "musicians",
-    "statusConnected": "Connected",
-    "sections": {
-      "network": "My Network"
-    },
-    "columns": {
-      "musician": "Musician",
-      "status": "Status",
-      "actions": "Actions"
-    },
     "tabs": {
       "friends": "Friends",
       "received": "Received",
@@ -96,7 +81,7 @@
     },
     "empty": {
       "friends": "No friends yet",
-      "friendsHint": "Use the Add Friend button above to get started",
+      "friendsHint": "Find friends by nickname and play together",
       "received": "No received requests",
       "sent": "No sent requests"
     },
@@ -113,7 +98,13 @@
       "notFound": "Friend request not found",
       "userNotFound": "User not found",
       "invalid": "Invalid request"
-    }
+    },
+    "waitingReply": "Waiting for a reply",
+    "remove": "Remove",
+    "confirmDelete": "Remove?",
+    "filterPlaceholder": "Find by name",
+    "noMatch": "No friend by that name",
+    "loadFailed": "Couldn't load your friends"
   },
   "login": {
     "title": "Sign in",
