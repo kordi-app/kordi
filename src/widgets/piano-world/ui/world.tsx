@@ -5,16 +5,8 @@ import type { VoiceId } from "@/shared/lib/audio";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { BOUNDS, CASE_H, SPAWN } from "../model/layout";
-import {
-  BOUNCE_BOOST,
-  courseBlocked,
-  courseCeiling,
-  courseDepenetrate,
-  courseRuntime,
-  slideOffset,
-  tickCourse,
-  touchCrumble,
-} from "../model/course";
+import { courseRuntime, slideOffset, tickCourse, touchCrumble } from "../model/course";
+import { bodyLanguage, createPlayerSim, jumpAndFall, placePlayer, walk, type WalkEnv } from "../model/player";
 import { interactablesIn, type EmoteId, type InteractableId } from "../model/interactables";
 import { decorColliders } from "../model/decor";
 import { skyAt } from "../model/day-night";
@@ -23,27 +15,14 @@ import { createAmbience, resetAmbience, stepAmbience, type AmbienceEvents } from
 import { aimSunLight, applySky, createSunAim } from "../lib/sun-light";
 import { quality } from "../lib/quality";
 import { ISLAND_TERRAIN } from "../model/nature";
-import { terrainBlocked, terrainCeiling, terrainDepenetrate } from "../model/terrain";
 import { BALL_RADIUS, ballSpawns, newBall, stepBall, type Ball } from "../model/ball";
 import { NoteBall } from "./note-ball";
 import {
-  AIR_ACCEL,
-  BODY_RADIUS,
-  COYOTE_TIME,
-  FALL_THRESHOLD,
-  GRAVITY,
-  GROUND_ACCEL,
-  GROUND_FRICTION,
   HARD_LANDING,
   JUMP_BUFFER,
-  JUMP_CUT_GRAVITY,
   JUMP_SPEED,
-  SPEED,
   SPRING_BOOST,
-  approach,
   groundAt,
-  lerpAngle,
-  resolveCircles,
   type Arrival,
   type CircleCollider,
   type InputState,
@@ -166,29 +145,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
   const motion = useRef<KordiMotion>({ phase: 0, amount: 0, emote: null, land: 0, stretch: 0, lean: 0, bank: 0 });
   /** Kordi's live position: one Vector3, mutated in place, shared with the island renderer */
   const [playerPos] = useState(() => new THREE.Vector3(SPAWN.x, CASE_H, SPAWN.z));
-  const sim = useRef({
-    pos: playerPos,
-    heading: 0, // face the camera on arrival
-    vx: 0,
-    vz: 0,
-    vy: 0,
-    airborne: false,
-    /** in the air because of a jump (not a fall) — no coyote jump then */
-    jumped: false,
-    /** launched by a neon spring: ignores the early-release cut */
-    springing: false,
-    sinceGrounded: 0,
-    jumpBuffer: 0,
-    lastForward: 0,
-    bumpCooldown: 0,
-    midi: null as number | null,
-    platform: null as number | null,
-    /** island terrain underfoot (ISLAND_TERRAIN.solids index) */
-    solid: null as number | null,
-    /** height of the last ground stood on: the camera follows this, not jumps */
-    restY: 0,
-  });
-  /** island ambience: per-thing cooldowns, last position (for harp strings), stone in reach */
+  const sim = useRef(createPlayerSim(playerPos));
   /** island ambience (pipes, harp, bell, warp stones, places) between frames */
   const ambience = useRef(createAmbience());
   const view = useRef({ skyAt: -Infinity, nearKeys: true });
@@ -223,6 +180,14 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
   );
   const course = region.course ?? null;
   const island = region.island ? ISLAND_TERRAIN : null;
+  /** what you walk among this frame (other players move, so it's built per frame) */
+  const walkEnv = (): WalkEnv => ({
+    bounds: course ? course.bounds : (region.bounds ?? BOUNDS),
+    course,
+    island,
+    props: solids,
+    players: remotes.current.values(),
+  });
   const ambienceEvents = useMemo<AmbienceEvents>(
     () => ({
       voice: events.onVoice,
@@ -246,14 +211,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     // `s.platform`, which must not still point into the previous course.
     if (placedFor.current !== arrival) {
       placedFor.current = arrival;
-      s.pos.set(arrival.x, groundAt(region, arrival.x, arrival.z, 0).height, arrival.z);
-      s.heading = 0;
-      s.vx = s.vz = s.vy = 0;
-      s.airborne = s.jumped = s.springing = false;
-      s.platform = null;
-      s.midi = null;
-      s.solid = null;
-      s.restY = s.pos.y;
+      placePlayer(s, arrival.x, groundAt(region, arrival.x, arrival.z, 0).height, arrival.z);
       resetAmbience(ambience.current, s.pos.x, ambienceEvents);
       if (island) {
         // a shimmer where you land (portal arrivals and warps alike)
@@ -276,188 +234,30 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       tickCourse(course, now);
     }
 
-    // --- walking: velocity eases toward the input direction (momentum, weaker in the air)
-    let ix = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
-    let iz = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
-    const steering = ix !== 0 || iz !== 0;
-    if (steering) {
-      const length = Math.hypot(ix, iz);
-      ix /= length;
-      iz /= length;
-    }
-    const accel = (s.airborne ? AIR_ACCEL : steering ? GROUND_ACCEL : GROUND_FRICTION) * dt;
-    s.vx = approach(s.vx, ix * SPEED, accel);
-    s.vz = approach(s.vz, iz * SPEED, accel);
-
-    const speed = Math.hypot(s.vx, s.vz);
-    if (speed > 1e-3) {
-      const bounds = course ? course.bounds : (region.bounds ?? BOUNDS);
-      const nextX = THREE.MathUtils.clamp(s.pos.x + s.vx * dt, -bounds.x, bounds.x);
-      const nextZ = THREE.MathUtils.clamp(s.pos.z + s.vz * dt, bounds.zMin, bounds.zMax);
-      if (course) {
-        // Course steps are solid: resolve each axis separately so you slide along a side
-        if (!courseBlocked(course, nextX, s.pos.z, s.pos.y)) s.pos.x = nextX;
-        else s.vx = 0;
-        if (!courseBlocked(course, s.pos.x, nextZ, s.pos.y)) s.pos.z = nextZ;
-        else s.vz = 0;
-      } else if (island) {
-        // island terrain is solid the same way
-        if (!terrainBlocked(island, nextX, s.pos.z, s.pos.y)) s.pos.x = nextX;
-        else s.vx = 0;
-        if (!terrainBlocked(island, s.pos.x, nextZ, s.pos.y)) s.pos.z = nextZ;
-        else s.vz = 0;
-      } else {
-        s.pos.x = nextX;
-        s.pos.z = nextZ;
-      }
-    }
-    if (island) {
-      const out = terrainDepenetrate(island, s.pos.x, s.pos.z, s.pos.y);
-      s.pos.x = out.x;
-      s.pos.z = out.z;
-    }
-    if (course) {
-      // steps move and appear on their own: if one ended up inside Kordi, step out of it
-      const out = courseDepenetrate(course, s.pos.x, s.pos.z, s.pos.y);
-      s.pos.x = THREE.MathUtils.clamp(out.x, -course.bounds.x, course.bounds.x);
-      s.pos.z = THREE.MathUtils.clamp(out.z, course.bounds.zMin, course.bounds.zMax);
-    }
-    if (!course) {
-      // props you can't walk through, and a gentle push away from other players
-      const pushed = resolveCircles(s.pos.x, s.pos.z, BODY_RADIUS, solids);
-      const nearbyPlayers: CircleCollider[] = [];
-      for (const remote of remotes.current.values()) {
-        if (Math.abs((remote.y ?? 0) - s.pos.y) < 1.5) {
-          nearbyPlayers.push({ x: remote.x, z: remote.z, radius: BODY_RADIUS });
-        }
-      }
-      const shoved = resolveCircles(pushed.x, pushed.z, BODY_RADIUS, nearbyPlayers);
-      s.pos.x = THREE.MathUtils.lerp(pushed.x, shoved.x, 1 - Math.exp(-dt * 10)); // soft, not a wall
-      s.pos.z = THREE.MathUtils.lerp(pushed.z, shoved.z, 1 - Math.exp(-dt * 10));
-      // Bump: running into someone bounces you back with a little hop. Every
-      // client does this for its own player, so both sides of a collision
-      // bounce — no server physics needed.
-      if (shoved.normal && s.bumpCooldown === 0) {
-        const closing = -(s.vx * shoved.normal.x + s.vz * shoved.normal.z);
-        if (closing > 1) {
-          const kick = closing * 1.4 + 1.5;
-          s.vx += shoved.normal.x * kick;
-          s.vz += shoved.normal.z * kick;
-          if (!s.airborne) {
-            s.airborne = true;
-            s.jumped = true;
-            s.vy = 3.2;
-          }
-          motion.current.land = 0.5;
-          s.bumpCooldown = 0.4;
-        }
-      }
-      s.bumpCooldown = Math.max(0, s.bumpCooldown - dt);
-      if (pushed.normal) {
-        // stop pushing into the prop, keep sliding along it
-        const into = s.vx * pushed.normal.x + s.vz * pushed.normal.z;
-        if (into < 0) {
-          s.vx -= into * pushed.normal.x;
-          s.vz -= into * pushed.normal.z;
-        }
-      }
-    }
-    const previousHeading = s.heading;
-    if (speed > 0.3) {
-      s.heading = lerpAngle(s.heading, Math.atan2(s.vx, s.vz), 1 - Math.exp(-dt * 12));
-    }
-
+    // --- walking, then body language
+    const { speed, steering } = walk(s, keys, dt, walkEnv(), motion.current);
     const m = motion.current;
-    // body language: acceleration along the facing direction → lean, turn rate → bank
-    const forwardSpeed = s.vx * Math.sin(s.heading) + s.vz * Math.cos(s.heading);
-    const forwardAccel = (forwardSpeed - s.lastForward) / Math.max(dt, 1e-3);
-    s.lastForward = forwardSpeed;
-    const turnRate = lerpAngle(0, s.heading - previousHeading, 1) / Math.max(dt, 1e-3);
-    const ease = 1 - Math.exp(-dt * 8);
-    m.lean = THREE.MathUtils.lerp(m.lean, THREE.MathUtils.clamp(forwardAccel / 20, -1, 1), ease);
-    m.bank = THREE.MathUtils.lerp(
-      m.bank,
-      THREE.MathUtils.clamp((turnRate * speed) / 25, -1, 1),
-      ease,
-    );
-    m.amount = THREE.MathUtils.lerp(m.amount, Math.min(speed / SPEED, 1), 1 - Math.exp(-dt * 10));
-    m.phase += dt * 11 * m.amount;
+    bodyLanguage(s, m, dt, speed);
     m.emote = emote;
     if (emote && steering) events.onEmoteCancel();
 
     // --- jumping, falling, landing
     const ground = groundAt(region, s.pos.x, s.pos.z, s.pos.y);
-    if (takeJump()) s.jumpBuffer = JUMP_BUFFER;
-    else s.jumpBuffer = Math.max(0, s.jumpBuffer - dt);
-    s.sinceGrounded = s.airborne ? s.sinceGrounded + dt : 0;
-
-    // forgiving jumps: buffered presses fire on landing, and you get a beat after leaving a ledge
-    const canJump = !s.airborne || (s.sinceGrounded < COYOTE_TIME && !s.jumped);
-    if (s.jumpBuffer > 0 && canJump) {
-      s.airborne = true;
-      s.jumped = true;
-      s.springing = false;
-      s.vy = JUMP_SPEED;
-      s.jumpBuffer = 0;
-    }
-
-    if (s.airborne) {
-      // let go of jump early and the rise is cut short (springs always go full height)
-      const cut = s.vy > 0 && !keys.jumpHeld && !s.springing ? JUMP_CUT_GRAVITY : 1;
-      s.vy -= GRAVITY * cut * dt;
-      const nextY = s.pos.y + s.vy * dt;
-      const ceiling =
-        s.vy <= 0
-          ? null
-          : course
-            ? courseCeiling(course, s.pos.x, s.pos.z, s.pos.y, nextY)
-            : island
-              ? terrainCeiling(island, s.pos.x, s.pos.z, s.pos.y, nextY)
-              : null;
-      if (ceiling !== null) {
-        s.pos.y = ceiling; // bonk: head hit a step's underside
-        s.vy = 0;
-      } else {
-        s.pos.y = nextY;
-      }
-      if (s.vy < 0 && s.pos.y <= ground.height) {
-        const impact = -s.vy;
-        s.pos.y = ground.height; // landing re-strikes the key below
-        s.airborne = false;
-        s.jumped = false;
-        s.springing = false;
-        s.vy = 0;
-        if (impact > HARD_LANDING) {
-          m.land = Math.min(1, (impact - HARD_LANDING) / 8 + 0.35);
-          fx.current?.dust(s.pos.x, s.pos.y, s.pos.z);
-        }
-        // trampoline: land and get flung back up
-        if (course && ground.platform !== null && course.platforms[ground.platform].behavior === "bounce") {
-          s.airborne = true;
-          s.jumped = true;
-          s.springing = true;
-          s.vy = JUMP_SPEED * BOUNCE_BOOST;
-          m.land = 0.8;
-        }
-        // island drums: every landing is a beat, and the skin throws you back up
-        const landed = island && ground.solid !== null ? island.solids[ground.solid] : null;
-        if (landed?.bounce) {
-          if (landed.sound) events.onVoice(landed.sound.voice, landed.sound.midi, Math.min(1, 0.45 + impact / 18));
-          if (landed.tag) islandHits.set(landed.tag, now);
-          fx.current?.notes(s.pos.x, s.pos.y, s.pos.z, region.theme.accent);
-          s.airborne = true;
-          s.jumped = true;
-          s.springing = true;
-          s.vy = JUMP_SPEED * landed.bounce;
-          m.land = 0.8;
-        }
-      }
-    } else if (s.pos.y - ground.height > FALL_THRESHOLD) {
-      s.airborne = true; // walked off a ledge (coyote time starts now)
-      s.vy = 0;
-    } else {
-      s.pos.y = THREE.MathUtils.lerp(s.pos.y, ground.height, 1 - Math.exp(-dt * 18));
-      s.restY = ground.height;
+    const landing = jumpAndFall(
+      s,
+      m,
+      dt,
+      ground,
+      { pressed: takeJump(), held: keys.jumpHeld, buffer: JUMP_BUFFER },
+      { course, island },
+    );
+    if (landing && landing.impact > HARD_LANDING) fx.current?.dust(s.pos.x, s.pos.y, s.pos.z);
+    // island drums: every landing is a beat
+    const drum = landing?.solid?.bounce ? landing.solid : null;
+    if (drum) {
+      if (drum.sound) events.onVoice(drum.sound.voice, drum.sound.midi, Math.min(1, 0.45 + landing!.impact / 18));
+      if (drum.tag) islandHits.set(drum.tag, now);
+      fx.current?.notes(s.pos.x, s.pos.y, s.pos.z, region.theme.accent);
     }
     // squash on landing eases out; stretch while rising fast
     m.land = Math.max(0, m.land - dt * 4);
