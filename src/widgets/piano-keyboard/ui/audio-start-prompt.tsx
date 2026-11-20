@@ -24,7 +24,7 @@ export function AudioStartPrompt({
     <button
       type="button"
       onClick={onStart}
-      className="group flex items-center gap-4 rounded-xl border border-border bg-card px-6 py-4 text-left shadow-[0_4px_12px_rgba(37, 36, 34,0.08)] transition-colors hover:bg-muted"
+      className="group flex items-center gap-4 rounded-xl border border-border bg-card px-6 py-4 text-left shadow-raised transition-colors hover:bg-muted"
     >
       <span className="btn-inset flex size-10 shrink-0 items-center justify-center rounded-full">
         <Volume2 className="size-[18px]" />

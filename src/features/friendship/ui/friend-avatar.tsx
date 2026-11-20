@@ -5,13 +5,14 @@ import { cn } from "@/shared/lib/utils";
  * list of friends doesn't read as a column of identical dots. The same name
  * always gets the same colour.
  */
+/** Avatar tints from the design tokens (--avatar-1 … --avatar-6). Full class names, so Tailwind sees them. */
 const TONES = [
-  { bg: "#fde2d4", fg: "#9a4a2a" },
-  { bg: "#d9ecf8", fg: "#2c5f82" },
-  { bg: "#dcefe3", fg: "#2f6a47" },
-  { bg: "#f6e3f0", fg: "#8a3a6e" },
-  { bg: "#fbf0c8", fg: "#7a5c12" },
-  { bg: "#e6e1f8", fg: "#4d3f8f" },
+  "bg-avatar-1 text-avatar-1-foreground",
+  "bg-avatar-2 text-avatar-2-foreground",
+  "bg-avatar-3 text-avatar-3-foreground",
+  "bg-avatar-4 text-avatar-4-foreground",
+  "bg-avatar-5 text-avatar-5-foreground",
+  "bg-avatar-6 text-avatar-6-foreground",
 ] as const;
 
 function toneOf(name: string) {
@@ -27,9 +28,8 @@ export function FriendAvatar({ name, muted = false }: { name: string; muted?: bo
       aria-hidden
       className={cn(
         "flex size-10 shrink-0 items-center justify-center rounded-full text-[15px] font-semibold",
-        muted && "bg-muted text-muted-foreground",
+        muted ? "bg-muted text-muted-foreground" : tone,
       )}
-      style={muted ? undefined : { backgroundColor: tone.bg, color: tone.fg }}
     >
       {[...name][0]?.toUpperCase()}
     </span>

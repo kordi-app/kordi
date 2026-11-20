@@ -39,6 +39,124 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  /* palette + semantic colours as utilities: bg-bg-layer-default, text-fg-neutral-muted, border-stroke-neutral-weak, bg-palette-red-100 … */
+  --color-palette-gray-00: var(--palette-gray-00);
+  --color-palette-gray-100: var(--palette-gray-100);
+  --color-palette-gray-200: var(--palette-gray-200);
+  --color-palette-gray-300: var(--palette-gray-300);
+  --color-palette-gray-400: var(--palette-gray-400);
+  --color-palette-gray-500: var(--palette-gray-500);
+  --color-palette-gray-600: var(--palette-gray-600);
+  --color-palette-gray-700: var(--palette-gray-700);
+  --color-palette-gray-800: var(--palette-gray-800);
+  --color-palette-gray-900: var(--palette-gray-900);
+  --color-palette-gray-1000: var(--palette-gray-1000);
+  --color-palette-gray-alpha-100: var(--palette-gray-alpha-100);
+  --color-palette-gray-alpha-200: var(--palette-gray-alpha-200);
+  --color-palette-gray-alpha-300: var(--palette-gray-alpha-300);
+  --color-palette-gray-alpha-400: var(--palette-gray-alpha-400);
+  --color-palette-gray-alpha-500: var(--palette-gray-alpha-500);
+  --color-palette-red-100: var(--palette-red-100);
+  --color-palette-red-200: var(--palette-red-200);
+  --color-palette-red-300: var(--palette-red-300);
+  --color-palette-red-500: var(--palette-red-500);
+  --color-palette-red-700: var(--palette-red-700);
+  --color-palette-red-800: var(--palette-red-800);
+  --color-palette-red-900: var(--palette-red-900);
+  --color-palette-green-100: var(--palette-green-100);
+  --color-palette-green-200: var(--palette-green-200);
+  --color-palette-green-300: var(--palette-green-300);
+  --color-palette-green-500: var(--palette-green-500);
+  --color-palette-green-700: var(--palette-green-700);
+  --color-palette-green-800: var(--palette-green-800);
+  --color-palette-green-900: var(--palette-green-900);
+  --color-palette-yellow-100: var(--palette-yellow-100);
+  --color-palette-yellow-200: var(--palette-yellow-200);
+  --color-palette-yellow-300: var(--palette-yellow-300);
+  --color-palette-yellow-500: var(--palette-yellow-500);
+  --color-palette-yellow-700: var(--palette-yellow-700);
+  --color-palette-yellow-800: var(--palette-yellow-800);
+  --color-palette-yellow-900: var(--palette-yellow-900);
+  --color-palette-blue-100: var(--palette-blue-100);
+  --color-palette-blue-200: var(--palette-blue-200);
+  --color-palette-blue-300: var(--palette-blue-300);
+  --color-palette-blue-500: var(--palette-blue-500);
+  --color-palette-blue-700: var(--palette-blue-700);
+  --color-palette-blue-800: var(--palette-blue-800);
+  --color-palette-blue-900: var(--palette-blue-900);
+  --color-palette-purple-100: var(--palette-purple-100);
+  --color-palette-purple-200: var(--palette-purple-200);
+  --color-palette-purple-300: var(--palette-purple-300);
+  --color-palette-purple-500: var(--palette-purple-500);
+  --color-palette-purple-700: var(--palette-purple-700);
+  --color-palette-purple-800: var(--palette-purple-800);
+  --color-palette-purple-900: var(--palette-purple-900);
+  --color-bg-layer-basement: var(--bg-layer-basement);
+  --color-bg-layer-default: var(--bg-layer-default);
+  --color-bg-layer-default-pressed: var(--bg-layer-default-pressed);
+  --color-bg-layer-floating: var(--bg-layer-floating);
+  --color-bg-neutral-solid: var(--bg-neutral-solid);
+  --color-bg-neutral-solid-pressed: var(--bg-neutral-solid-pressed);
+  --color-bg-neutral-weak: var(--bg-neutral-weak);
+  --color-bg-neutral-weak-pressed: var(--bg-neutral-weak-pressed);
+  --color-bg-neutral-weak-alpha: var(--bg-neutral-weak-alpha);
+  --color-bg-neutral-weak-alpha-pressed: var(--bg-neutral-weak-alpha-pressed);
+  --color-bg-transparent-pressed: var(--bg-transparent-pressed);
+  --color-bg-disabled: var(--bg-disabled);
+  --color-bg-overlay: var(--bg-overlay);
+  --color-bg-critical-solid: var(--bg-critical-solid);
+  --color-bg-critical-solid-pressed: var(--bg-critical-solid-pressed);
+  --color-bg-critical-weak: var(--bg-critical-weak);
+  --color-bg-critical-weak-pressed: var(--bg-critical-weak-pressed);
+  --color-bg-positive-solid: var(--bg-positive-solid);
+  --color-bg-positive-solid-pressed: var(--bg-positive-solid-pressed);
+  --color-bg-positive-weak: var(--bg-positive-weak);
+  --color-bg-warning-solid: var(--bg-warning-solid);
+  --color-bg-warning-weak: var(--bg-warning-weak);
+  --color-bg-informative-solid: var(--bg-informative-solid);
+  --color-bg-informative-weak: var(--bg-informative-weak);
+  --color-fg-neutral: var(--fg-neutral);
+  --color-fg-neutral-muted: var(--fg-neutral-muted);
+  --color-fg-neutral-subtle: var(--fg-neutral-subtle);
+  --color-fg-neutral-inverted: var(--fg-neutral-inverted);
+  --color-fg-disabled: var(--fg-disabled);
+  --color-fg-placeholder: var(--fg-placeholder);
+  --color-fg-on-neutral-solid: var(--fg-on-neutral-solid);
+  --color-fg-on-critical-solid: var(--fg-on-critical-solid);
+  --color-fg-on-positive-solid: var(--fg-on-positive-solid);
+  --color-fg-critical: var(--fg-critical);
+  --color-fg-positive: var(--fg-positive);
+  --color-fg-warning: var(--fg-warning);
+  --color-fg-informative: var(--fg-informative);
+  --color-stroke-neutral-subtle: var(--stroke-neutral-subtle);
+  --color-stroke-neutral-muted: var(--stroke-neutral-muted);
+  --color-stroke-neutral-weak: var(--stroke-neutral-weak);
+  --color-stroke-neutral-weak-hover: var(--stroke-neutral-weak-hover);
+  --color-stroke-neutral-solid: var(--stroke-neutral-solid);
+  --color-stroke-critical-solid: var(--stroke-critical-solid);
+  --color-stroke-focus-ring: var(--stroke-focus-ring);
+  --color-primary-hover: var(--primary-hover);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-destructive-hover: var(--destructive-hover);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-control-border: var(--control-border);
+  --color-control-border-hover: var(--control-border-hover);
+  --color-avatar-1: var(--avatar-1);
+  --color-avatar-1-foreground: var(--avatar-1-foreground);
+  --color-avatar-2: var(--avatar-2);
+  --color-avatar-2-foreground: var(--avatar-2-foreground);
+  --color-avatar-3: var(--avatar-3);
+  --color-avatar-3-foreground: var(--avatar-3-foreground);
+  --color-avatar-4: var(--avatar-4);
+  --color-avatar-4-foreground: var(--avatar-4-foreground);
+  --color-avatar-5: var(--avatar-5);
+  --color-avatar-5-foreground: var(--avatar-5-foreground);
+  --color-avatar-6: var(--avatar-6);
+  --color-avatar-6-foreground: var(--avatar-6-foreground);
+
+  /* Elevation: shallow and soft — the only lift the cream system uses */
+  --shadow-button: inset 0 0.5px 0 rgba(255, 255, 255, 0.18), 0 1px 2px var(--shadow-color);
+  --shadow-raised: 0 4px 12px var(--shadow-color);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -109,131 +227,216 @@
 
 }
 
-/* Light mode (Lovable Cream System — primary theme) */
+/* ─────────────────────────────────────────────────────────────
+   Colour tokens — two layers, after SEED (daangn/seed-design):
+
+   1. palette: raw steps, e.g. --palette-gray-00 … --palette-gray-1000.
+      Only the semantic layer below should reference these.
+   2. semantic: what a colour is for — bg (surfaces), fg (text/icons),
+      stroke (lines). Components use these (as bg-bg-*, text-fg-*,
+      border-stroke-*), or the shadcn aliases at the end that map onto them.
+
+   Values are kordi's own: a warm, low-chroma stone ("cream") with one
+   graphite ink — not SEED's colours. Light only; kordi has no dark theme.
+   ───────────────────────────────────────────────────────────── */
 :root {
-  --background: #f5f4f1;
-  --foreground: #252422;
-  --card: #fbfaf8;
-  --card-foreground: #252422;
-  --popover: #fbfaf8;
-  --popover-foreground: #252422;
+  /* ── 1. palette ───────────────────────────────────────────── */
+  --palette-gray-00: #fcfbf9;
+  --palette-gray-100: #f5f4f1;
+  --palette-gray-200: #ecebe6;
+  --palette-gray-300: #e3e1dc;
+  --palette-gray-400: #d8d5cf;
+  --palette-gray-500: #c4c0b9;
+  --palette-gray-600: #a39f97;
+  --palette-gray-700: #807c75;
+  --palette-gray-800: #5d5953;
+  --palette-gray-900: #46433e;
+  --palette-gray-1000: #33312e;
 
-  --primary: #252422;
-  --primary-foreground: #fbfaf8;
-  --secondary: #ebe9e5;
-  --secondary-foreground: rgba(37, 36, 34, 0.82);
-  --muted: #f0efeb;
-  --muted-foreground: #6b6965;
-  --accent: #ebe9e5;
-  --accent-foreground: #252422;
-  --destructive: #b3372c;
+  /* the ink at increasing opacity: lines and hover washes that sit on any surface */
+  --palette-gray-alpha-100: rgba(51, 49, 46, 0.04);
+  --palette-gray-alpha-200: rgba(51, 49, 46, 0.07);
+  --palette-gray-alpha-300: rgba(51, 49, 46, 0.11);
+  --palette-gray-alpha-400: rgba(51, 49, 46, 0.17);
+  --palette-gray-alpha-500: rgba(51, 49, 46, 0.27);
 
-  --border: #e4e2dd;
-  --input: rgba(37, 36, 34, 0.4);
-  --ring: rgba(37, 36, 34, 0.25);
+  /* functional hues: earthy, so they sit on cream instead of shouting */
+  --palette-red-100: #f8e7e4;
+  --palette-red-200: #f1d2cc;
+  --palette-red-300: #e6b1a8;
+  --palette-red-500: #cf6a5c;
+  --palette-red-700: #b3372c;
+  --palette-red-800: #9e2f25;
+  --palette-red-900: #7c241c;
 
-  --chart-1: #252422;
-  --chart-2: #6b6965;
-  --chart-3: #8a8781;
-  --chart-4: #2f7a55;
-  --chart-5: #b26a00;
+  --palette-green-100: #e3efe7;
+  --palette-green-200: #cde2d4;
+  --palette-green-300: #a9cdb6;
+  --palette-green-500: #5f9c76;
+  --palette-green-700: #2f7a55;
+  --palette-green-800: #256446;
+  --palette-green-900: #1c4d36;
+
+  --palette-yellow-100: #f6eed6;
+  --palette-yellow-200: #eedfb3;
+  --palette-yellow-300: #e3c983;
+  --palette-yellow-500: #c99a35;
+  --palette-yellow-700: #b26a00;
+  --palette-yellow-800: #8f5600;
+  --palette-yellow-900: #6e4200;
+
+  --palette-blue-100: #e1eaf1;
+  --palette-blue-200: #c9d9e6;
+  --palette-blue-300: #a5bfd4;
+  --palette-blue-500: #5f87a8;
+  --palette-blue-700: #35607f;
+  --palette-blue-800: #2a4e69;
+  --palette-blue-900: #203c51;
+
+  --palette-purple-100: #e8e5f2;
+  --palette-purple-200: #d6d0e8;
+  --palette-purple-300: #bbb2d8;
+  --palette-purple-500: #8a7cbd;
+  --palette-purple-700: #5d4f93;
+  --palette-purple-800: #4b3f7a;
+  --palette-purple-900: #3a3060;
+
+  /* ── 2. semantic ──────────────────────────────────────────── */
+  /* surfaces: basement (page) < default (cards, lists) / floating (popovers, dialogs) */
+  --bg-layer-basement: var(--palette-gray-100);
+  --bg-layer-default: var(--palette-gray-00);
+  --bg-layer-default-pressed: var(--palette-gray-100);
+  --bg-layer-floating: var(--palette-gray-00);
+
+  --bg-neutral-solid: var(--palette-gray-900);
+  --bg-neutral-solid-pressed: var(--palette-gray-800);
+  --bg-neutral-weak: var(--palette-gray-200);
+  --bg-neutral-weak-pressed: var(--palette-gray-300);
+  --bg-neutral-weak-alpha: var(--palette-gray-alpha-200);
+  --bg-neutral-weak-alpha-pressed: var(--palette-gray-alpha-300);
+  --bg-transparent-pressed: var(--palette-gray-alpha-100);
+  --bg-disabled: var(--palette-gray-200);
+  --bg-overlay: rgba(28, 27, 25, 0.45);
+
+  --bg-critical-solid: var(--palette-red-700);
+  --bg-critical-solid-pressed: var(--palette-red-800);
+  --bg-critical-weak: var(--palette-red-100);
+  --bg-critical-weak-pressed: var(--palette-red-200);
+  --bg-positive-solid: var(--palette-green-700);
+  --bg-positive-solid-pressed: var(--palette-green-800);
+  --bg-positive-weak: var(--palette-green-100);
+  --bg-warning-solid: var(--palette-yellow-300);
+  --bg-warning-weak: var(--palette-yellow-100);
+  --bg-informative-solid: var(--palette-blue-700);
+  --bg-informative-weak: var(--palette-blue-100);
+
+  /* text & icons */
+  --fg-neutral: var(--palette-gray-1000);
+  --fg-neutral-muted: var(--palette-gray-800);
+  --fg-neutral-subtle: var(--palette-gray-700);
+  --fg-neutral-inverted: var(--palette-gray-00);
+  --fg-disabled: var(--palette-gray-500);
+  --fg-placeholder: var(--palette-gray-600);
+  --fg-on-neutral-solid: var(--palette-gray-00);
+  --fg-on-critical-solid: var(--palette-gray-00);
+  --fg-on-positive-solid: var(--palette-gray-00);
+  --fg-critical: var(--palette-red-700);
+  --fg-positive: var(--palette-green-700);
+  --fg-warning: var(--palette-yellow-700);
+  --fg-informative: var(--palette-blue-700);
+
+  /* lines: subtle (card edges, list dividers) < muted (section breaks) < weak (control outlines) */
+  --stroke-neutral-subtle: var(--palette-gray-alpha-300);
+  --stroke-neutral-muted: var(--palette-gray-alpha-300);
+  --stroke-neutral-weak: var(--palette-gray-alpha-400);
+  --stroke-neutral-weak-hover: var(--palette-gray-alpha-500);
+  --stroke-neutral-solid: var(--palette-gray-800);
+  --stroke-critical-solid: var(--palette-red-700);
+  --stroke-focus-ring: var(--palette-gray-alpha-500);
+
+  --shadow-color: var(--palette-gray-alpha-300);
+
+  /* initial avatars: the 100 / 800 steps of each hue */
+  --avatar-1: var(--palette-red-100);
+  --avatar-1-foreground: var(--palette-red-800);
+  --avatar-2: var(--palette-blue-100);
+  --avatar-2-foreground: var(--palette-blue-800);
+  --avatar-3: var(--palette-green-100);
+  --avatar-3-foreground: var(--palette-green-800);
+  --avatar-4: var(--palette-purple-100);
+  --avatar-4-foreground: var(--palette-purple-800);
+  --avatar-5: var(--palette-yellow-100);
+  --avatar-5-foreground: var(--palette-yellow-800);
+  --avatar-6: var(--palette-gray-200);
+  --avatar-6-foreground: var(--palette-gray-800);
+
+  /* ── aliases (shadcn / legacy names → semantic) ───────────── */
+  --background: var(--bg-layer-basement);
+  --foreground: var(--fg-neutral);
+  --card: var(--bg-layer-default);
+  --card-foreground: var(--fg-neutral);
+  --popover: var(--bg-layer-floating);
+  --popover-foreground: var(--fg-neutral);
+
+  --primary: var(--bg-neutral-solid);
+  --primary-hover: var(--bg-neutral-solid-pressed);
+  --primary-foreground: var(--fg-on-neutral-solid);
+  --secondary: var(--bg-neutral-weak);
+  --secondary-hover: var(--bg-neutral-weak-pressed);
+  --secondary-foreground: var(--fg-neutral);
+  --muted: var(--bg-neutral-weak);
+  --muted-foreground: var(--fg-neutral-muted);
+  --accent: var(--bg-neutral-weak);
+  --accent-foreground: var(--fg-neutral);
+  --destructive: var(--bg-critical-solid);
+  --destructive-hover: var(--bg-critical-solid-pressed);
+  --destructive-foreground: var(--fg-on-critical-solid);
+
+  --border: var(--stroke-neutral-subtle);
+  --input: var(--stroke-neutral-weak);
+  --ring: var(--stroke-focus-ring);
+  --control-border: var(--stroke-neutral-weak);
+  --control-border-hover: var(--stroke-neutral-weak-hover);
+
+  --chart-1: var(--palette-gray-900);
+  --chart-2: var(--palette-gray-700);
+  --chart-3: var(--palette-gray-500);
+  --chart-4: var(--palette-green-700);
+  --chart-5: var(--palette-yellow-700);
 
   --radius: 0.375rem;
 
-  --sidebar: #f0efeb;
-  --sidebar-foreground: #252422;
-  --sidebar-primary: #252422;
-  --sidebar-primary-foreground: #fbfaf8;
-  --sidebar-accent: #ebe9e5;
-  --sidebar-accent-foreground: #252422;
-  --sidebar-border: #e4e2dd;
-  --sidebar-ring: rgba(37, 36, 34, 0.25);
+  --sidebar: var(--bg-neutral-weak);
+  --sidebar-foreground: var(--fg-neutral);
+  --sidebar-primary: var(--bg-neutral-solid);
+  --sidebar-primary-foreground: var(--fg-on-neutral-solid);
+  --sidebar-accent: var(--bg-neutral-weak-pressed);
+  --sidebar-accent-foreground: var(--fg-neutral);
+  --sidebar-border: var(--stroke-neutral-subtle);
+  --sidebar-ring: var(--stroke-focus-ring);
 
-  /* Lovable tokens — grays are #252422 at varying opacity, not arbitrary hexes */
-  --brand: #252422;
-  --brand-hover: rgba(37, 36, 34, 0.82);
-  --brand-accent: #6b6965;
+  --brand: var(--bg-neutral-solid);
+  --brand-hover: var(--bg-neutral-solid-pressed);
+  --brand-accent: var(--fg-neutral-muted);
 
-  --surface: #f5f4f1;
-  --surface-container-lowest: #fbfaf8;
-  --surface-container-low: #f0efeb;
-  --surface-container: #ebe9e5;
-  --surface-container-high: #e4e2dd;
-  --surface-container-highest: #dcdad4;
+  --surface: var(--bg-layer-basement);
+  --surface-container-lowest: var(--bg-layer-default);
+  --surface-container-low: var(--palette-gray-200);
+  --surface-container: var(--palette-gray-300);
+  --surface-container-high: var(--palette-gray-400);
+  --surface-container-highest: var(--palette-gray-500);
 
-  --on-surface: #252422;
-  --on-surface-variant: #6b6965;
-  --on-secondary-container: #6b6965;
+  --on-surface: var(--fg-neutral);
+  --on-surface-variant: var(--fg-neutral-muted);
+  --on-secondary-container: var(--fg-neutral-muted);
 
-  --outline: #8a8781;
-  --outline-variant: #e4e2dd;
+  --outline: var(--palette-gray-700);
+  --outline-variant: var(--stroke-neutral-subtle);
 
-  /* Functional states stay legible on cream — muted/earthy, not saturated.
-     The quiz depends on correct/incorrect reading instantly, so these keep
-     real chroma rather than collapsing into the warm-neutral palette. */
-  --success: #2f7a55;
-  --warning: #b26a00;
-  --error: #b3372c;
-}
-
-/* Dark mode mirrors light: the Lovable system is light-native (the source
-   design has no dark mode at all) and kordi ships no theme toggle. */
-.dark {
-  --background: #f5f4f1;
-  --foreground: #252422;
-  --card: #fbfaf8;
-  --card-foreground: #252422;
-  --popover: #fbfaf8;
-  --popover-foreground: #252422;
-
-  --primary: #252422;
-  --primary-foreground: #fbfaf8;
-  --secondary: #ebe9e5;
-  --secondary-foreground: rgba(37, 36, 34, 0.82);
-  --muted: #f0efeb;
-  --muted-foreground: #6b6965;
-  --accent: #ebe9e5;
-  --accent-foreground: #252422;
-  --destructive: #b3372c;
-
-  --border: #e4e2dd;
-  --input: rgba(37, 36, 34, 0.4);
-  --ring: rgba(37, 36, 34, 0.25);
-
-  --sidebar: #f0efeb;
-  --sidebar-foreground: #252422;
-  --sidebar-primary: #252422;
-  --sidebar-primary-foreground: #fbfaf8;
-  --sidebar-accent: #ebe9e5;
-  --sidebar-accent-foreground: #252422;
-  --sidebar-border: #e4e2dd;
-  --sidebar-ring: rgba(37, 36, 34, 0.25);
-
-  /* Lovable tokens — grays are #252422 at varying opacity, not arbitrary hexes */
-  --brand: #252422;
-  --brand-hover: rgba(37, 36, 34, 0.82);
-  --brand-accent: #6b6965;
-
-  --surface: #f5f4f1;
-  --surface-container-lowest: #fbfaf8;
-  --surface-container-low: #f0efeb;
-  --surface-container: #ebe9e5;
-  --surface-container-high: #e4e2dd;
-  --surface-container-highest: #dcdad4;
-
-  --on-surface: #252422;
-  --on-surface-variant: #6b6965;
-  --on-secondary-container: #6b6965;
-
-  --outline: #8a8781;
-  --outline-variant: #e4e2dd;
-
-  /* Functional states stay legible on cream — muted/earthy, not saturated.
-     The quiz depends on correct/incorrect reading instantly, so these keep
-     real chroma rather than collapsing into the warm-neutral palette. */
-  --success: #2f7a55;
-  --warning: #b26a00;
-  --error: #b3372c;
+  /* the quiz needs correct/incorrect to read instantly: real chroma, earthy hues */
+  --success: var(--fg-positive);
+  --warning: var(--fg-warning);
+  --error: var(--fg-critical);
 }
 
 @layer base {
@@ -278,7 +481,7 @@
   background: var(--card);
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius-lg);
-  box-shadow: rgba(0, 0, 0, 0.1) 0 4px 12px;
+  box-shadow: var(--shadow-raised);
 }
 
 /* The signature inset button: white hairline on top, dark ring, soft drop.
@@ -288,9 +491,7 @@
   color: var(--primary-foreground);
   border-radius: var(--radius);
   box-shadow:
-    rgba(255, 255, 255, 0.2) 0 0.5px 0 0 inset,
-    rgba(0, 0, 0, 0.2) 0 0 0 0.5px inset,
-    rgba(0, 0, 0, 0.05) 0 1px 2px 0;
+    var(--shadow-button);
   &:active {
     opacity: 0.8;
   }
@@ -316,8 +517,8 @@
 
 /* Status pills — low-opacity bg + high-contrast text */
 @utility pill-success {
-  background: rgba(47, 122, 85, 0.10);
-  color: #25603f;
+  background: var(--bg-positive-weak);
+  color: var(--palette-green-800);
   border-radius: 9999px;
   padding: 2px 8px;
   font-size: 11px;
@@ -327,8 +528,8 @@
 }
 
 @utility pill-warning {
-  background: rgba(178, 106, 0, 0.12);
-  color: #8a5200;
+  background: var(--bg-warning-weak);
+  color: var(--palette-yellow-800);
   border-radius: 9999px;
   padding: 2px 8px;
   font-size: 11px;
@@ -338,8 +539,8 @@
 }
 
 @utility pill-error {
-  background: rgba(179, 55, 44, 0.10);
-  color: #8f2b22;
+  background: var(--bg-critical-weak);
+  color: var(--palette-red-800);
   border-radius: 9999px;
   padding: 2px 8px;
   font-size: 11px;
@@ -425,7 +626,7 @@
 @utility glass-strong {
   background: var(--card);
   border: 1px solid var(--outline-variant);
-  box-shadow: rgba(0, 0, 0, 0.1) 0 4px 12px;
+  box-shadow: var(--shadow-raised);
 }
 
 @utility neon-text {
@@ -433,15 +634,15 @@
 }
 
 @utility neon-glow {
-  box-shadow: 0 0 0 1px rgba(37, 36, 34, 0.12);
+  box-shadow: 0 0 0 1px var(--palette-gray-alpha-300);
 }
 
 @utility neon-glow-sm {
-  box-shadow: 0 0 0 1px rgba(37, 36, 34, 0.08);
+  box-shadow: 0 0 0 1px var(--palette-gray-alpha-200);
 }
 
 @utility neon-border {
-  border-color: rgba(37, 36, 34, 0.4);
+  border-color: var(--stroke-neutral-weak-hover);
 }
 
 /* ─────────────────────────────────────────────────────────────

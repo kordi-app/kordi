@@ -14,7 +14,7 @@ const buttonVariants = cva(
   [
     "group/button inline-flex shrink-0 items-center justify-center gap-1.5 rounded-[var(--radius-md)] border border-transparent",
     "font-medium tracking-[-0.01em] whitespace-nowrap select-none outline-none transition-[background-color,border-color,color,box-shadow,transform] duration-150",
-    "focus-visible:ring-2 focus-visible:ring-foreground/25 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+    "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
     "active:not-aria-[haspopup]:scale-[0.98] disabled:pointer-events-none disabled:opacity-40",
     "aria-invalid:border-destructive",
     "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
@@ -24,16 +24,16 @@ const buttonVariants = cva(
       variant: {
         /** The main action: charcoal with a soft inset edge */
         default:
-          "bg-primary text-primary-foreground shadow-[inset_0_0.5px_0_rgba(255,255,255,0.18),0_1px_2px_rgba(37, 36, 34,0.12)] hover:bg-[#3a3936]",
+          "bg-primary text-primary-foreground shadow-button hover:bg-primary-hover",
         /** A quieter filled action */
-        secondary: "bg-secondary text-foreground hover:bg-[#e3e1dc] aria-expanded:bg-[#e3e1dc]",
+        secondary: "bg-secondary text-foreground hover:bg-secondary-hover aria-expanded:bg-secondary-hover",
         /** Secondary action on a surface */
         outline:
-          "border-[rgba(37, 36, 34,0.16)] bg-card text-foreground hover:border-[rgba(37, 36, 34,0.26)] hover:bg-accent aria-expanded:bg-accent",
+          "border-control-border bg-card text-foreground hover:border-control-border-hover hover:bg-accent aria-expanded:bg-accent",
         /** Inline / low-emphasis action */
         ghost: "text-foreground/80 hover:bg-accent hover:text-foreground aria-expanded:bg-accent",
         /** Irreversible action (usually the confirm step) */
-        destructive: "bg-destructive text-white hover:bg-[#9e2f25]",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
         link: "h-auto px-0 text-foreground underline decoration-foreground/30 underline-offset-4 hover:decoration-foreground",
       },
       size: {

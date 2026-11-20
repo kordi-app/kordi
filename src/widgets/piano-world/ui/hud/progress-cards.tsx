@@ -127,7 +127,7 @@ export function CourseCard({ run, isGuest, copy }: { run: CourseRun; isGuest: bo
       title={justFinished ? copy.courseDone : night ? copy.nightTitle : copy.courseTitle}
       value={<span className="text-lg font-semibold tabular-nums text-foreground">{formatTime(elapsed)}</span>}
       ratio={run.reached / COURSES[run.course].goalIndex}
-      barClass={night ? "bg-[#ffd36a]" : "bg-[#8f7cff]"}
+      barClass={night ? "bg-palette-yellow-300" : "bg-palette-purple-500"}
       hint={run.best !== null ? `${copy.courseBest} ${formatTime(run.best)}` : night ? copy.nightHint : copy.courseHint}
       footer={<CourseRanking run={run} isGuest={isGuest} copy={copy} />}
     />
