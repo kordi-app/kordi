@@ -29,6 +29,27 @@ function parseChordName(
   return null;
 }
 
+/** The target chord's pitch classes (sorted), or null for a name we can't parse. */
+function chordPitchClasses(targetChordName: string): number[] | null {
+  const parsed = parseChordName(targetChordName);
+  if (!parsed) return null;
+  const template = CHORD_TEMPLATES[parsed.type];
+  if (!template) return null;
+  return template.map((interval) => (interval + parsed.rootIndex) % 12).sort((a, b) => a - b);
+}
+
+/**
+ * True while the played notes are part of the target but not all of it — a
+ * chord still being formed (or partly released), which a game shouldn't count
+ * as a wrong answer.
+ */
+export function isPartialChord(targetChordName: string, playedMidiNotes: number[]): boolean {
+  const expected = chordPitchClasses(targetChordName);
+  if (!expected || playedMidiNotes.length === 0) return false;
+  const played = toPitchClasses(playedMidiNotes);
+  return played.length < expected.length && played.every((pc) => expected.includes(pc));
+}
+
 export function validateChord(
   targetChordName: string,
   playedMidiNotes: number[]

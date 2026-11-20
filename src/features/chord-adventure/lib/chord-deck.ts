@@ -41,7 +41,14 @@ export class ChordDeck {
         return card;
       }
     }
+    // every pile is empty (fetches failing): ask again, so a later draw can succeed
+    for (const d of DIFFICULTIES) void this.refill(d);
     return null;
+  }
+
+  /** Nothing to deal at all (e.g. the chord server is unreachable). */
+  get isEmpty() {
+    return DIFFICULTIES.every((d) => (this.piles.get(d)?.length ?? 0) === 0);
   }
 
   private async refill(difficulty: ChordDifficulty) {
@@ -52,7 +59,7 @@ export class ChordDeck {
       const fresh = await this.queryClient.fetchQuery(quizQueries.chords(difficulty));
       this.piles.set(difficulty, [...(this.piles.get(difficulty) ?? []), ...fresh]);
     } catch {
-      // keep playing with what's left; the next draw tries again
+      // keep playing with what's left; an empty draw asks again
     } finally {
       this.refilling.delete(difficulty);
     }

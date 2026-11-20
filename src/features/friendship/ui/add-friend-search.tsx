@@ -23,7 +23,7 @@ export function AddFriendSearch({ currentUserId, onClose }: AddFriendSearchProps
   const t = useTranslations("friends");
   const [nickname, setNickname] = useState("");
   const trimmed = nickname.trim();
-  const { data, isFetching, isError } = useSearchUser(nickname);
+  const { data, isFetching, isError, settled } = useSearchUser(nickname);
   const { mutate, isPending } = useSendRequest();
   const isSelf = data && currentUserId != null && data.id === currentUserId;
 
@@ -57,7 +57,7 @@ export function AddFriendSearch({ currentUserId, onClose }: AddFriendSearchProps
       <div className="mt-1 min-h-12 px-1">
         {trimmed.length < 2 ? (
           <Hint label={t("searchHint")} />
-        ) : isFetching ? (
+        ) : isFetching || !settled ? (
           <Hint label={t("searching")} />
         ) : isError || !data ? (
           <Hint label={t("noResult")} />

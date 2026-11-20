@@ -60,7 +60,7 @@
     "loading": "Loading rankings...",
     "empty": "No records yet. Be the first challenger!",
     "adventure": "Chord Adventure",
-    "monsters": "{count} monsters"
+    "monsters": "{count, plural, one {# monster} other {# monsters}}"
   },
   "friends": {
     "title": "Friends",
@@ -398,11 +398,11 @@
     "loading": "Getting chords ready…",
     "loadingSamples": "Loading piano samples...",
     "noMidiDevice": "No MIDI device",
-    "defeated": "{count} monsters",
+    "defeated": "{count, plural, one {# monster} other {# monsters}}",
     "gameOver": "Knocked out",
     "saving": "Saving your run…",
     "newBest": "New best! #{rank} all-time",
-    "best": "Your best: {count} · this run is #{rank} all-time",
+    "best": "Your best: {count, plural, one {# monster} other {# monsters}} · this run is #{rank} all-time",
     "ranking": "All-time ranking",
     "stageLabel": "Chord Adventure game screen",
     "scenes": {
@@ -411,6 +411,8 @@
       "cave": "Crystal Cave",
       "castle": "Moonlit Castle",
       "volcano": "Lava Peak"
-    }
+    },
+    "chordsFailed": "Couldn't load chords. Try again in a moment",
+    "saveFailed": "Couldn't save this run"
   }
 }

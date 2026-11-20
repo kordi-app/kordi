@@ -99,6 +99,7 @@ export function AdventureStage({ view, clock }: { view: AdventureView; clock: Re
     }
     const lightCtx = f.light.getContext("2d")!;
     const fontFamily = pixelFont.style.fontFamily;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let frame = 0;
     let last = performance.now();
 
@@ -111,6 +112,11 @@ export function AdventureStage({ view, clock }: { view: AdventureView; clock: Re
       const elapsed = now - c.phaseStartedAt;
       const time = now / 1000;
       const boss = isBoss(v.stage);
+      // a new run starts clean (otherwise "already burst for stage 1" would carry over)
+      if (v.phase === "ready" || v.phase === "intro") {
+        f.burstFor = -1;
+        f.pops.length = 0;
+      }
 
       // ── where everyone is this frame ──────────────────────────────
       let heroX = HERO_X;
@@ -197,6 +203,7 @@ export function AdventureStage({ view, clock }: { view: AdventureView; clock: Re
 
       // ── draw ───────────────────────────────────────────────────────
       ctx.save();
+      if (reducedMotion) shake = 0;
       if (shake > 0) ctx.translate(Math.round((Math.random() - 0.5) * shake), Math.round((Math.random() - 0.5) * shake));
 
       drawScene(ctx, v.scene, f.scroll, time);
@@ -337,9 +344,9 @@ export function AdventureStage({ view, clock }: { view: AdventureView; clock: Re
       }
       ctx.globalAlpha = 1;
 
-      // the hit flash
+      // the hit flash (gentle when the player prefers reduced motion)
       if (f.flash > 0) {
-        ctx.fillStyle = `rgba(255, 250, 235, ${f.flash * 0.55})`;
+        ctx.fillStyle = `rgba(255, 250, 235, ${f.flash * (reducedMotion ? 0.15 : 0.55)})`;
         ctx.fillRect(0, 0, W, H);
         f.flash = Math.max(0, f.flash - dt * 6);
       }
@@ -361,6 +368,7 @@ export function AdventureStage({ view, clock }: { view: AdventureView; clock: Re
         width={W}
         height={H}
         className="block aspect-[2/1] w-full [image-rendering:pixelated]"
+        role="img"
         aria-label={t("stageLabel")}
       />
 
@@ -381,9 +389,10 @@ export function AdventureStage({ view, clock }: { view: AdventureView; clock: Re
           fighting && view.chord ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0",
         )}
         aria-live="polite"
+        aria-hidden={!fighting}
       >
         <div className="border-2 border-palette-gray-1000 bg-palette-gray-00 px-4 py-2.5 text-t5 text-palette-gray-1000 shadow-pixel md:px-5 md:py-3 md:text-t9">
-          {view.chord ? toDisplayChordName(view.chord.name) : ""}
+          {fighting && view.chord ? toDisplayChordName(view.chord.name) : ""}
         </div>
       </div>
 
@@ -416,19 +425,22 @@ function Banner({ title, subtitle, danger }: { title: string; subtitle: string; 
   );
 }
 
+/** What each scene's monster breaks into. */
+const BURST_COLORS: Record<AdventureView["scene"], string[]> = {
+  meadow: ["#ff7eb6", "#ffb3d4", "#ffe3f0", "#c94f86"],
+  forest: ["#ff8a3d", "#fff3d6", "#f3dcc0", "#c45a1f"],
+  cave: ["#a05ad6", "#7b3fb8", "#ffd75a", "#c58cf0"],
+  castle: ["#9aa3b8", "#cdd4e4", "#4fc3ff", "#ffd75a"],
+  volcano: ["#ff5a36", "#ffd23f", "#ff8f66", "#fff36b"],
+};
+
 function burst(into: Bit[], x: number, y: number, scene: AdventureView["scene"], boss: boolean) {
-  const colors: Record<AdventureView["scene"], string[]> = {
-    meadow: ["#ff7eb6", "#ffb3d4", "#ffe3f0", "#c94f86"],
-    forest: ["#ff8a3d", "#fff3d6", "#f3dcc0", "#c45a1f"],
-    cave: ["#a05ad6", "#7b3fb8", "#ffd75a", "#c58cf0"],
-    castle: ["#9aa3b8", "#cdd4e4", "#4fc3ff", "#ffd75a"],
-    volcano: ["#ff5a36", "#ffd23f", "#ff8f66", "#fff36b"],
-  };
+
   const n = boss ? 70 : 40;
   for (let i = 0; i < n; i++) {
     const a = (i / n) * Math.PI * 2 + Math.random() * 0.3;
     const speed = 30 + Math.random() * (boss ? 90 : 60);
-    into.push({ x, y, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed - 50, life: 0.8 + Math.random() * 0.8, color: colors[scene][i % 4] });
+    into.push({ x, y, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed - 50, life: 0.8 + Math.random() * 0.8, color: BURST_COLORS[scene][i % 4] });
   }
   // a white star of sparks at the impact
   for (let i = 0; i < 12; i++) {

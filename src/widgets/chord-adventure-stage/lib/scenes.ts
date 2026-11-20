@@ -387,16 +387,34 @@ export function drawParticles(ctx: CanvasRenderingContext2D, scene: AdventureSce
 }
 
 /** A soft additive light. `rgb` like "255, 200, 120". */
+const GLOW_SIZE = 64;
+const glows = new Map<string, HTMLCanvasElement>();
+function glowSprite(rgb: string) {
+  let sprite = glows.get(rgb);
+  if (!sprite) {
+    sprite = canvasOf(GLOW_SIZE, GLOW_SIZE);
+    const g = sprite.getContext("2d")!;
+    const half = GLOW_SIZE / 2;
+    const gradient = g.createRadialGradient(half, half, 0, half, half, half);
+    gradient.addColorStop(0, `rgba(${rgb}, 1)`);
+    gradient.addColorStop(1, `rgba(${rgb}, 0)`);
+    g.fillStyle = gradient;
+    g.fillRect(0, 0, GLOW_SIZE, GLOW_SIZE);
+    glows.set(rgb, sprite);
+  }
+  return sprite;
+}
+
+/** A soft additive light (one pre-baked sprite per colour, scaled). `rgb` like "255, 200, 120". */
 export function glow(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, rgb: string, alpha: number) {
-  if (alpha <= 0) return;
-  const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-  g.addColorStop(0, `rgba(${rgb}, ${alpha})`);
-  g.addColorStop(1, `rgba(${rgb}, 0)`);
-  const prev = ctx.globalCompositeOperation;
+  if (alpha <= 0 || r <= 0) return;
+  const prevOp = ctx.globalCompositeOperation;
+  const prevAlpha = ctx.globalAlpha;
   ctx.globalCompositeOperation = "lighter";
-  ctx.fillStyle = g;
-  ctx.fillRect(x - r, y - r, r * 2, r * 2);
-  ctx.globalCompositeOperation = prev;
+  ctx.globalAlpha = prevAlpha * Math.min(1, alpha);
+  ctx.drawImage(glowSprite(rgb), x - r, y - r, r * 2, r * 2);
+  ctx.globalAlpha = prevAlpha;
+  ctx.globalCompositeOperation = prevOp;
 }
 
 function disc(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {

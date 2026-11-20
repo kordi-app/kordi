@@ -1,5 +1,5 @@
 import type { AdventureScene } from "@/entities/chord-adventure";
-import { bake, type BakeOptions, type Mask } from "./pixel";
+import { bake, cached, type BakeOptions, type Mask } from "./pixel";
 
 /**
  * The cast, as shaded pixel masks (see pixel.ts). Kordi is warm and bright —
@@ -250,13 +250,16 @@ export const MONSTERS: Record<AdventureScene, MonsterDef> = {
 /** A monster frame, baked; `angry` swaps its eyes to a glowing red (it's close). */
 export function monsterSprite(scene: AdventureScene, frame: number, angry: boolean, flash = false) {
   const def = MONSTERS[scene];
+  const key = `m-${scene}-${frame % def.frames.length}-${angry}-${flash}`;
+  const hit = cached(key);
+  if (hit) return hit;
   const mask = def.frames[frame % def.frames.length];
   const colors = flash
     ? Object.fromEntries(Object.keys(def.colors).map((k) => [k, "#ffffff"]))
     : angry
       ? { ...def.colors, [def.eye]: "#ff3b3b" }
       : def.colors;
-  return bake(mask, { colors, flat: flash ? Object.keys(def.colors).join("") : def.flat, outline: flash ? "#ffffff" : "#1a1220" }, `m-${scene}-${frame % def.frames.length}-${angry}-${flash}`);
+  return bake(mask, { colors, flat: flash ? Object.keys(def.colors).join("") : def.flat, outline: flash ? "#ffffff" : "#1a1220" }, key);
 }
 
 export const monsterFrameCount = (scene: AdventureScene) => MONSTERS[scene].frames.length;

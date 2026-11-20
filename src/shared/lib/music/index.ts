@@ -47,7 +47,7 @@ export {
   type GeneratedChord,
 } from "./chord-generator";
 
-export { validateChord } from "./chord-validator";
+export { isPartialChord, validateChord } from "./chord-validator";
 
 export { toPitchClasses, pitchClassesEqual } from "./pitch-class";
 

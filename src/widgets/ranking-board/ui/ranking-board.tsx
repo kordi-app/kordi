@@ -128,7 +128,7 @@ function AdventureList() {
   return (
     <div className="overflow-hidden rounded-card border border-stroke-neutral-subtle bg-bg-layer-default">
       {rankings.map((entry) => (
-        <div key={entry.rank} className="flex items-center gap-4 border-b border-stroke-neutral-subtle px-4 py-3 last:border-b-0">
+        <div key={`${entry.rank}-${entry.nickname}`} className="flex items-center gap-4 border-b border-stroke-neutral-subtle px-4 py-3 last:border-b-0">
           <div className="flex w-8 shrink-0 items-center justify-center">
             {entry.rank <= 3 ? (
               <Trophy className="size-5 text-fg-neutral" />

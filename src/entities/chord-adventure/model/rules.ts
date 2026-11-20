@@ -4,7 +4,7 @@
  * the chord pool shifts from easy to hard. No difficulty select.
  *
  * MIN_MS_PER_MONSTER must match the server's plausibility check
- * (adventure records: defeated × 1500 ≤ durationMs).
+ * (adventure records: defeated × 2000 ≤ the run length the server measured).
  */
 
 /** Time to answer the first monster, and the floor it shrinks to. */
@@ -16,7 +16,7 @@ export const ADVENTURE_TIME_STEP_MS = 600;
 export const ADVENTURE_MISS_PENALTY = 0.25;
 /** Misses closer together than this count once (a hand still settling on the keys). */
 export const ADVENTURE_MISS_COOLDOWN_MS = 700;
-export const MIN_MS_PER_MONSTER = 1500;
+export const MIN_MS_PER_MONSTER = 2000;
 
 /** Chord pools, the same three the quiz server serves. */
 export type ChordDifficulty = "EASY" | "MEDIUM" | "HARD";

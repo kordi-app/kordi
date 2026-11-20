@@ -131,6 +131,16 @@ function Editor({ saved }: { saved: MyCharacter }) {
           })}
         </Section>
 
+        {HAT_IDS.some((hat) => REWARD_HATS[hat] && !unlocked.has(hat)) ? (
+          <ul className="-mt-4 space-y-0.5 text-t2 text-fg-neutral-muted">
+            {HAT_IDS.filter((hat) => REWARD_HATS[hat] && !unlocked.has(hat)).map((hat) => (
+              <li key={hat}>
+                🔒 {t(`hat.${hat}`)} · {t(`reward.${REWARD_HATS[hat]!}`)}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
         <Section title={t("sections.face")}>
           {FACE_IDS.map((face) => (
             <Choice key={face} selected={draft.face === face} onSelect={() => set({ face })}>

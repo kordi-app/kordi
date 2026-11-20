@@ -52,9 +52,13 @@ const ramp = (c: Ramp | string): Required<Ramp> => {
 
 const cache = new Map<string, HTMLCanvasElement>();
 
+/** A baked sprite already in the cache, if any. */
+export const cached = (key: string) => cache.get(key);
+
 /** Bake a mask into a canvas (1px of outline padding on every side). */
 export function bake(mask: Mask, options: BakeOptions, cacheKey?: string): HTMLCanvasElement {
-  const key = cacheKey ? `${cacheKey}|${JSON.stringify(options.colors)}|${options.outline}` : undefined;
+  // the caller's key must identify mask + colours (sprites.ts builds unique ones); no per-frame hashing
+  const key = cacheKey;
   const hit = key ? cache.get(key) : undefined;
   if (hit) return hit;
 
