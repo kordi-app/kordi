@@ -7,3 +7,13 @@ export interface RankingEntry {
 }
 
 export type RankingDifficulty = "EASY" | "MEDIUM" | "HARD";
+
+/** Jump courses in the home world (their region names). */
+export type RankedCourse = "clouds" | "night";
+
+export interface CourseRankingEntry {
+  rank: number;
+  nickname: string;
+  profileImageUrl: string | null;
+  timeMs: number;
+}

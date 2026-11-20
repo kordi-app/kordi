@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { rankingQueries } from "@/entities/ranking";
 import { midiToNoteName } from "@/shared/lib/music";
 import { COURSES } from "../../model/course";
 import { formatTime, type CourseRun } from "../../model/course-record";
@@ -15,12 +17,14 @@ function ProgressCard({
   ratio,
   barClass,
   hint,
+  footer,
 }: {
   title: ReactNode;
   value: ReactNode;
   ratio: number;
   barClass: string;
   hint: ReactNode;
+  footer?: ReactNode;
 }) {
   return (
     <div className="pointer-events-none absolute left-1/2 top-5 w-[min(20rem,calc(100%-2rem))] -translate-x-1/2 rounded-xl border border-border bg-card/90 px-4 py-3 shadow-sm md:top-6">
@@ -35,6 +39,7 @@ function ProgressCard({
         />
       </div>
       <p className="mt-2 text-xs text-muted-foreground">{hint}</p>
+      {footer}
     </div>
   );
 }
@@ -69,7 +74,42 @@ export function MelodyCard({
   );
 }
 
-export function CourseCard({ run, copy }: { run: CourseRun; copy: PianoWorldCopy }) {
+/** Fill a "{rank}" template. */
+const withRank = (template: string, rank: number) => template.replace("{rank}", String(rank));
+
+/** All-time top three, and where the run you just finished landed. */
+function CourseRanking({ run, isGuest, copy }: { run: CourseRun; isGuest: boolean; copy: PianoWorldCopy }) {
+  const { data: top } = useQuery(rankingQueries.course(run.course));
+  const server = run.startedAt === null ? run.server : null;
+  const result = server
+    ? server.saved
+      ? withRank(copy.courseRankSaved, server.rank)
+      : isGuest
+        ? withRank(copy.courseRankGuest, server.rank)
+        : withRank(copy.courseRankMember, server.rank)
+    : null;
+  return (
+    <div className="mt-2 border-t border-border pt-2">
+      {result ? <p className="mb-1.5 text-xs font-medium text-foreground">{result}</p> : null}
+      <p className="text-[11px] font-medium text-muted-foreground">{copy.courseRankingTitle}</p>
+      {top && top.length > 0 ? (
+        <ol className="mt-1 space-y-0.5">
+          {top.slice(0, 3).map((entry) => (
+            <li key={entry.rank} className="flex items-baseline gap-2 text-xs text-foreground">
+              <span className="w-3 tabular-nums text-muted-foreground">{entry.rank}</span>
+              <span className="min-w-0 flex-1 truncate">{entry.nickname}</span>
+              <span className="tabular-nums">{formatTime(entry.timeMs)}</span>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="mt-1 text-xs text-muted-foreground">{copy.courseRankingEmpty}</p>
+      )}
+    </div>
+  );
+}
+
+export function CourseCard({ run, isGuest, copy }: { run: CourseRun; isGuest: boolean; copy: PianoWorldCopy }) {
   const [now, setNow] = useState(() => performance.now());
   useEffect(() => {
     if (run.startedAt === null) return;
@@ -88,6 +128,7 @@ export function CourseCard({ run, copy }: { run: CourseRun; copy: PianoWorldCopy
       ratio={run.reached / COURSES[run.course].goalIndex}
       barClass={night ? "bg-[#ffd36a]" : "bg-[#8f7cff]"}
       hint={run.best !== null ? `${copy.courseBest} ${formatTime(run.best)}` : night ? copy.nightHint : copy.courseHint}
+      footer={<CourseRanking run={run} isGuest={isGuest} copy={copy} />}
     />
   );
 }

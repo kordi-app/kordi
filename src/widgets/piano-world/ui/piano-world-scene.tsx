@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
+import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/shared/lib/utils";
 import type { PianoWorldCopy } from "../model/copy";
 import { EMOTES } from "../model/interactables";
@@ -14,7 +15,7 @@ import { useMelodyGame } from "../lib/use-melody-game";
 import { useRegionTravel } from "../lib/use-region-travel";
 import { useWorldAudio } from "../lib/use-world-audio";
 import { useWorldControls } from "../lib/use-world-controls";
-import { useWorldPresence } from "../lib/use-world-presence";
+import { useWorldPresence, type CourseRecordMessage } from "../lib/use-world-presence";
 import { useWarpStones } from "../lib/use-warp-stones";
 import { quality } from "../lib/quality";
 import { CourseCard, MelodyCard } from "./hud/progress-cards";
@@ -56,7 +57,16 @@ export default function PianoWorldScene({
   const melody = useMelodyGame(bumpCelebrate);
   const course = useCourseRun(bumpCelebrate, region.course?.id);
   const { emote, play: playEmote, cancel: cancelEmote, toggle: toggleEmote } = useEmote();
-  const { remotes, info: presenceInfo, sendPosition } = useWorldPresence(name, region.id);
+  const queryClient = useQueryClient();
+  const { applyServerRecord } = course;
+  const handleRecord = useCallback(
+    (record: CourseRecordMessage) => {
+      applyServerRecord(record);
+      if (record.saved) void queryClient.invalidateQueries({ queryKey: ["ranking", "course", record.course] });
+    },
+    [applyServerRecord, queryClient],
+  );
+  const { remotes, info: presenceInfo, sendPosition } = useWorldPresence(name, region.id, !isGuest, handleRecord);
 
   const { advance } = melody;
   const onStep = useCallback(
@@ -225,7 +235,7 @@ export default function PianoWorldScene({
       {region.feature === "melody" && nearKeys ? (
         <MelodyCard melody={melody.melody} progress={melody.progress} copy={copy} />
       ) : null}
-      {region.feature === "course" ? <CourseCard run={course.run} copy={copy} /> : null}
+      {region.feature === "course" ? <CourseCard run={course.run} isGuest={isGuest} copy={copy} /> : null}
       <NoteDisplay note={audio.note} />
       <NameChip name={name} isGuest={isGuest} onReroll={rerollName} copy={copy} />
       <EmoteBar emote={emote} onToggle={toggleEmote} copy={copy} />

@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
+import { bffClient } from "@/shared/api";
 import { WORLD_SOCKET_URL } from "@/shared/config/api";
 import type { EmoteId } from "../model/interactables";
 
@@ -34,7 +35,21 @@ type ServerMessage =
   | { t: "join"; p: RemotePlayer }
   | { t: "leave"; id: string }
   | { t: "moves"; ps: RemotePlayer[] }
-  | { t: "online"; n: number; regions?: Record<string, number> };
+  | { t: "online"; n: number; regions?: Record<string, number> }
+  | ({ t: "record" } & CourseRecordMessage);
+
+/** A jump-course finish, timed by the server from the positions we sent. */
+export interface CourseRecordMessage {
+  course: string;
+  /** this run */
+  ms: number;
+  /** stored best (null for guests) */
+  best: number | null;
+  /** where this run places all-time (for guests: where it would) */
+  rank: number;
+  /** made it onto the ranking (signed in and a new best) */
+  saved: boolean;
+}
 
 export type PresenceStatus = "connecting" | "online" | "full" | "offline" | "disabled";
 
@@ -64,8 +79,16 @@ const MAX_RETRY_MS = 30_000;
  */
 /**
  * @param region joins that region's channels; reconnects when it changes
+ * @param signedIn members prove who they are with a one-time ticket, so their course times rank
+ * @param onRecord a jump-course finish the server timed
  */
-export function useWorldPresence(name: string, region: string) {
+export function useWorldPresence(
+  name: string,
+  region: string,
+  signedIn: boolean,
+  onRecord: (record: CourseRecordMessage) => void,
+) {
+  const reportRecord = useEffectEvent(onRecord);
   const remotes = useRef(new Map<string, RemotePlayer>());
   const [info, setInfo] = useState<PresenceInfo>({
     status: "connecting",
@@ -135,6 +158,23 @@ export function useWorldPresence(name: string, region: string) {
               regionCounts: message.regions ?? {},
             });
             syncOthers();
+            if (signedIn) {
+              // the auth cookie is httpOnly: trade it (via the BFF) for a ticket the socket can carry
+              bffClient
+                .post("world/ticket")
+                .json<{ ticket: string }>()
+                .then(({ ticket }) => {
+                  if (!disposed && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({ t: "auth", ticket }));
+                  }
+                })
+                .catch(() => {
+                  // not signed in after all, or the API is down: play on as a guest
+                });
+            }
+            break;
+          case "record":
+            reportRecord(message);
             break;
           case "join":
             if (message.p.id !== myId.current) {
@@ -190,7 +230,7 @@ export function useWorldPresence(name: string, region: string) {
       myId.current = null;
       remotes.current.clear();
     };
-  }, [name, region, syncOthers]);
+  }, [name, region, signedIn, syncOthers]);
 
   /** Report my position; throttled to 10/s and skipped when nothing changed. */
   const sendPosition = useCallback(

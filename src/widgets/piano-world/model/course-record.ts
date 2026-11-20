@@ -10,6 +10,8 @@ export interface CourseRun {
   /** time of the run that just finished */
   finishedMs: number | null;
   best: number | null;
+  /** the server's timing of the run that just finished (rank, whether it ranked) */
+  server: { ms: number; rank: number; saved: boolean } | null;
 }
 
 // the cloud course keeps its original key so earlier records carry over

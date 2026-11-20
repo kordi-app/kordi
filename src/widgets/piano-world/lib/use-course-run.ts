@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import type { CourseDef, CourseId } from "../model/course";
+import type { CourseRecordMessage } from "./use-world-presence";
 import { readCourseBest, writeCourseBest, type CourseRun } from "../model/course-record";
 import type { CrownKind } from "../ui/crown-mesh";
 
@@ -11,6 +12,7 @@ const freshRun = (course: CourseId): CourseRun => ({
   reached: 0,
   finishedMs: null,
   best: readCourseBest(course),
+  server: null,
 });
 
 /**
@@ -55,6 +57,7 @@ export function useCourseRun(onFinish: () => void, initialCourse: CourseId = "cl
           startedAt: current.startedAt ?? performance.now(),
           reached: Math.max(current.reached, index),
           finishedMs: current.startedAt === null ? null : current.finishedMs,
+          server: current.startedAt === null ? null : current.server,
         };
       }
       if (next !== runRef.current) commit(next);
@@ -62,5 +65,15 @@ export function useCourseRun(onFinish: () => void, initialCourse: CourseId = "cl
     [onFinish, commit],
   );
 
-  return { run, crown, enter, handlePlatform };
+  /** The server's timing arrived (a moment after the finish): show the rank it earned. */
+  const applyServerRecord = useCallback(
+    (record: CourseRecordMessage) => {
+      const current = runRef.current;
+      if (record.course !== current.course) return;
+      commit({ ...current, server: { ms: record.ms, rank: record.rank, saved: record.saved } });
+    },
+    [commit],
+  );
+
+  return { run, crown, enter, handlePlatform, applyServerRecord };
 }

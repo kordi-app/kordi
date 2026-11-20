@@ -39,6 +39,12 @@ export interface PianoWorldCopy {
   courseTitle: string;
   courseHint: string;
   nightTitle: string;
+  courseRankingTitle: string;
+  courseRankingEmpty: string;
+  /** "{rank}" is replaced */
+  courseRankSaved: string;
+  courseRankMember: string;
+  courseRankGuest: string;
   nightHint: string;
   courseBest: string;
   courseDone: string;
