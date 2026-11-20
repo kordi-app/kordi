@@ -25,13 +25,14 @@ export default async function RoutesLayout({
       <AppSidebar />
       <SidebarInset className="h-svh overflow-hidden bg-card">
         <div className="flex flex-1 flex-col overflow-y-auto">
-          {/* One toggle for both worlds: collapses the rail on desktop, opens
-              the sheet on mobile (where the sidebar is otherwise unreachable). */}
-          <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 bg-card/90 px-3 backdrop-blur md:px-4">
+          {/* No header on desktop: the sidebar carries its own collapse toggle.
+              On mobile the sidebar is an off-screen sheet, so a slim bar keeps
+              the way to open it (and the logo). */}
+          <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 bg-card/90 px-3 backdrop-blur md:hidden">
             <SidebarTrigger className="size-9 text-foreground/70 hover:text-foreground" />
             <Link
               href={ROUTES.HOME}
-              className="flex items-center gap-2 text-foreground md:hidden"
+              className="flex items-center gap-2 text-foreground"
             >
               <KordiLogo size={22} />
               <span className="text-base font-semibold -tracking-[0.02em]">

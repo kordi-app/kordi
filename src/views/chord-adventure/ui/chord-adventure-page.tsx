@@ -35,7 +35,7 @@ export function ChordAdventurePage() {
         <MidiStatus midiName={midi.selectedDevice?.name} fallback={t("noMidiDevice")} />
 
         {/* the screen shrinks on short windows so the keyboard stays visible below it (2:1 stage) */}
-        <div className="relative mx-auto w-full max-w-[min(56rem,max(26rem,calc((100svh-27rem)*2)))]">
+        <div className="relative mx-auto w-full max-w-[min(56rem,max(26rem,calc((100svh-24rem)*2)))]">
           <AdventureStage view={view} clock={clock} />
 
           {showMenu ? (

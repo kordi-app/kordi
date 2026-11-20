@@ -17,6 +17,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarTrigger,
   useSidebar,
 } from "@/shared/ui/sidebar";
 import { NAV_GROUPS } from "../model/nav-config";
@@ -32,16 +33,16 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="[&>[data-sidebar=sidebar]]:bg-card">
-      <SidebarHeader className="h-14 shrink-0 justify-center px-4 group-data-[collapsible=icon]:px-0">
+      {/* logo and the collapse toggle; collapsed to the icon rail, only the toggle remains */}
+      <SidebarHeader className="h-14 shrink-0 flex-row items-center justify-between gap-2 pr-2 pl-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
         <Link
           href={ROUTES.HOME}
-          className="flex items-center gap-2.5 text-foreground group-data-[collapsible=icon]:justify-center"
+          className="flex items-center gap-2.5 text-foreground group-data-[collapsible=icon]:hidden"
         >
           <KordiLogo size={24} />
-          <span className="text-t6 font-semibold -tracking-[0.02em] group-data-[collapsible=icon]:hidden">
-            Kordi
-          </span>
+          <span className="text-t6 font-semibold -tracking-[0.02em]">Kordi</span>
         </Link>
+        <SidebarTrigger className="size-8 text-foreground/60 hover:text-foreground" />
       </SidebarHeader>
 
       <SidebarContent className="gap-0 pt-2">
