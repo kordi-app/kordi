@@ -1,53 +1,33 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Check, X } from "lucide-react";
 import type { Friendship } from "@/entities/friendship";
-import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
+import { Button } from "@/shared/ui/button";
 import { useAcceptRequest } from "../lib/use-accept-request";
 import { useRejectRequest } from "../lib/use-reject-request";
+import { FriendAvatar } from "./friend-avatar";
 import { FriendRow } from "./friend-row";
 
-interface ReceivedRequestItemProps {
-  friendship: Friendship;
-}
-
-export function ReceivedRequestItem({ friendship }: ReceivedRequestItemProps) {
+export function ReceivedRequestItem({ friendship }: { friendship: Friendship }) {
   const t = useTranslations("friends");
   const accept = useAcceptRequest();
   const reject = useRejectRequest();
   const disabled = accept.isPending || reject.isPending;
+  const name = friendship.senderNickname;
 
   return (
     <FriendRow
-      accent
-      avatar={
-        <Avatar className="ring-1 ring-ring">
-          <AvatarFallback className="bg-primary text-primary-foreground">
-            {friendship.senderNickname.charAt(0).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-      }
-      title={friendship.senderNickname}
-      subtitle={t("wantsToBeFriend")}
+      name={name}
+      avatar={<FriendAvatar name={name} />}
+      note={t("wantsToBeFriend")}
       actions={
         <>
-          <button
-            disabled={disabled}
-            onClick={() => reject.mutate(friendship.id)}
-            className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold uppercase text-foreground transition-colors hover:bg-muted disabled:opacity-40"
-          >
-            <X className="size-3.5" />
+          <Button size="sm" variant="ghost" disabled={disabled} onClick={() => reject.mutate(friendship.id)}>
             {t("reject")}
-          </button>
-          <button
-            disabled={disabled}
-            onClick={() => accept.mutate(friendship.id)}
-            className="inline-flex items-center gap-1 rounded-lg border border-border bg-primary px-3 py-1.5 text-xs font-semibold uppercase text-primary-foreground transition hover:opacity-90 disabled:opacity-40"
-          >
-            <Check className="size-3.5" />
+          </Button>
+          <Button size="sm" disabled={disabled} onClick={() => accept.mutate(friendship.id)}>
             {t("accept")}
-          </button>
+          </Button>
         </>
       }
     />

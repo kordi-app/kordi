@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { UserPlus, Search, UserX, Loader2, UserSearch } from "lucide-react";
+import { UserPlus, Search } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -53,10 +53,7 @@ export function AddFriendDialog({ currentUserId }: AddFriendDialogProps) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="size-4 text-primary" />
-            {t("add")}
-          </DialogTitle>
+          <DialogTitle>{t("add")}</DialogTitle>
           <DialogDescription>{t("addDescription")}</DialogDescription>
         </DialogHeader>
 
@@ -71,28 +68,15 @@ export function AddFriendDialog({ currentUserId }: AddFriendDialogProps) {
           />
         </div>
 
-        <div className="min-h-[92px]">
+        <div className="min-h-16">
           {trimmed.length < 2 ? (
-            <EmptyHint
-              icon={<UserSearch className="size-5" />}
-              label={t("searchHint")}
-            />
+            <Hint label={t("searchHint")} />
           ) : isFetching ? (
-            <EmptyHint
-              icon={<Loader2 className="size-5 animate-spin" />}
-              label={t("searching")}
-            />
+            <Hint label={t("searching")} />
           ) : isError || !data ? (
-            <EmptyHint
-              icon={<UserX className="size-5" />}
-              label={t("noResult")}
-            />
+            <Hint label={t("noResult")} />
           ) : isSelf ? (
-            <EmptyHint
-              icon={<UserX className="size-5 text-destructive" />}
-              label={t("error.cannotAddSelf")}
-              destructive
-            />
+            <Hint label={t("error.cannotAddSelf")} destructive />
           ) : (
             <SearchResultCard
               user={data}
@@ -106,29 +90,6 @@ export function AddFriendDialog({ currentUserId }: AddFriendDialogProps) {
   );
 }
 
-function EmptyHint({
-  icon,
-  label,
-  destructive,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  destructive?: boolean;
-}) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-2 py-6 text-center">
-      <div className={destructive ? "text-destructive" : "text-muted-foreground"}>
-        {icon}
-      </div>
-      <p
-        className={
-          destructive
-            ? "text-xs text-destructive"
-            : "text-xs text-muted-foreground"
-        }
-      >
-        {label}
-      </p>
-    </div>
-  );
+function Hint({ label, destructive }: { label: string; destructive?: boolean }) {
+  return <p className={destructive ? "py-3 text-[13px] text-destructive" : "py-3 text-[13px] text-muted-foreground"}>{label}</p>;
 }

@@ -68,27 +68,12 @@
     "searchHint": "2자 이상 입력하세요",
     "searching": "검색 중...",
     "noResult": "해당 닉네임의 사용자가 없어요",
-    "foundUser": "이 사용자를 찾았어요",
-    "friendSince": "친구",
     "wantsToBeFriend": "친구 요청을 보냈어요",
     "sendRequest": "친구 요청",
     "accept": "수락",
     "reject": "거절",
-    "cancelRequest": "취소",
-    "delete": "친구 삭제",
-    "message": "메시지",
-    "pending": "대기중",
+    "cancelRequest": "요청 취소",
     "loading": "불러오는 중...",
-    "musicians": "명",
-    "statusConnected": "친구",
-    "sections": {
-      "network": "내 네트워크"
-    },
-    "columns": {
-      "musician": "뮤지션",
-      "status": "상태",
-      "actions": "작업"
-    },
     "tabs": {
       "friends": "친구",
       "received": "받은 요청",
@@ -96,7 +81,7 @@
     },
     "empty": {
       "friends": "아직 친구가 없어요",
-      "friendsHint": "상단의 친구 추가 버튼으로 시작해보세요",
+      "friendsHint": "닉네임으로 친구를 찾아 함께 연주해 보세요",
       "received": "받은 요청이 없어요",
       "sent": "보낸 요청이 없어요"
     },
@@ -113,7 +98,13 @@
       "notFound": "친구 요청을 찾을 수 없어요",
       "userNotFound": "사용자를 찾을 수 없어요",
       "invalid": "요청이 유효하지 않아요"
-    }
+    },
+    "waitingReply": "수락을 기다리는 중",
+    "remove": "삭제",
+    "confirmDelete": "정말 삭제할까요?",
+    "filterPlaceholder": "이름으로 찾기",
+    "noMatch": "찾는 친구가 없어요",
+    "loadFailed": "친구 목록을 불러오지 못했어요"
   },
   "login": {
     "title": "로그인",
