@@ -29,11 +29,13 @@ export function ChordAdventurePage() {
   }, [view.phase]);
 
   return (
-    <div className="w-full px-page-x py-page-y md:px-page-x-wide md:py-page-y-wide">
-      <div className="mx-auto w-full max-w-4xl space-y-6">
+    // sits high on the page: the game screen and the keyboard should fit in one view
+    <div className="w-full px-page-x pt-4 pb-page-y md:px-page-x-wide md:pt-5">
+      <div className="mx-auto w-full max-w-4xl space-y-3">
         <MidiStatus midiName={midi.selectedDevice?.name} fallback={t("noMidiDevice")} />
 
-        <div className="relative">
+        {/* the screen shrinks on short windows so the keyboard stays visible below it (2:1 stage) */}
+        <div className="relative mx-auto w-full max-w-[min(56rem,max(26rem,calc((100svh-27rem)*2)))]">
           <AdventureStage view={view} clock={clock} />
 
           {showMenu ? (
@@ -77,7 +79,7 @@ export function ChordAdventurePage() {
         </div>
 
         <div
-          className={cn("h-5 text-center text-t3 transition-opacity", isLoaded ? "opacity-0" : "opacity-60")}
+          className={cn("h-4 text-center text-t2 transition-opacity", isLoaded ? "opacity-0" : "opacity-60")}
           aria-hidden={isLoaded}
         >
           {t("loadingSamples")}

@@ -42,6 +42,20 @@ const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const easeIn = (v: number) => v * v;
 const easeOut = (v: number) => 1 - (1 - v) * (1 - v);
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+const easeInOut = (v: number) => (v < 0.5 ? 2 * v * v : 1 - (-2 * v + 2) ** 2 / 2);
+
+/** A wrong chord: the monster dashes in fast, then backs off slowly (ms). */
+const LUNGE_STRIKE_MS = 110;
+const LUNGE_RECOVER_MS = 420;
+const LUNGE_DISTANCE = 16;
+/** 0 → 1 → 0 over the lunge: a quick strike, an eased retreat */
+function lungeCurve(sinceMiss: number) {
+  if (sinceMiss < 0 || sinceMiss > LUNGE_STRIKE_MS + LUNGE_RECOVER_MS) return 0;
+  if (sinceMiss < LUNGE_STRIKE_MS) return easeOut(sinceMiss / LUNGE_STRIKE_MS);
+  return 1 - easeInOut((sinceMiss - LUNGE_STRIKE_MS) / LUNGE_RECOVER_MS);
+}
+/** How fast the monster closes the gap a miss costs (per second, exponential) */
+const PENALTY_EASE = 7;
 
 interface Bit {
   x: number;
@@ -79,6 +93,8 @@ export function AdventureStage({ view, clock }: { view: AdventureView; clock: Re
     pops: [] as Pop[],
     burstFor: -1,
     missSeen: -Infinity,
+    /** the penalty as shown: eases toward the real one, so a miss is a dash, not a teleport */
+    shownPenalty: 0,
     flash: 0,
     light: null as HTMLCanvasElement | null,
   });
@@ -129,6 +145,12 @@ export function AdventureStage({ view, clock }: { view: AdventureView; clock: Re
       let monsterFlash = false;
       let danger = 0;
       let shake = 0;
+      /** deterministic horizontal jolt (a miss) */
+      let joltX = 0;
+      /** how hard Kordi was just hit (0–1): tints Kordi red */
+      let hit = 0;
+      /** the monster leaves the ground as it dashes */
+      let monsterHop = 0;
       let notes = -1;
       let sceneMix = 0;
       const walking = Math.floor(time * 9) % 2 === 0 ? "stepA" : "stepB";
@@ -148,18 +170,30 @@ export function AdventureStage({ view, clock }: { view: AdventureView; clock: Re
           break;
         }
         case "playing": {
-          danger = clamp01((elapsed + c.penaltyMs) / c.limitMs);
-          const lunge = Math.max(0, 1 - (now - c.lastMissAt) / 380);
-          if (c.lastMissAt !== f.missSeen && now - c.lastMissAt < 100) {
+          // a new monster starts with no penalty; afterwards the shown one catches up smoothly
+          if (c.penaltyMs < f.shownPenalty) f.shownPenalty = c.penaltyMs;
+          f.shownPenalty += (c.penaltyMs - f.shownPenalty) * (1 - Math.exp(-dt * PENALTY_EASE));
+          danger = clamp01((elapsed + f.shownPenalty) / c.limitMs);
+          const sinceMiss = now - c.lastMissAt;
+          const lunge = lungeCurve(sinceMiss);
+          monsterX = lerp(MONSTER_FAR_X, MONSTER_NEAR_X + (boss ? 10 : 0), easeIn(danger));
+          if (c.lastMissAt !== f.missSeen && sinceMiss < 100) {
             f.missSeen = c.lastMissAt;
-            f.pops.push({ text: "MISS", color: "#ff5a5a", x: MONSTER_FAR_X - 20, y: 52, born: now });
+            f.pops.push({ text: "MISS", color: "#ff5a5a", x: HERO_X - 4, y: 58, born: now });
           }
-          monsterX = lerp(MONSTER_FAR_X, MONSTER_NEAR_X + (boss ? 10 : 0), easeIn(danger)) - lunge * 18;
+          monsterX -= lunge * LUNGE_DISTANCE;
+          monsterHop = Math.round(lunge * 4);
           monsterAlpha = clamp01(elapsed / 350);
-          heroBob = Math.round(Math.sin(time * (2.5 + danger * 7)));
-          heroFrame = lunge > 0.25 || danger > 0.88 ? "ouch" : heroFrame;
+          // Kordi takes the hit: knocked back a touch, flinching while it lasts
+          hit = lunge;
+          heroX -= Math.round(lunge * 3);
+          heroBob = lunge > 0 ? 0 : Math.round(Math.sin(time * (2.5 + danger * 7)));
+          heroFrame = lunge > 0.15 || danger > 0.88 ? "ouch" : heroFrame;
           batonRaise = 0.3;
-          shake = lunge * 2.5 + (danger > 0.8 ? (danger - 0.8) * 8 * (Math.sin(time * 7) > 0.6 ? 1 : 0.3) : 0);
+          // a short, damped side-to-side jolt (not random jitter), plus a low rumble near the end
+          const jolt = sinceMiss < 260 ? Math.sin(sinceMiss / 26) * 3 * (1 - sinceMiss / 260) : 0;
+          joltX = jolt;
+          shake = danger > 0.8 ? (danger - 0.8) * 8 * (Math.sin(time * 7) > 0.6 ? 1 : 0.3) : 0;
           break;
         }
         case "victory": {
@@ -203,8 +237,12 @@ export function AdventureStage({ view, clock }: { view: AdventureView; clock: Re
 
       // ── draw ───────────────────────────────────────────────────────
       ctx.save();
-      if (reducedMotion) shake = 0;
+      if (reducedMotion) {
+        shake = 0;
+        joltX = 0;
+      }
       if (shake > 0) ctx.translate(Math.round((Math.random() - 0.5) * shake), Math.round((Math.random() - 0.5) * shake));
+      if (joltX !== 0) ctx.translate(Math.round(joltX), 0);
 
       drawScene(ctx, v.scene, f.scroll, time);
       if (sceneMix > 0) {
@@ -228,7 +266,7 @@ export function AdventureStage({ view, clock }: { view: AdventureView; clock: Re
         ctx.save();
         ctx.translate(Math.round(monsterX + img.width * scale), 0);
         ctx.scale(-1, 1); // face Kordi
-        ctx.drawImage(img, 0, Math.round(GROUND_Y - img.height * scale - hop + 1), img.width * scale, img.height * scale);
+        ctx.drawImage(img, 0, Math.round(GROUND_Y - img.height * scale - hop - monsterHop + 1), img.width * scale, img.height * scale);
         ctx.restore();
         if (danger > 0.6 && !monsterFlash) glow(ctx, monsterX + img.width * scale * 0.4, GROUND_Y - img.height * scale * 0.55, 10 * scale, "255, 60, 60", (danger - 0.6) * 0.9);
         ctx.globalAlpha = 1;
@@ -249,6 +287,10 @@ export function AdventureStage({ view, clock }: { view: AdventureView; clock: Re
         const scarf = scarfSprite(Math.floor(time * (v.phase === "intro" || heroFrame.startsWith("step") ? 12 : 6)));
         ctx.drawImage(scarf, Math.round(heroX - scarf.width + 3), Math.round(heroTop + 11));
         ctx.drawImage(hero, Math.round(heroX), Math.round(heroTop));
+        if (hit > 0.05) {
+          // a red flash around Kordi as the blow lands
+          glow(ctx, heroX + hero.width / 2, heroTop + hero.height / 2, 14, "255, 70, 70", hit * 0.45);
+        }
         const baton = batonSprite();
         const bx = heroX + hero.width - 4;
         const by = heroTop + 10 - Math.round(batonRaise * 6);
