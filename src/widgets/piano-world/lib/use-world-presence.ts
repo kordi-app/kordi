@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import { bffClient } from "@/shared/api";
 import { WORLD_SOCKET_URL } from "@/shared/config/api";
+import type { Appearance } from "@/entities/character";
 import type { EmoteId } from "../model/interactables";
 
 /** Wire format shared with the server (WorldPlayer / WorldMove). */
@@ -19,6 +20,8 @@ export interface RemotePlayer {
   m: number | null;
   /** emote in progress */
   e?: EmoteId | null;
+  /** how they've dressed their Kordi (signed-in members only; null = the default look) */
+  look?: Appearance | null;
 }
 
 type ServerMessage =
@@ -35,6 +38,7 @@ type ServerMessage =
   | { t: "join"; p: RemotePlayer }
   | { t: "leave"; id: string }
   | { t: "moves"; ps: RemotePlayer[] }
+  | { t: "look"; id: string; look: Appearance }
   | { t: "online"; n: number; regions?: Record<string, number> }
   | ({ t: "record" } & CourseRecordMessage);
 
@@ -175,6 +179,11 @@ export function useWorldPresence(
                 });
             }
             break;
+          case "look": {
+            const remote = remotes.current.get(message.id);
+            if (remote) remotes.current.set(message.id, { ...remote, look: message.look });
+            break;
+          }
           case "record":
             reportRecord(message);
             break;

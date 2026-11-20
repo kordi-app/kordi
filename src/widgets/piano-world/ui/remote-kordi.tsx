@@ -5,7 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import type { RemotePlayer } from "../lib/use-world-presence";
 import { CASE_H, PRESS_DEPTH, keyAt } from "../model/layout";
-import { KordiModel, type KordiMotion } from "@/entities/character";
+import { DEFAULT_APPEARANCE, KordiModel, type Appearance, type KordiMotion } from "@/entities/character";
 import { useLabelTexture } from "./label-texture";
 import { EmoteBubble } from "./emote-bubble";
 import type { EmoteId } from "../model/interactables";
@@ -38,6 +38,9 @@ export function RemoteKordi({
   // the emote bubble is React state, but only changes when the emote does
   const [emote, setEmote] = useState<EmoteId | null>(null);
   const emoteShown = useRef<EmoteId | null>(null);
+  // their look, likewise: re-rendered only when it changes
+  const [look, setLook] = useState<Appearance>(initial?.look ?? DEFAULT_APPEARANCE);
+  const lookShown = useRef<Appearance | null | undefined>(initial?.look);
 
   useFrame((_, rawDelta) => {
     const target = remotes.current.get(id);
@@ -73,11 +76,18 @@ export function RemoteKordi({
       emoteShown.current = target.e ?? null;
       setEmote(emoteShown.current);
     }
+    // every position update carries a fresh copy of the look: compare by value, then
+    // remember this copy so the next frames short-circuit on reference
+    if (target.look !== lookShown.current) {
+      const changed = JSON.stringify(target.look) !== JSON.stringify(lookShown.current);
+      lookShown.current = target.look;
+      if (changed) setLook(target.look ?? DEFAULT_APPEARANCE);
+    }
   });
 
   return (
     <group ref={group}>
-      <KordiModel motion={motion} scale={SCALE} />
+      <KordiModel motion={motion} scale={SCALE} appearance={look} />
       {/* name tag floats above the head and always faces the camera */}
       <sprite position={[0, 2.55, 0]} scale={[0.42 * aspect, 0.42, 1]}>
         <spriteMaterial map={texture} transparent depthWrite={false} />
