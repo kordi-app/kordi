@@ -21,7 +21,7 @@ const twMerge = extendTailwindMerge({
         "between-chips",
         "between-text",
       ],
-      shadow: ["button", "raised"],
+      shadow: ["button", "raised", "pixel"],
     },
   },
 })

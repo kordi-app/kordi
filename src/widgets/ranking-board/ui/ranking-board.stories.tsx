@@ -14,8 +14,15 @@ function makeRankings(topScore: number, count: number): RankingEntry[] {
   }));
 }
 
-const seed = (byDifficulty: Record<RankingDifficulty, RankingEntry[]>) =>
-  (Object.keys(byDifficulty) as RankingDifficulty[]).map((d) => [["ranking", d], byDifficulty[d]]);
+const ADVENTURE = [
+  { rank: 1, nickname: "재즈냥", profileImageUrl: null, defeated: 31 },
+  { rank: 2, nickname: "코드왕", profileImageUrl: null, defeated: 24 },
+  { rank: 3, nickname: "새벽연습", profileImageUrl: null, defeated: 19 },
+];
+const seed = (byDifficulty: Record<RankingDifficulty, RankingEntry[]>) => [
+  ...(Object.keys(byDifficulty) as RankingDifficulty[]).map((d) => [["ranking", d], byDifficulty[d]]),
+  [["adventure", "rankings"], ADVENTURE],
+];
 
 const meta = {
   title: "Widgets/RankingBoard",

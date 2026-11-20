@@ -25,7 +25,8 @@
       "ranking": "Ranking",
       "friends": "Friends",
       "profile": "My Profile",
-      "character": "My Kordi"
+      "character": "My Kordi",
+      "adventure": "Chord Adventure"
     }
   },
   "me": {
@@ -57,7 +58,9 @@
     "medium": "Medium",
     "hard": "Hard",
     "loading": "Loading rankings...",
-    "empty": "No records yet. Be the first challenger!"
+    "empty": "No records yet. Be the first challenger!",
+    "adventure": "Chord Adventure",
+    "monsters": "{count} monsters"
   },
   "friends": {
     "title": "Friends",
@@ -386,5 +389,28 @@
     "saved": "Your Kordi is saved",
     "saveFailed": "Couldn't save",
     "loadFailed": "Couldn't load your Kordi"
+  },
+  "chordAdventure": {
+    "title": "Chord Adventure",
+    "intro": "Play the chord each monster brings. Get it right to beat it and move on; run out of time and it's over. It gets faster and harder as you go.",
+    "start": "Start",
+    "retry": "Try again",
+    "loading": "Getting chords ready…",
+    "loadingSamples": "Loading piano samples...",
+    "noMidiDevice": "No MIDI device",
+    "defeated": "{count} monsters",
+    "gameOver": "Knocked out",
+    "saving": "Saving your run…",
+    "newBest": "New best! #{rank} all-time",
+    "best": "Your best: {count} · this run is #{rank} all-time",
+    "ranking": "All-time ranking",
+    "stageLabel": "Chord Adventure game screen",
+    "scenes": {
+      "meadow": "Dawn Hills",
+      "forest": "Firefly Woods",
+      "cave": "Crystal Cave",
+      "castle": "Moonlit Castle",
+      "volcano": "Lava Peak"
+    }
   }
 }

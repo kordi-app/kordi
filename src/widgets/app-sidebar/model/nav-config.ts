@@ -2,6 +2,7 @@ import {
   KeyboardMusic,
   Piano,
   Shirt,
+  Swords,
   Timer,
   Trophy,
   Users,
@@ -31,6 +32,7 @@ export const NAV_GROUPS: NavGroup[] = [
         labelKey: "sidebar.nav.practice",
       },
       { href: ROUTES.CHORD_QUIZ, icon: Timer, labelKey: "sidebar.nav.quiz" },
+      { href: ROUTES.CHORD_ADVENTURE, icon: Swords, labelKey: "sidebar.nav.adventure" },
     ],
   },
   {

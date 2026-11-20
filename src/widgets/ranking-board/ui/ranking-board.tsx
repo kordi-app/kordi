@@ -6,29 +6,31 @@ import { ErrorBoundary, Suspense } from "@suspensive/react";
 import { useTranslations } from "next-intl";
 import { Trophy } from "lucide-react";
 import { rankingQueries, type RankingDifficulty } from "@/entities/ranking";
+import { adventureQueries } from "@/entities/chord-adventure";
 import { Avatar, AvatarImage, AvatarFallback } from "@/shared/ui/avatar";
 import { MonoPill } from "@/shared/ui/mono-button";
 import { LoadingState } from "@/shared/ui/empty-state";
 import { cn } from "@/shared/lib/utils";
 
 const DIFFICULTIES: RankingDifficulty[] = ["EASY", "MEDIUM", "HARD"];
+/** The quiz's three difficulties, plus Chord Adventure's endless run */
+type Board = RankingDifficulty | "ADVENTURE";
 
 export function RankingBoard() {
   const t = useTranslations("ranking");
-  const [difficulty, setDifficulty] = useState<RankingDifficulty>("EASY");
+  const [board, setBoard] = useState<Board>("EASY");
 
   return (
     <div className="w-full">
       <div className="mb-6 flex gap-2">
         {DIFFICULTIES.map((d) => (
-          <MonoPill
-            key={d}
-            active={difficulty === d}
-            onClick={() => setDifficulty(d)}
-          >
+          <MonoPill key={d} active={board === d} onClick={() => setBoard(d)}>
             {t(d.toLowerCase())}
           </MonoPill>
         ))}
+        <MonoPill active={board === "ADVENTURE"} onClick={() => setBoard("ADVENTURE")}>
+          {t("adventure")}
+        </MonoPill>
       </div>
 
       <ErrorBoundary
@@ -39,7 +41,7 @@ export function RankingBoard() {
         )}
       >
         <Suspense fallback={<LoadingState label={t("loading")} />}>
-          <RankingList difficulty={difficulty} />
+          {board === "ADVENTURE" ? <AdventureList /> : <RankingList difficulty={board} />}
         </Suspense>
       </ErrorBoundary>
     </div>
@@ -110,6 +112,38 @@ function RankingList({ difficulty }: { difficulty: RankingDifficulty }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/** Chord Adventure: most monsters beaten in one run. */
+function AdventureList() {
+  const t = useTranslations("ranking");
+  const { data: rankings } = useSuspenseQuery(adventureQueries.rankings());
+
+  if (rankings.length === 0) {
+    return <p className="py-12 text-center text-t4 text-fg-neutral-muted">{t("empty")}</p>;
+  }
+
+  return (
+    <div className="overflow-hidden rounded-card border border-stroke-neutral-subtle bg-bg-layer-default">
+      {rankings.map((entry) => (
+        <div key={entry.rank} className="flex items-center gap-4 border-b border-stroke-neutral-subtle px-4 py-3 last:border-b-0">
+          <div className="flex w-8 shrink-0 items-center justify-center">
+            {entry.rank <= 3 ? (
+              <Trophy className="size-5 text-fg-neutral" />
+            ) : (
+              <span className="text-t4 font-semibold tabular-nums text-fg-neutral">{entry.rank}</span>
+            )}
+          </div>
+          <Avatar size="sm">
+            <AvatarImage src={entry.profileImageUrl ?? undefined} alt={entry.nickname} />
+            <AvatarFallback className="text-t1 font-semibold">{entry.nickname.charAt(0).toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <span className={cn("flex-1 text-t4 text-fg-neutral", entry.rank <= 3 && "font-semibold")}>{entry.nickname}</span>
+          <span className="text-right text-t4 font-semibold tabular-nums text-fg-neutral">{t("monsters", { count: entry.defeated })}</span>
+        </div>
+      ))}
     </div>
   );
 }

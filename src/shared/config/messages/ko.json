@@ -25,7 +25,8 @@
       "ranking": "랭킹",
       "friends": "친구",
       "profile": "내 프로필",
-      "character": "내 캐릭터"
+      "character": "내 캐릭터",
+      "adventure": "코드 모험"
     }
   },
   "me": {
@@ -57,7 +58,9 @@
     "medium": "보통",
     "hard": "어려움",
     "loading": "랭킹을 불러오는 중...",
-    "empty": "아직 기록이 없어요. 첫 번째 도전자가 되어보세요!"
+    "empty": "아직 기록이 없어요. 첫 번째 도전자가 되어보세요!",
+    "adventure": "코드 모험",
+    "monsters": "{count}마리"
   },
   "friends": {
     "title": "친구",
@@ -386,5 +389,28 @@
     "saved": "캐릭터를 저장했어요",
     "saveFailed": "저장하지 못했어요",
     "loadFailed": "캐릭터 정보를 불러오지 못했어요"
+  },
+  "chordAdventure": {
+    "title": "코드 모험",
+    "intro": "몬스터가 들고 오는 코드를 건반으로 연주하세요. 맞히면 물리치고 다음으로, 시간이 다 되면 끝이에요. 갈수록 빨라지고 어려워져요.",
+    "start": "모험 시작",
+    "retry": "다시 도전",
+    "loading": "코드를 준비하는 중…",
+    "loadingSamples": "피아노 샘플 로딩 중...",
+    "noMidiDevice": "MIDI 장치 없음",
+    "defeated": "몬스터 {count}마리",
+    "gameOver": "쓰러졌어요",
+    "saving": "기록을 저장하는 중…",
+    "newBest": "최고 기록! 역대 {rank}위",
+    "best": "내 최고 {count}마리 · 이번 기록은 역대 {rank}위",
+    "ranking": "역대 랭킹",
+    "stageLabel": "코드 모험 게임 화면",
+    "scenes": {
+      "meadow": "새벽 언덕",
+      "forest": "반딧불 숲",
+      "cave": "수정 동굴",
+      "castle": "달빛 성",
+      "volcano": "용암 산"
+    }
   }
 }

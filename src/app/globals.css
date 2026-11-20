@@ -157,6 +157,8 @@
   /* Elevation: shallow and soft — the only lift the cream system uses */
   --shadow-button: inset 0 0.5px 0 rgba(255, 255, 255, 0.18), 0 1px 2px var(--shadow-color);
   --shadow-raised: 0 4px 12px var(--shadow-color);
+  /* hard, offset pixel-art shadow (game UI) */
+  --shadow-pixel: 3px 3px 0 var(--palette-gray-1000);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);

@@ -18,6 +18,11 @@ export const ChordQuizView = dynamic(
   { ssr: false },
 );
 
+export const ChordAdventureView = dynamic(
+  () => import("@/views/chord-adventure").then((m) => m.ChordAdventurePage),
+  { ssr: false },
+);
+
 export const PianoView = dynamic(
   () => import("@/views/piano").then((m) => m.PianoPage),
   { ssr: false },
