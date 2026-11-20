@@ -12,6 +12,19 @@ import { CrownMesh } from "./crown-mesh";
 
 const INK = "#221d19";
 
+/**
+ * Closed, happy eyes (^ ^): a gentle arc with rounded ends, not a full half
+ * circle, so it reads as a smile rather than a bracket.
+ */
+const HAPPY = { radius: 0.058, tube: 0.019, arc: Math.PI * 0.72 };
+/** rolls the arc so it's centred on top (the torus arc starts at +x) */
+const HAPPY_ROLL = (Math.PI - HAPPY.arc) / 2;
+const HAPPY_ENDS = [HAPPY_ROLL, HAPPY_ROLL + HAPPY.arc].map(
+  (angle) => [Math.cos(angle) * HAPPY.radius, Math.sin(angle) * HAPPY.radius, 0] as [number, number, number],
+);
+/** how far the eyes turn to sit flat on the head's curve (at x ±0.19) */
+const EYE_YAW = 0.42;
+
 const GEO = {
   sphere: new THREE.SphereGeometry(1, 20, 14),
   cone: new THREE.ConeGeometry(1, 1, 16),
@@ -19,7 +32,8 @@ const GEO = {
   ring: new THREE.TorusGeometry(0.11, 0.013, 8, 32),
   band: new THREE.TorusGeometry(0.55, 0.035, 8, 40, Math.PI),
   scarf: new THREE.TorusGeometry(0.5, 0.075, 12, 40),
-  happyEye: new THREE.TorusGeometry(0.06, 0.015, 8, 20, Math.PI),
+  happyEye: new THREE.TorusGeometry(HAPPY.radius, HAPPY.tube, 10, 24, HAPPY.arc),
+  happyEyeCap: new THREE.SphereGeometry(HAPPY.tube, 10, 8),
   eye: new THREE.SphereGeometry(0.085, 28, 20),
   glint: new THREE.SphereGeometry(0.03, 14, 10),
   glintSmall: new THREE.SphereGeometry(0.013, 10, 8),
@@ -48,8 +62,15 @@ export function Eyes({ face }: { face: FaceId }) {
         const side = Math.sign(x);
         switch (face) {
           case "smile":
-            // closed, happy ^ ^
-            return <mesh key={x} position={[x, 0.93, 0.405]} geometry={GEO.happyEye} material={MAT.inkMatte} />;
+            // closed, happy ^ ^ — turned to lie on the head's curve so neither end sinks in
+            return (
+              <group key={x} position={[x, 0.925, 0.412]} rotation={[0, side * EYE_YAW, 0]}>
+                <mesh rotation={[0, 0, HAPPY_ROLL]} geometry={GEO.happyEye} material={MAT.inkMatte} />
+                {HAPPY_ENDS.map((end, i) => (
+                  <mesh key={i} position={end} geometry={GEO.happyEyeCap} material={MAT.inkMatte} />
+                ))}
+              </group>
+            );
           case "sleepy":
             return (
               <mesh key={x} position={[x, 0.94, 0.405]} rotation={[0, 0, side * -0.12]} scale={[0.075, 0.014, 0.012]} geometry={GEO.sphere} material={MAT.inkMatte} />
