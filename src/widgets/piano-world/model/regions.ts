@@ -58,10 +58,10 @@ export interface PortalDef {
  * - melody: follow a glowing path through a song
  * - springs: black keys bounce you into the air; the floor pulses
  * - echo: steps ripple and the organ rings on after you leave a key
- * - chords: each step plays a jazz seventh chord built on that key
+ * - standards: whatever key you step on, the next note of a jazz standard plays
  * - course: a jump climb (no keyboard floor; see course.ts)
  */
-export type RegionFeature = "melody" | "springs" | "echo" | "chords" | "course";
+export type RegionFeature = "melody" | "springs" | "echo" | "standards" | "course";
 
 export interface RegionDef {
   id: RegionId;
@@ -75,6 +75,8 @@ export interface RegionDef {
   course?: CourseDef;
   /** The open island around the keyboard (the hall): terrain, zones, day and night */
   island?: boolean;
+  /** Background music that plays while you're here (steps then join in) */
+  music?: "house";
   /** Walkable area, when larger than the keyboard floor's */
   bounds?: { x: number; zMin: number; zMax: number };
 }
@@ -146,6 +148,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     id: "neon",
     instrument: "bright-synth",
     feature: "springs",
+    music: "house",
     camera: DEFAULT_CAMERA,
     portals: homePortal("#f4efe6"),
     theme: {
@@ -195,7 +198,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
   lounge: {
     id: "lounge",
     instrument: "electric-piano",
-    feature: "chords",
+    feature: "standards",
     camera: DEFAULT_CAMERA,
     portals: homePortal("#f4efe6"),
     theme: {

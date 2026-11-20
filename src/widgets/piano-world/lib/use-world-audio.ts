@@ -4,6 +4,10 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from "react"
 import {
   disposeSampler,
   disposeVoices,
+  houseStab,
+  isHousePlaying,
+  startHouse,
+  stopHouse,
   ensureAudioStarted,
   getCurrentInstrumentId,
   loadInstrument,
@@ -16,14 +20,20 @@ import {
   type WarpEffect,
 } from "@/shared/lib/audio";
 import { useCallbackRef } from "@/shared/lib/react/use-callback-ref";
-import { seventhChordOn } from "../model/harmony";
+import { CHORUS_KEYS, SONGBOOK, voiceChord, type Song } from "../model/standards";
 import { debugSeam } from "./debug-seam";
 import type { RegionDef } from "../model/regions";
 
 export type AudioState = "off" | "loading" | "on";
 
 /** Cathedral: how long a note keeps ringing after you step off it. */
-const ECHO_MS = 1400;
+const ECHO_MS = 900;
+/**
+ * At most this many notes ring on after you've left them: walking across the
+ * keys otherwise stacked 7–8 neighbouring organ notes at full volume (mud).
+ * The space itself is the organ's reverb; this is just the held tail.
+ */
+const MAX_ECHO_TAILS = 2;
 /**
  * A step is a strike, not a held key: released after this long even if you
  * keep standing there. The instruments are synths, and most sustain for as
@@ -31,7 +41,10 @@ const ECHO_MS = 1400;
  */
 const STEP_RING_MS = 450;
 const STEP_VELOCITY = 0.75;
-const CHORD_TONE_VELOCITY = 0.42;
+/** The lounge: the comping chord sits under the melody */
+const COMP_VELOCITY = 0.36;
+/** a chord rings at most this long if you stop walking */
+const COMP_RING_MS = 2200;
 const REMOTE_VELOCITY = 0.35;
 const CAT_VELOCITY = 0.18;
 
@@ -57,6 +70,11 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
   const echoTimers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
   const remoteHeld = useRef(new Map<string, number>());
   const remoteTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  /** the lounge's place in the songbook, and the chord sounding under the melody */
+  const standards = useRef({ song: 0, event: 0, chorus: 0 });
+  const comp = useRef<number[]>([]);
+  const compTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [song, setSong] = useState<Song>(SONGBOOK[0]);
   const catHeld = useRef<number | null>(null);
   const chimeTimers = useRef(new Set<ReturnType<typeof setTimeout>>());
   const instrumentChain = useRef<Promise<void>>(Promise.resolve());
@@ -105,7 +123,45 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
     remoteHeld.current.clear();
     if (catHeld.current !== null) playNoteOff(catHeld.current);
     catHeld.current = null;
+    clearTimeout(compTimer.current);
+    comp.current.forEach(playNoteOff);
+    comp.current = [];
     setNote(null);
+  }, []);
+
+  /**
+   * The lounge: whatever key you step on, the next note of the tune plays, and
+   * where the harmony changes its chord is voiced underneath. At the end of a
+   * chorus the tune moves to a new key; after all keys, on to the next song.
+   */
+  const nextStandardsNotes = useCallback((): number[] => {
+    const at = standards.current;
+    const tune = SONGBOOK[at.song];
+    const shift = CHORUS_KEYS[at.chorus];
+    const event = tune.events[at.event];
+    if (event.chord) {
+      clearTimeout(compTimer.current);
+      comp.current.forEach(playNoteOff);
+      const sounding = voiceChord(event.chord, shift);
+      comp.current = sounding;
+      sounding.forEach((n) => playNoteOn(n, COMP_VELOCITY));
+      compTimer.current = setTimeout(() => {
+        sounding.forEach(playNoteOff);
+        if (comp.current === sounding) comp.current = [];
+      }, COMP_RING_MS);
+    }
+    // advance: next note, next chorus (new key), next song
+    at.event += 1;
+    if (at.event >= tune.events.length) {
+      at.event = 0;
+      at.chorus += 1;
+      if (at.chorus >= CHORUS_KEYS.length) {
+        at.chorus = 0;
+        at.song = (at.song + 1) % SONGBOOK.length;
+        setSong(SONGBOOK[at.song]);
+      }
+    }
+    return [event.midi + shift];
   }, []);
 
   /** Let go of the notes your step is sounding (in the cathedral they ring on). */
@@ -115,6 +171,14 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
     for (const previous of held.current) {
       if (echo) {
         clearTimeout(echoTimers.current.get(previous));
+        echoTimers.current.delete(previous);
+        // make room: the oldest tail stops now (Map keeps insertion order)
+        while (echoTimers.current.size >= MAX_ECHO_TAILS) {
+          const [oldest, timer] = echoTimers.current.entries().next().value!;
+          clearTimeout(timer);
+          playNoteOff(oldest);
+          echoTimers.current.delete(oldest);
+        }
         echoTimers.current.set(
           previous,
           setTimeout(() => {
@@ -141,7 +205,14 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
       debugSeam?.steps.push({ midi, t: performance.now() });
       if (audioRef.current !== "on") return;
 
-      const notes = feature === "chords" ? seventhChordOn(midi) : [midi];
+      // neon: steps are chord stabs in time with the house groove
+      if (regionRef.current.music === "house" && isHousePlaying()) {
+        houseStab(STEP_VELOCITY);
+        debugSeam?.voices.push({ id: "house-stab", midi, t: performance.now() });
+        return;
+      }
+      const notes = feature === "standards" ? nextStandardsNotes() : [midi];
+      if (feature === "standards") debugSeam?.voices.push({ id: "lounge", midi: notes[0], t: performance.now() });
       notes.forEach((n, i) => {
         const ringing = echoTimers.current.get(n);
         if (ringing) {
@@ -149,12 +220,12 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
           echoTimers.current.delete(n);
           playNoteOff(n); // restrike cleanly
         }
-        playNoteOn(n, i === 0 ? STEP_VELOCITY : CHORD_TONE_VELOCITY);
+        playNoteOn(n, i === 0 ? STEP_VELOCITY : COMP_VELOCITY);
       });
       held.current = notes;
       holdTimer.current = setTimeout(releaseHeld, STEP_RING_MS);
     },
-    [onStepRef, regionRef, releaseHeld],
+    [onStepRef, regionRef, releaseHeld, nextStandardsNotes],
   );
 
   const releaseRemote = useCallback((id: string) => {
@@ -169,13 +240,16 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
   const handleRemoteStep = useCallback(
     (id: string, midi: number | null) => {
       releaseRemote(id);
+      // in the lounge everyone plays their own tune, and in the house the stabs follow the
+      // groove: other players' raw keys would only clash with it
+      if (regionRef.current.feature === "standards" || regionRef.current.music) return;
       if (midi !== null && audioRef.current === "on") {
         playNoteOn(midi, REMOTE_VELOCITY);
         remoteHeld.current.set(id, midi);
         remoteTimers.current.set(id, setTimeout(() => releaseRemote(id), STEP_RING_MS));
       }
     },
-    [releaseRemote],
+    [releaseRemote, regionRef],
   );
 
   /** The cat's footsteps, very soft (the scene only reports them when it's near). */
@@ -209,12 +283,19 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
     return () => {
       pending.forEach(clearTimeout);
       silence();
+      stopHouse();
       disposeVoices();
       if (getCurrentInstrumentId() === before) return;
       if (before) void loadInstrument(before);
       else disposeSampler();
     };
   }, [silence]);
+
+  /** Start or stop the region's background music (call when the region or sound changes). */
+  const syncMusic = useCallback((music: RegionDef["music"]) => {
+    if (music === "house" && audioRef.current === "on") startHouse();
+    else stopHouse();
+  }, []);
 
   /** read synchronously in event handlers */
   const isOn = useCallback(() => audioRef.current === "on", []);
@@ -251,5 +332,8 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
     chime,
     voice,
     warpEffect,
+    /** the lounge's current tune */
+    song,
+    syncMusic,
   };
 }

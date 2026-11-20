@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEFAULT_APPEARANCE, characterQueries, type Appearance } from "@/entities/character";
@@ -79,7 +79,11 @@ export default function PianoWorldScene({
     [advance, regionRef],
   );
   const audio = useWorldAudio(regionRef, onStep);
-  const { startAudio, isOn, chime, switchInstrument, silence, warpEffect } = audio;
+  const { startAudio, isOn, chime, switchInstrument, silence, warpEffect, syncMusic } = audio;
+  // the region's background music follows the region and whether sound is on
+  useEffect(() => {
+    syncMusic(region.music);
+  }, [syncMusic, region.music, audio.audio]);
   const audioApi = useMemo(() => ({ startAudio, isOn, chime }), [startAudio, isOn, chime]);
   const interactions = useInteractions(copy, audioApi, bumpCelebrate);
   const { interact, nearbyRef, panelRef, setPanel, setNearby, say, reset: resetInteractions } = interactions;
@@ -245,7 +249,7 @@ export default function PianoWorldScene({
         )}
       />
 
-      <RegionLabel region={region} copy={copy} />
+      <RegionLabel region={region} copy={copy} song={audio.song} />
       {region.island ? <ZoneBanner name={zone ? copy.warpStones[zone] : null} /> : null}
       {region.feature === "melody" && nearKeys ? (
         <MelodyCard melody={melody.melody} progress={melody.progress} copy={copy} />

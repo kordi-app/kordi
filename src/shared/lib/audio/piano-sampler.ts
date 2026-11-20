@@ -26,6 +26,8 @@ type InstrumentFactory = () => Tone.PolySynth;
  * a K-weighted RMS of a struck C-major chord): a sawtooth or an organ at 0 dB came out
  * ~10–15 dB louder and clipped.
  */
+const ORGAN_DB = -15;
+
 function withVolume<T extends { volume: { value: number } }>(instrument: T, db: number): T {
   instrument.volume.value = db;
   return instrument;
@@ -82,14 +84,24 @@ const INSTRUMENT_STRATEGIES: Record<InstrumentId, InstrumentFactory> = {
       -15.5,
     ),
 
-  "organ": () =>
-    withVolume(
-      makeSynth({
-        oscillator: { type: "sine4" },
-        envelope: { attack: 0.01, decay: 0.1, sustain: 0.9, release: 0.3 },
-      }),
-      -15,
-    ),
+  // through a hall reverb: notes bloom into the room and fade, instead of piling up
+  "organ": () => {
+    const s = new Tone.PolySynth(Tone.Synth);
+    s.set({
+      oscillator: { type: "sine4" },
+      envelope: { attack: 0.01, decay: 0.1, sustain: 0.9, release: 0.5 },
+    });
+    s.maxPolyphony = 16;
+    const hall = new Tone.Reverb({ decay: 2.6, preDelay: 0.02, wet: 0.3 });
+    s.chain(hall, Tone.getDestination());
+    // the reverb lives and dies with the instrument
+    const dispose = s.dispose.bind(s);
+    s.dispose = () => {
+      hall.dispose();
+      return dispose();
+    };
+    return withVolume(s, ORGAN_DB);
+  },
 
   // a sawtooth through a lowpass that opens on the attack and closes again: bright, not harsh
   "bright-synth": () => {

@@ -245,9 +245,9 @@
       "wishSent": "Your wish rises as light",
       "jukeboxNowPlaying": "Beethoven, Für Elise (public domain)",
       "features": {
-        "springs": "Black keys are springs — step on one to bounce",
+        "springs": "Every key hits a chord in time with the house beat · black keys bounce you up",
         "echo": "Every step ripples, and notes ring on",
-        "chords": "Each key plays a jazz chord"
+        "standards": "Any key you step on plays the next note of a jazz standard"
       },
       "warpStones": {
         "plaza": "Keyboard Plaza",

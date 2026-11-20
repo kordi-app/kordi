@@ -16,3 +16,4 @@ export {
   type InstrumentInfo,
 } from "./piano-sampler";
 export { playVoice, playWarpEffect, disposeVoices, type VoiceId, type WarpEffect } from "./voices";
+export { startHouse, stopHouse, houseStab, isHousePlaying } from "./house";
