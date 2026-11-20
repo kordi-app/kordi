@@ -30,7 +30,7 @@ export function AudioStartPrompt({
         <Volume2 className="size-[18px]" />
       </span>
       <span>
-        <span className="block text-[15px] font-semibold text-foreground">
+        <span className="block text-t5 font-semibold text-foreground">
           {title}
         </span>
         <span className="mt-0.5 block text-sm text-muted-foreground">

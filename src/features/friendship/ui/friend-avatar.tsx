@@ -27,7 +27,7 @@ export function FriendAvatar({ name, muted = false }: { name: string; muted?: bo
     <span
       aria-hidden
       className={cn(
-        "flex size-10 shrink-0 items-center justify-center rounded-full text-[15px] font-semibold",
+        "flex size-10 shrink-0 items-center justify-center rounded-full text-t5 font-semibold",
         muted ? "bg-muted text-muted-foreground" : tone,
       )}
     >

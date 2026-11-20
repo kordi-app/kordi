@@ -40,7 +40,7 @@ function Stat({
       >
         {value}
       </div>
-      <div className="text-[10px] font-semibold uppercase tracking-widest opacity-60">
+      <div className="text-t1 font-semibold uppercase tracking-widest opacity-60">
         {label}
       </div>
     </div>

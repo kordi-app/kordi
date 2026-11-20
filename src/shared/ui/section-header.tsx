@@ -9,11 +9,11 @@ const sectionHeader = cva(
   {
     variants: {
       size: {
-        xs: "text-[11px] uppercase tracking-widest",
+        xs: "text-t1 uppercase tracking-widest",
         sm: "text-base",
         md: "text-lg",
-        lg: "text-[22px] leading-[1.2]",
-        xl: "text-[26px] md:text-[32px] leading-[1.15] -tracking-[0.025em]",
+        lg: "text-t8 leading-[1.2]",
+        xl: "text-t10 md:text-t12 leading-[1.15] -tracking-[0.025em]",
       },
     },
     defaultVariants: { size: "md" },

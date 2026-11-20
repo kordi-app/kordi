@@ -81,7 +81,7 @@ export const PianoKey = memo(function PianoKey({
         onPointerLeave={handlePointerLeave}
       >
         {keyboardShortcut && (
-          <span className="mb-1 text-[9px] font-mono text-[oklch(0.4_0.02_75)]">
+          <span className="mb-1 text-t1 font-mono text-[oklch(0.4_0.02_75)]">
             {keyboardShortcut}
           </span>
         )}
@@ -113,7 +113,7 @@ export const PianoKey = memo(function PianoKey({
       onPointerLeave={handlePointerLeave}
     >
       {keyboardShortcut && (
-        <span className="mb-2 text-[10px] font-mono text-[oklch(0.5_0.02_75)]">
+        <span className="mb-2 text-t1 font-mono text-[oklch(0.5_0.02_75)]">
           {keyboardShortcut}
         </span>
       )}

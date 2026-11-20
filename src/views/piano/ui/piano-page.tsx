@@ -122,7 +122,7 @@ export function PianoPage() {
 
 function Kbd({ children }: { children: React.ReactNode }) {
   return (
-    <kbd className="rounded border border-border bg-background px-1 font-sans text-[11px] text-muted-foreground">
+    <kbd className="rounded border border-border bg-background px-1 font-sans text-t1 text-muted-foreground">
       {children}
     </kbd>
   );

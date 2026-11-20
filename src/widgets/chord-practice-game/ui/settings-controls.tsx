@@ -13,7 +13,7 @@ export function SettingsSection({
 }) {
   return (
     <div>
-      <div className="mb-2 block text-[11px] font-semibold uppercase tracking-widest opacity-70">
+      <div className="mb-2 block text-t1 font-semibold uppercase tracking-widest opacity-70">
         {label}
       </div>
       {children}

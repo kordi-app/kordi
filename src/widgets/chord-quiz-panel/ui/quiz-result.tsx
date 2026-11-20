@@ -64,7 +64,7 @@ export function QuizResult({
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-semibold uppercase tracking-widest opacity-70">
+              <span className="text-t1 font-semibold uppercase tracking-widest opacity-70">
                 {t(state.answers[i]?.result ?? "timeout")}
               </span>
               <span className="font-heading font-semibold tabular-nums text-foreground">
@@ -100,7 +100,7 @@ function StatBlock({ value, label }: { value: number; label: string }) {
       <div className="font-heading text-2xl font-semibold tabular-nums">
         {value}
       </div>
-      <div className="text-[11px] font-semibold uppercase tracking-widest opacity-70">
+      <div className="text-t1 font-semibold uppercase tracking-widest opacity-70">
         {label}
       </div>
     </MonoCard>

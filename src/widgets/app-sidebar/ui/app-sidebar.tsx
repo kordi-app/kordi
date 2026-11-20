@@ -38,7 +38,7 @@ export function AppSidebar() {
           className="flex items-center gap-2.5 text-foreground group-data-[collapsible=icon]:justify-center"
         >
           <KordiLogo size={24} />
-          <span className="text-[17px] font-semibold -tracking-[0.02em] group-data-[collapsible=icon]:hidden">
+          <span className="text-t6 font-semibold -tracking-[0.02em] group-data-[collapsible=icon]:hidden">
             Kordi
           </span>
         </Link>

@@ -9,7 +9,7 @@ const meta = {
     className: "max-w-sm p-6",
     children: (
       <>
-        <p className="text-[15px] font-semibold">최고 점수</p>
+        <p className="text-t5 font-semibold">최고 점수</p>
         <p className="mt-1 text-sm text-muted-foreground">어려움 · 18/20 정답</p>
       </>
     ),

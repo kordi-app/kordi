@@ -51,7 +51,7 @@ export function MyScoresPanel({ scores }: MyScoresPanelProps) {
 
       {best && (
         <div className="mb-6 rounded-lg border border-border bg-primary px-4 py-4 text-primary-foreground">
-          <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest opacity-70">
+          <p className="mb-1 text-t1 font-semibold uppercase tracking-widest opacity-70">
             {t("bestScore")}
           </p>
           <div className="flex items-baseline gap-2">

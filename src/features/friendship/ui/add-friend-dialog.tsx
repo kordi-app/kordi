@@ -91,5 +91,5 @@ export function AddFriendDialog({ currentUserId }: AddFriendDialogProps) {
 }
 
 function Hint({ label, destructive }: { label: string; destructive?: boolean }) {
-  return <p className={destructive ? "py-3 text-[13px] text-destructive" : "py-3 text-[13px] text-muted-foreground"}>{label}</p>;
+  return <p className={destructive ? "py-3 text-t3 text-destructive" : "py-3 text-t3 text-muted-foreground"}>{label}</p>;
 }

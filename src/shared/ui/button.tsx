@@ -12,7 +12,7 @@ import { cn } from "@/shared/lib/utils"
  */
 const buttonVariants = cva(
   [
-    "group/button inline-flex shrink-0 items-center justify-center gap-1.5 rounded-[var(--radius-md)] border border-transparent",
+    "group/button inline-flex shrink-0 items-center justify-center gap-1.5 rounded-control border border-transparent",
     "font-medium tracking-[-0.01em] whitespace-nowrap select-none outline-none transition-[background-color,border-color,color,box-shadow,transform] duration-150",
     "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
     "active:not-aria-[haspopup]:scale-[0.98] disabled:pointer-events-none disabled:opacity-40",
@@ -38,9 +38,9 @@ const buttonVariants = cva(
       },
       size: {
         xs: "h-7 px-2.5 text-xs [&_svg:not([class*='size-'])]:size-3.5",
-        sm: "h-8 px-3 text-[13px] [&_svg:not([class*='size-'])]:size-3.5",
+        sm: "h-8 px-3 text-t3 [&_svg:not([class*='size-'])]:size-3.5",
         default: "h-9 px-4 text-sm",
-        lg: "h-11 px-5 text-[15px]",
+        lg: "h-11 px-5 text-t5",
         "icon-xs": "size-7 [&_svg:not([class*='size-'])]:size-3.5",
         "icon-sm": "size-8",
         icon: "size-9",

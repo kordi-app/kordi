@@ -50,7 +50,7 @@ export function ChordPracticePage() {
   const isIdle = state.status === "idle";
 
   return (
-    <div className="w-full px-6 py-10 md:px-8 md:py-14">
+    <div className="w-full px-page-x py-page-y md:px-page-x-wide md:py-page-y-wide">
       <div className="mx-auto w-full max-w-4xl space-y-10">
         <MidiStatus
           midiName={midi.selectedDevice?.name}

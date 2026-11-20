@@ -12,7 +12,7 @@ export function MonoCard({
 }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("rounded-lg border border-border bg-card", className)}
+      className={cn("rounded-card border border-border bg-card", className)}
       {...props}
     />
   );

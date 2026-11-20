@@ -20,7 +20,7 @@ export function MePage({ user, scores }: MePageProps) {
   const tCommon = useTranslations("common");
 
   return (
-    <main className="px-6 py-10 md:px-8 md:py-14">
+    <main className="px-page-x py-page-y md:px-page-x-wide md:py-page-y-wide">
       <div className="mx-auto w-full max-w-5xl">
         <SectionHeader as="h1" size="lg" className="mb-6">
           {t("title")}
@@ -42,7 +42,7 @@ export function MePage({ user, scores }: MePageProps) {
               <h2 className="font-heading text-lg font-semibold text-foreground">
                 {user.nickname}
               </h2>
-              <span className="mt-2 rounded-full border border-border bg-card px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-foreground">
+              <span className="mt-2 rounded-full border border-border bg-card px-2 py-0.5 text-t1 font-semibold uppercase tracking-widest text-foreground">
                 {t("userId")}: #{user.id}
               </span>
             </MonoCard>
@@ -69,7 +69,7 @@ export function MePage({ user, scores }: MePageProps) {
             <Separator className="my-6 bg-primary" />
 
             <div className="mb-6">
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-foreground">
+              <p className="mb-2 text-t1 font-semibold uppercase tracking-widest text-foreground">
                 {t("primaryEmail")}
               </p>
               <div className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3">
@@ -82,7 +82,7 @@ export function MePage({ user, scores }: MePageProps) {
             </div>
 
             <div>
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-foreground">
+              <p className="mb-2 text-t1 font-semibold uppercase tracking-widest text-foreground">
                 {t("oauthProvider")}
               </p>
               <div className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3">
@@ -97,7 +97,7 @@ export function MePage({ user, scores }: MePageProps) {
                     {user.oAuthProvider}
                   </span>
                 </div>
-                <span className="inline-flex items-center gap-1 rounded-full border border-border bg-primary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-primary-foreground">
+                <span className="inline-flex items-center gap-1 rounded-full border border-border bg-primary px-2 py-0.5 text-t1 font-semibold uppercase tracking-widest text-primary-foreground">
                   <CircleCheck className="size-3" aria-hidden />
                   {t("connected")}
                 </span>

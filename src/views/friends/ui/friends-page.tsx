@@ -11,7 +11,7 @@ export function FriendsPage({ user }: FriendsPageProps) {
   const t = useTranslations("friends");
 
   return (
-    <main className="px-5 py-10 md:px-8 md:py-14">
+    <main className="px-page-x py-page-y md:px-page-x-wide md:py-page-y-wide">
       <div className="mx-auto w-full max-w-xl">
         <header className="mb-8 flex items-center justify-between gap-4">
           <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>

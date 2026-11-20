@@ -91,7 +91,7 @@ function CourseRanking({ run, isGuest, copy }: { run: CourseRun; isGuest: boolea
   return (
     <div className="mt-2 border-t border-border pt-2">
       {result ? <p className="mb-1.5 text-xs font-medium text-foreground">{result}</p> : null}
-      <p className="text-[11px] font-medium text-muted-foreground">{copy.courseRankingTitle}</p>
+      <p className="text-t1 font-medium text-muted-foreground">{copy.courseRankingTitle}</p>
       {top && top.length > 0 ? (
         <ol className="mt-1 space-y-0.5">
           {top.slice(0, 3).map((entry) => (

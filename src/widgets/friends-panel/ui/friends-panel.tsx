@@ -30,7 +30,7 @@ function Section({ title, count, aside, children }: { title: string; count: numb
   return (
     <section>
       <div className="mb-1 flex items-center justify-between gap-3">
-        <h2 className="text-[15px] font-semibold text-foreground">
+        <h2 className="text-t5 font-semibold text-foreground">
           {title}
           <span className="ml-1.5 font-normal text-muted-foreground tabular-nums">{count}</span>
         </h2>
@@ -75,21 +75,21 @@ function FriendsPanelContent({ currentUserId }: FriendsPanelProps) {
               onChange={(e) => setFilter(e.target.value)}
               placeholder={t("filterPlaceholder")}
               aria-label={t("filterPlaceholder")}
-              className="h-8 w-40 rounded-lg border border-border bg-card px-3 text-[13px] text-foreground outline-none placeholder:text-muted-foreground focus:border-foreground/30"
+              className="h-8 w-40 rounded-lg border border-border bg-card px-3 text-t3 text-foreground outline-none placeholder:text-muted-foreground focus:border-foreground/30"
             />
           ) : null
         }
       >
         {friends.length === 0 ? (
           <div className="py-10">
-            <p className="text-[15px] text-foreground">{t("empty.friends")}</p>
-            <p className="mt-1 text-[13px] text-muted-foreground">{t("empty.friendsHint")}</p>
+            <p className="text-t5 text-foreground">{t("empty.friends")}</p>
+            <p className="mt-1 text-t3 text-muted-foreground">{t("empty.friendsHint")}</p>
             <div className="mt-4">
               <AddFriendDialog currentUserId={currentUserId} />
             </div>
           </div>
         ) : shown.length === 0 ? (
-          <p className="py-8 text-[13px] text-muted-foreground">{t("noMatch")}</p>
+          <p className="py-8 text-t3 text-muted-foreground">{t("noMatch")}</p>
         ) : (
           <div className="divide-y divide-border/60">
             {shown.map((f) => (
