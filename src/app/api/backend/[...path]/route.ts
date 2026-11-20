@@ -28,7 +28,11 @@ async function handle(
   method: Method,
 ): Promise<NextResponse> {
   const { path } = await params;
-  const url = `api/${path.join("/")}${request.nextUrl.search}`;
+  // segments arrive decoded: "..", "." or embedded slashes could resolve outside /api
+  if (path.some((segment) => segment === "." || segment === ".." || /[\\/]/.test(segment))) {
+    return NextResponse.json({ message: "Bad path" }, { status: 400 });
+  }
+  const url = `api/${path.map(encodeURIComponent).join("/")}${request.nextUrl.search}`;
   const body =
     method === "get"
       ? undefined

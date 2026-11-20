@@ -8,11 +8,17 @@ import { ROUTES } from "@/shared/config/routes";
 export async function POST(request: NextRequest) {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get(AUTH_COOKIES.ACCESS_TOKEN)?.value;
+  const refreshToken = cookieStore.get(AUTH_COOKIES.REFRESH_TOKEN)?.value;
 
-  if (accessToken) {
+  // The access cookie lives only as long as the token (30 min); the refresh token lets the
+  // server end the session even after that, instead of leaving it alive for two weeks.
+  if (accessToken || refreshToken) {
     await ky
       .delete(`${API_BASE_URL}/api/auth/logout`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: {
+          ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+          ...(refreshToken && { "X-Refresh-Token": refreshToken }),
+        },
       })
       .catch(() => {});
   }

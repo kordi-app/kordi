@@ -202,6 +202,7 @@ export function useAdventureGame({
 
   useChordCheck({
     targetChordName: view.phase === "playing" ? (view.chord?.name ?? null) : null,
+    questionKey: view.stage,
     midiNotes,
     enabled: view.phase === "playing",
     minNotesToCheck: 2,

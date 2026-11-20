@@ -30,12 +30,15 @@ export function useSoundEngine({ noteOn, noteOff }: UseSoundEngineOptions) {
   const startAudio = useCallback(async () => {
     if (startingRef.current) return;
     startingRef.current = true;
-
-    await ensureAudioStarted();
-    setIsAudioStarted(true);
-
-    await getSampler();
-    setIsLoaded(true);
+    try {
+      await ensureAudioStarted();
+      setIsAudioStarted(true);
+      await getSampler();
+      setIsLoaded(true);
+    } catch {
+      // samples didn't arrive (network / timeout): let the next gesture try again
+      startingRef.current = false;
+    }
   }, []);
 
   const handleNoteOn = useCallback(

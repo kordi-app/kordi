@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ActiveNote } from "@/entities/note";
 import {
@@ -74,10 +74,15 @@ export function useQuizOrchestrator({
     [queryClient],
   );
 
+  /** the last question index answered — a timeout and an answer landing together count once */
+  const answeredIndex = useRef(-1);
+
   const recordAnswer = useCallback(
     (next: QuizAnswer) => {
       if (state.phase !== "playing" || !state.difficulty) return;
-      answer(next);
+      if (answeredIndex.current === state.currentIndex) return;
+      answeredIndex.current = state.currentIndex;
+      answer(next, state.currentIndex);
 
       const answers = [...state.answers, next];
       if (answers.length === state.questions.length) {
@@ -120,6 +125,7 @@ export function useQuizOrchestrator({
 
   useQuizChordCheck({
     currentChord,
+    questionIndex: state.currentIndex,
     activeNotes,
     timeLeft: state.timeLeft,
     enabled: state.phase === "playing",
@@ -138,6 +144,7 @@ export function useQuizOrchestrator({
 
   const handleCountdownComplete = useCallback(() => {
     if (!pendingQuiz) return;
+    answeredIndex.current = -1;
     startQuiz(pendingQuiz.difficulty, pendingQuiz.chords);
     setPendingQuiz(null);
   }, [pendingQuiz, startQuiz]);

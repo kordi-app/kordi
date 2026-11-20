@@ -66,6 +66,7 @@ export function useDrillGame(
   const { feedbackState } = useChordValidator({
     activeNotes,
     targetChordName: state.currentChord?.name ?? null,
+    questionKey: state.totalAttempted,
     enabled: state.status === "playing",
     onCorrect: handleCorrect,
     onIncorrect: handleIncorrect,
@@ -93,6 +94,9 @@ export function useDrillGame(
   }, [metronome, pauseDrill]);
 
   const resume = useCallback(() => {
+    // the metronome counts bars from 0 again: the current chord's bars start over with it
+    barCountRef.current = 0;
+    chordStartBarRef.current = 0;
     if (!isPractice) {
       metronome.start();
     }

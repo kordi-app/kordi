@@ -249,6 +249,7 @@ export function useWorldPresence(
     const socket = socketRef.current;
     if (!socket || socket.readyState !== WebSocket.OPEN || !myId.current) return;
     const now = performance.now();
+    if (now - lastSent.current.at < SEND_INTERVAL_MS) return; // cheap check first: this runs every frame
     const payload = { x: +x.toFixed(2), y: +y.toFixed(2), z: +z.toFixed(2), h: +h.toFixed(2), m, e };
     const key = JSON.stringify(payload);
     if (key === lastSent.current.key || now - lastSent.current.at < SEND_INTERVAL_MS) return;

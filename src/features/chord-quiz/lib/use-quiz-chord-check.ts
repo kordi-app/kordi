@@ -7,6 +7,8 @@ import { scoreForTimeLeft, type QuizChordItem } from "@/entities/chord-quiz";
 
 interface UseQuizChordCheckOptions {
   currentChord: QuizChordItem | null;
+  /** the question's index (a repeated chord is still a new question) */
+  questionIndex: number;
   activeNotes: ActiveNote[];
   timeLeft: number;
   enabled: boolean;
@@ -16,6 +18,7 @@ interface UseQuizChordCheckOptions {
 
 export function useQuizChordCheck({
   currentChord,
+  questionIndex,
   activeNotes,
   timeLeft,
   enabled,
@@ -26,6 +29,7 @@ export function useQuizChordCheck({
 
   useChordCheck({
     targetChordName: currentChord?.name ?? null,
+    questionKey: questionIndex,
     midiNotes,
     enabled,
     minNotesToCheck: 2,

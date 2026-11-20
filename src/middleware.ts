@@ -36,15 +36,19 @@ export default async function middleware(request: NextRequest) {
   const accessToken = request.cookies.get(AUTH_COOKIES.ACCESS_TOKEN)?.value;
   const refreshToken = request.cookies.get(AUTH_COOKIES.REFRESH_TOKEN)?.value;
 
+  // keep the visitor's language on the way to the login page
+  const locale = pathname.match(localePattern)?.[1] ?? routing.defaultLocale;
+  const loginUrl = new URL(`/${locale}${ROUTES.LOGIN}`, request.url);
+
   if (!accessToken && !refreshToken) {
-    return NextResponse.redirect(new URL(ROUTES.LOGIN, request.url));
+    return NextResponse.redirect(loginUrl);
   }
 
   if (!accessToken && refreshToken) {
     // 자기 자신의 /api/auth/reissue를 HTTP로 다시 부르지 않고 Spring에 직접 재발급 요청
     const tokens = await reissueWithRefreshToken(refreshToken);
     if (!tokens) {
-      const toLogin = NextResponse.redirect(new URL(ROUTES.LOGIN, request.url));
+      const toLogin = NextResponse.redirect(loginUrl);
       clearAuthCookies(toLogin);
       return toLogin;
     }

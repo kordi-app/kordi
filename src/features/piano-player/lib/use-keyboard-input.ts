@@ -98,12 +98,27 @@ export function useKeyboardInput({
       releaseNote(midi);
     }
 
+    // keys held while focus leaves (Alt-Tab, switching tabs, navigating away) never get a
+    // keyup: let them all go, or a sustaining instrument drones forever
+    function releaseAll() {
+      for (const midi of pressedKeys.current.values()) releaseNote(midi);
+      pressedKeys.current.clear();
+    }
+    function handleVisibility() {
+      if (document.hidden) releaseAll();
+    }
+
     window.addEventListener("keydown", handleKeyDown, { passive: false });
     window.addEventListener("keyup", handleKeyUp, { passive: false });
+    window.addEventListener("blur", releaseAll);
+    document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("blur", releaseAll);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      releaseAll();
     };
   }, [enabled]);
 

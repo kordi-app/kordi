@@ -100,8 +100,12 @@ let currentId: InstrumentId | null = null;
 /** Give up on the piano samples after this long (slow or blocked network). */
 const SAMPLE_TIMEOUT_MS = 20_000;
 
+/** Bumped on every load: a slower, older load that finishes later is thrown away. */
+let loadToken = 0;
+
 export async function loadInstrument(id: InstrumentId): Promise<void> {
   if (currentId === id && current) return;
+  const token = ++loadToken;
 
   current?.dispose();
   current = null;
@@ -121,8 +125,12 @@ export async function loadInstrument(id: InstrumentId): Promise<void> {
         release: 1,
         onload: () => {
           clearTimeout(timeout);
-          current = s;
-          currentId = id;
+          if (token !== loadToken) {
+            s.dispose(); // a newer instrument was picked meanwhile
+          } else {
+            current = s;
+            currentId = id;
+          }
           resolve();
         },
         onerror: (error) => {

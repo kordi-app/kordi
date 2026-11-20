@@ -11,6 +11,8 @@ const INCORRECT_FLASH_MS = 500;
 interface UseChordValidatorOptions {
   activeNotes: ActiveNote[];
   targetChordName: string | null;
+  /** changes with every new chord (so a repeated chord is still a fresh question) */
+  questionKey?: unknown;
   enabled: boolean;
   onCorrect: () => void;
   onIncorrect: () => void;
@@ -19,6 +21,7 @@ interface UseChordValidatorOptions {
 export function useChordValidator({
   activeNotes,
   targetChordName,
+  questionKey,
   enabled,
   onCorrect,
   onIncorrect,
@@ -34,6 +37,7 @@ export function useChordValidator({
 
   useChordCheck({
     targetChordName,
+    questionKey,
     midiNotes,
     enabled,
     debounceMs: 150,

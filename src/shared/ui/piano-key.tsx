@@ -77,6 +77,8 @@ export const PianoKey = memo(function PianoKey({
         )}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      onLostPointerCapture={handlePointerUp}
         onPointerEnter={handlePointerEnter}
         onPointerLeave={handlePointerLeave}
       >
@@ -109,6 +111,8 @@ export const PianoKey = memo(function PianoKey({
       )}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      onLostPointerCapture={handlePointerUp}
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
     >
