@@ -7,12 +7,13 @@ import {
   ADVENTURE_DEATH_MS,
   ADVENTURE_INTRO_MS,
   ADVENTURE_MISS_COOLDOWN_MS,
-  ADVENTURE_MISS_PENALTY,
+  missPenaltyFor,
   ADVENTURE_VICTORY_MS,
   adventureQueries,
   pickDifficulty,
   sceneFor,
   timeLimitFor,
+  warmUpChordsFor,
   type AdventureClock,
   type AdventureRecordResult,
   type AdventureView,
@@ -97,7 +98,10 @@ export function useAdventureGame({
   /** Next monster: draw its chord and start its clock (waiting a moment if the deck is refilling). */
   const fight = useCallback(
     function fight(stage: number, defeated: number) {
-      const chord = deck.current?.draw(pickDifficulty(stage, Math.random())) ?? null;
+      const warmUp = warmUpChordsFor(stage);
+      const chord = warmUp
+        ? deck.current?.drawFrom(warmUp) ?? null
+        : (deck.current?.draw(pickDifficulty(stage, Math.random())) ?? null);
       if (!chord) {
         if (++run.current.emptyDraws > MAX_EMPTY_DRAWS) {
           setProblem("chords");
@@ -197,7 +201,7 @@ export function useAdventureGame({
     const c = clock.current;
     if (now - c.lastMissAt < ADVENTURE_MISS_COOLDOWN_MS) return;
     c.lastMissAt = now;
-    c.penaltyMs += c.limitMs * ADVENTURE_MISS_PENALTY;
+    c.penaltyMs += c.limitMs * missPenaltyFor(current.stage);
   }, []);
 
   useChordCheck({

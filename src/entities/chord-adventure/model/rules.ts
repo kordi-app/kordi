@@ -8,12 +8,39 @@
  */
 
 /** Time to answer the first monster, and the floor it shrinks to. */
-export const ADVENTURE_START_TIME_MS = 15_000;
+export const ADVENTURE_START_TIME_MS = 20_000;
 export const ADVENTURE_MIN_TIME_MS = 6_000;
 /** Each monster beaten takes this much off the next one's time. */
 export const ADVENTURE_TIME_STEP_MS = 600;
-/** A wrong chord: the monster lunges in, taking this share of the time limit. */
+/** A wrong chord: the monster lunges in, taking this share of the time limit (gentler at first). */
 export const ADVENTURE_MISS_PENALTY = 0.25;
+const EARLY_MISS_PENALTY = 0.15;
+const EARLY_MISS_STAGES = 5;
+
+/** Share of the time limit a wrong chord costs at the nth monster. */
+export function missPenaltyFor(stage: number) {
+  return stage <= EARLY_MISS_STAGES ? EARLY_MISS_PENALTY : ADVENTURE_MISS_PENALTY;
+}
+
+/**
+ * The opening monsters ask for plain major and minor triads, widening as you
+ * go: white-key majors, then the common minors, then every major and minor.
+ * Only after that does the run draw from the quiz server's pools (whose "easy"
+ * set already holds sevenths, diminished and augmented chords in every key).
+ */
+const ROOTS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const WHITE_MAJORS = ["C", "D", "E", "F", "G", "A"];
+const WARM_UP: readonly { untilStage: number; chords: readonly string[] }[] = [
+  { untilStage: 3, chords: WHITE_MAJORS },
+  { untilStage: 7, chords: [...WHITE_MAJORS, "B", "Am", "Dm", "Em", "Bm", "Cm", "Fm", "Gm"] },
+  { untilStage: 11, chords: [...ROOTS, ...ROOTS.map((root) => `${root}m`)] },
+];
+
+/** The warm-up chord names for the nth monster, or null once the run uses the server's pools. */
+export function warmUpChordsFor(stage: number): readonly string[] | null {
+  return WARM_UP.find((tier) => stage <= tier.untilStage)?.chords ?? null;
+}
+const WARM_UP_STAGES = WARM_UP[WARM_UP.length - 1].untilStage;
 /** Misses closer together than this count once (a hand still settling on the keys). */
 export const ADVENTURE_MISS_COOLDOWN_MS = 700;
 export const MIN_MS_PER_MONSTER = 2000;
@@ -31,12 +58,13 @@ export function timeLimitFor(stage: number) {
   return Math.max(ADVENTURE_MIN_TIME_MS, ADVENTURE_START_TIME_MS - (stage - 1) * ADVENTURE_TIME_STEP_MS);
 }
 
-/** How likely each chord difficulty is at the nth monster. */
+/** How likely each chord difficulty is at the nth monster (counting from the end of the warm-up). */
 export function difficultyWeights(stage: number): Record<ChordDifficulty, number> {
-  if (stage <= 4) return { EASY: 1, MEDIUM: 0, HARD: 0 };
-  if (stage <= 9) return { EASY: 0.6, MEDIUM: 0.4, HARD: 0 };
-  if (stage <= 14) return { EASY: 0.2, MEDIUM: 0.6, HARD: 0.2 };
-  if (stage <= 19) return { EASY: 0, MEDIUM: 0.5, HARD: 0.5 };
+  const n = stage - WARM_UP_STAGES;
+  if (n <= 4) return { EASY: 1, MEDIUM: 0, HARD: 0 };
+  if (n <= 9) return { EASY: 0.6, MEDIUM: 0.4, HARD: 0 };
+  if (n <= 14) return { EASY: 0.2, MEDIUM: 0.6, HARD: 0.2 };
+  if (n <= 19) return { EASY: 0, MEDIUM: 0.5, HARD: 0.5 };
   return { EASY: 0, MEDIUM: 0.2, HARD: 0.8 };
 }
 

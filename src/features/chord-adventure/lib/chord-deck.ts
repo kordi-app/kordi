@@ -15,6 +15,9 @@ export class ChordDeck {
   private piles = new Map<ChordDifficulty, QuizChordItem[]>();
   private refilling = new Set<ChordDifficulty>();
   private last: string | null = null;
+  /** warm-up names still to deal this round, and which list they came from */
+  private bag: string[] = [];
+  private bagKey = "";
 
   constructor(private queryClient: QueryClient) {}
 
@@ -22,6 +25,8 @@ export class ChordDeck {
   async load() {
     this.piles.clear();
     this.last = null;
+    this.bag = [];
+    this.bagKey = "";
     await Promise.all(DIFFICULTIES.map((d) => this.refill(d)));
   }
 
@@ -46,6 +51,25 @@ export class ChordDeck {
     return null;
   }
 
+  /**
+   * A chord from a fixed list of names (the warm-up), dealt like a shuffled
+   * deck: every name comes up once before any repeats (and never twice in a
+   * row across a reshuffle). Made here rather than fetched, so the opening
+   * never waits on the server.
+   */
+  drawFrom(names: readonly string[]): QuizChordItem {
+    const key = names.join(",");
+    if (this.bagKey !== key || this.bag.length === 0) {
+      this.bagKey = key;
+      this.bag = shuffle(names.filter((n) => n !== this.last || names.length === 1));
+    }
+    const name = this.bag.pop()!;
+    this.last = name;
+    const minor = name.endsWith("m");
+    // id: negative, so it can't collide with a server chord's
+    return { id: -1 - names.indexOf(name), chordKey: minor ? name.slice(0, -1) : name, chordType: minor ? "MINOR" : "MAJOR", name, notes: "", difficulty: "EASY" };
+  }
+
   /** Nothing to deal at all (e.g. the chord server is unreachable). */
   get isEmpty() {
     return DIFFICULTIES.every((d) => (this.piles.get(d)?.length ?? 0) === 0);
@@ -64,4 +88,14 @@ export class ChordDeck {
       this.refilling.delete(difficulty);
     }
   }
+}
+
+/** A shuffled copy (Fisher–Yates). */
+function shuffle<T>(items: readonly T[]): T[] {
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
 }
