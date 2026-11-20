@@ -26,7 +26,7 @@ function columns(): DecorItem[] {
 
 const DECOR: Partial<Record<RegionId, DecorItem[]>> = {
   cathedral: columns(),
-  lounge: [-16, -4, 8, 20].map((x): DecorItem => ({ kind: "floorLamp", x, z: BACK_ROW_Z + 0.8 })),
+  lounge: [-12, -2, 8, 15].map((x): DecorItem => ({ kind: "floorLamp", x, z: BACK_ROW_Z + 0.8 })),
 };
 
 export function decorFor(region: RegionId): readonly DecorItem[] {

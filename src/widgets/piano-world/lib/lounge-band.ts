@@ -1,9 +1,9 @@
 import * as Tone from "tone";
-import { compVoicing, createImproviser, harmonyAt, rootAndFifth, walkingBar, type Harmony } from "../model/standards";
+import { blockChord, compVoicing, createImproviser, harmonyAt, rootAndFifth, walkingBar, type Harmony } from "../model/standards";
 
 /**
  * The lounge's jazz trio, all synthesized, round ii–V–I in every key — and a
- * vibraphone that plays your line, one note per step, on the next eighth.
+ * vibraphone that plays your line in block chords, one per step, on the next eighth.
  * The jukebox switches what the band plays: swing, bossa nova or a ballad.
  *
  * One band at a time; start() is idempotent and stop() frees everything.
@@ -69,7 +69,7 @@ const STYLES: Record<LoungeStyle, StyleDef> = {
 };
 
 /** Levels, set so the band plus your line sits around the piano's loudness (K-weighted RMS). */
-const LEVELS = { cymbal: -30, hat: -32, rim: -26, bass: -14, comp: -20, vibes: -10 };
+const LEVELS = { cymbal: -30, hat: -32, rim: -26, bass: -14, comp: -20, vibes: -14 };
 
 interface Band {
   nodes: Tone.ToneAudioNode[];
@@ -201,8 +201,9 @@ export function nextLoungeStyle(): LoungeStyle {
 
 /**
  * Your step: the improviser picks a short phrase for the chord the band is on,
- * and the vibraphone plays it from the next eighth (swung when the style
- * swings). Returns the phrase's last note.
+ * each note harmonised as a four-voice block chord (melody on top, voices
+ * moving by step from chord to chord), and the vibraphone plays it from the
+ * next eighth (swung when the style swings). Returns the phrase's last note.
  */
 export function playLoungeStep(velocity = 0.75): number | null {
   if (!band) return null;
@@ -214,10 +215,18 @@ export function playLoungeStep(velocity = 0.75): number | null {
   const beatsLeft = (harmonyAt(bar + 1).degree === harmonyAt(bar).degree ? 8 : 4) - beat;
   const phrase = band.improviser.next(harmonyAt(bar), harmonyAt(bar + 1), beat, beatsLeft);
   const { vibes } = band;
+  const harmony = harmonyAt(bar);
   transport.scheduleOnce((time) => {
-    phrase.forEach((midi, i) =>
-      vibes.triggerAttackRelease(note(midi), "8n", time + i * Tone.Time("8n").toSeconds(), velocity * (i ? 0.85 : 1)),
-    );
+    const eighth = Tone.Time("8n").toSeconds();
+    phrase.forEach((midi, i) => {
+      const at = time + i * eighth;
+      const v = velocity * (i ? 0.85 : 1);
+      const [top, ...under] = blockChord(midi, harmony);
+      // the melody a touch louder than the voices under it, the last chord left to ring
+      const length = i === phrase.length - 1 ? "4n" : "8n";
+      vibes.triggerAttackRelease(note(top), length, at, v);
+      if (under.length) vibes.triggerAttackRelease(under.map(note), length, at, v * 0.6);
+    });
   }, "@8n");
   return phrase[phrase.length - 1];
 }

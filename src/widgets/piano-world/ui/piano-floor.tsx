@@ -3,7 +3,7 @@
 import { memo, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { CASE_H, KEYS, PRESS_DEPTH, WHITE_COUNT, WHITE_L, WHITE_W, type KeyDef } from "../model/layout";
+import { CASE_H, PRESS_DEPTH, WHITE_L, keySpan, keysIn, type KeyDef, type KeyRange } from "../model/layout";
 import type { RegionTheme } from "../model/regions";
 
 /** Underdamped: a pressed key overshoots a little and wobbles back, like a real key. */
@@ -11,9 +11,6 @@ const STIFFNESS = 420;
 const DAMPING = 15;
 /** How strongly a pressed key takes on the region's glow colour */
 const GLOW_MIX = 0.55;
-
-const WHITE_KEYS = KEYS.filter((k) => !k.black);
-const BLACK_KEYS = KEYS.filter((k) => k.black);
 
 /**
  * One row of keys (all white or all black) as a single instanced mesh. Each
@@ -105,14 +102,27 @@ export const PianoFloor = memo(function PianoFloor({
   pressed,
   theme,
   ground = true,
+  keys: range,
 }: {
   /** keys held down right now (by you and everyone in the channel); read every frame */
   pressed: RefObject<ReadonlySet<number>>;
   theme: RegionTheme;
   /** the plain floor around the keyboard (the island draws its own) */
   ground?: boolean;
+  /** build only this stretch of the keyboard (default all 88) */
+  keys?: KeyRange;
 }) {
-  const caseWidth = WHITE_COUNT * WHITE_W + 0.6;
+  const { white, black, caseWidth, caseX, id } = useMemo(() => {
+    const keys = keysIn(range);
+    const { left, right } = keySpan(range);
+    return {
+      white: keys.filter((k) => !k.black),
+      black: keys.filter((k) => k.black),
+      caseWidth: right - left + 0.6,
+      caseX: (left + right) / 2,
+      id: range ? range.join("-") : "all",
+    };
+  }, [range]);
   return (
     <group>
       {ground ? (
@@ -123,13 +133,14 @@ export const PianoFloor = memo(function PianoFloor({
       ) : null}
 
       {/* keyboard case */}
-      <mesh position={[0, CASE_H / 2, -0.15]} receiveShadow castShadow>
+      <mesh position={[caseX, CASE_H / 2, -0.15]} receiveShadow castShadow>
         <boxGeometry args={[caseWidth, CASE_H, WHITE_L + 0.9]} />
         <meshStandardMaterial color={theme.keyboardCase} roughness={0.5} />
       </mesh>
 
       <KeyRow
-        keys={WHITE_KEYS}
+        key={`white-${id}`}
+        keys={white}
         pressed={pressed}
         color={theme.white}
         pressedColor={theme.whitePressed}
@@ -138,7 +149,8 @@ export const PianoFloor = memo(function PianoFloor({
         shadows={false}
       />
       <KeyRow
-        keys={BLACK_KEYS}
+        key={`black-${id}`}
+        keys={black}
         pressed={pressed}
         color={theme.black}
         pressedColor={theme.blackPressed}

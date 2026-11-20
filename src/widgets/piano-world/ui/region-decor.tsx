@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import type { RegionId } from "../model/regions";
-import { BOUNDS, CASE_H, KEYS, WHITE_H, WHITE_L } from "../model/layout";
+import { REGIONS, type RegionId } from "../model/regions";
+import { BOUNDS, CASE_H, WHITE_H, WHITE_L, keysIn } from "../model/layout";
 import { decorFor, type DecorItem } from "../model/decor";
 
 /**
@@ -62,7 +62,7 @@ function DecorPiece({ item }: { item: DecorItem }) {
   }
 }
 
-const WHITE_KEYS = KEYS.filter((k) => !k.black);
+const WHITE_KEYS = keysIn(REGIONS.neon.keys).filter((k) => !k.black);
 
 /** Disco floor: a rainbow wave rolls across the white keys to a steady beat. */
 function DiscoWave({ party }: { party: boolean }) {

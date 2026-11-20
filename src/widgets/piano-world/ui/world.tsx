@@ -469,7 +469,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
           rewardOwned={rewards.includes(course.id === "night" ? "star-crown" : "crown")}
         />
       ) : (
-        <PianoFloor pressed={pressed} theme={region.theme} ground={!region.island} />
+        <PianoFloor pressed={pressed} theme={region.theme} ground={!region.island} keys={region.keys} />
       )}
       {region.island ? <IslandScene player={playerPos} awake={awake} /> : null}
       <RegionDecor region={region.id} party={interaction.party} />
@@ -523,7 +523,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       ) : null}
       <group ref={bubble}>{emote ? <EmoteBubble emote={emote} /> : null}</group>
       {others.map((other) => (
-        <RemoteKordi key={other.id} id={other.id} name={other.name} remotes={remotes} course={course !== null} />
+        <RemoteKordi key={other.id} id={other.id} name={other.name} remotes={remotes} course={course !== null} keys={region.keys} />
       ))}
     </>
   );

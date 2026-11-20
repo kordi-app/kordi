@@ -1,5 +1,5 @@
 import type { InstrumentId } from "@/shared/lib/audio";
-import { SPAWN, WHITE_L } from "./layout";
+import { BOUNDS, SPAWN, WHITE_L, keySpan, type KeyRange } from "./layout";
 import { COURSES, goalSpots, type CourseDef } from "./course";
 import { CAVE_PORTAL, ISLAND_BOUNDS } from "./island";
 
@@ -77,6 +77,11 @@ export interface RegionDef {
   island?: boolean;
   /** Background music that plays while you're here (steps then join in) */
   music?: "house" | "jazz";
+  /**
+   * Only this stretch of keys is built, where the note you step on doesn't
+   * matter (the band picks the harmony); default the full 88
+   */
+  keys?: KeyRange;
   /** Walkable area, when larger than the keyboard floor's */
   bounds?: { x: number; zMin: number; zMax: number };
 }
@@ -98,6 +103,14 @@ const HALL_PORTALS: PortalDef[] = [
     arrive: { x: CAVE_PORTAL.x, z: CAVE_PORTAL.z + 3 },
   },
 ];
+
+/** Three octaves round middle C (C3–C6): plenty of floor to dance on with a band. */
+const BAND_KEYS: KeyRange = [48, 84];
+/** ...and a dance floor round them, not the whole 88-key hall. */
+const BAND_BOUNDS = (() => {
+  const { left, right } = keySpan(BAND_KEYS);
+  return { ...BOUNDS, x: Math.max(-left, right) + 10 };
+})();
 
 const DEFAULT_CAMERA: RegionDef["camera"] = [0, 12, 14];
 
@@ -149,6 +162,8 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     instrument: "bright-synth",
     feature: "springs",
     music: "house",
+    keys: BAND_KEYS,
+    bounds: BAND_BOUNDS,
     camera: DEFAULT_CAMERA,
     portals: homePortal("#f4efe6"),
     theme: {
@@ -200,6 +215,8 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     instrument: "electric-piano",
     feature: "jazz",
     music: "jazz",
+    keys: BAND_KEYS,
+    bounds: BAND_BOUNDS,
     camera: DEFAULT_CAMERA,
     portals: homePortal("#f4efe6"),
     theme: {

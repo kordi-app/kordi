@@ -4,7 +4,7 @@ import { useRef, useState, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import type { RemotePlayer } from "../lib/use-world-presence";
-import { CASE_H, PRESS_DEPTH, keyAt } from "../model/layout";
+import { CASE_H, PRESS_DEPTH, keyAt, type KeyRange } from "../model/layout";
 import { DEFAULT_APPEARANCE, KordiModel, type Appearance, type KordiMotion } from "@/entities/character";
 import { useLabelTexture } from "./label-texture";
 import { EmoteBubble } from "./emote-bubble";
@@ -22,12 +22,15 @@ export function RemoteKordi({
   name,
   remotes,
   course,
+  keys,
 }: {
   id: string;
   name: string;
   remotes: RefObject<Map<string, RemotePlayer>>;
   /** on the jump course the floor is platforms, not keys */
   course: boolean;
+  /** the region's stretch of keyboard */
+  keys?: KeyRange;
 }) {
   const group = useRef<THREE.Group>(null);
   const motion = useRef<KordiMotion>({ phase: 0, amount: 0, emote: null, land: 0, stretch: 0, lean: 0, bank: 0 });
@@ -56,7 +59,7 @@ export function RemoteKordi({
     // otherwise stand on whatever is underfoot
     let targetY = target.y;
     if (targetY === undefined) {
-      const key = course ? null : keyAt(pos.current.x, pos.current.z);
+      const key = course ? null : keyAt(pos.current.x, pos.current.z, keys);
       targetY = key ? CASE_H + key.height - PRESS_DEPTH : 0;
     }
     pos.current.y = THREE.MathUtils.lerp(pos.current.y, targetY, 1 - Math.exp(-dt * 18));

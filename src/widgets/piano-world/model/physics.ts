@@ -123,7 +123,7 @@ export function groundAt(region: RegionDef, x: number, z: number, y: number): Gr
       solid: null,
     };
   }
-  const key = keyAt(x, z);
+  const key = keyAt(x, z, region.keys);
   const keyHeight = key ? CASE_H + key.height - PRESS_DEPTH : 0;
   if (region.island) {
     const hit = terrainGround(ISLAND_TERRAIN, x, z, y);

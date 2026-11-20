@@ -83,6 +83,30 @@ export function rootAndFifth(h: Harmony): [number, number] {
   return [root, root + QUALITIES[h.quality][1]];
 }
 
+/**
+ * A block chord under a melody note, the way jazz pianists harmonise a line:
+ * the melody on top, then three tones of the chord below it — chosen from the
+ * 3rd, 5th, 7th and 9th (13th on a dominant), always at least a whole step
+ * under the next voice so nothing rubs. Because the line moves by step, the
+ * voices under it move by step too: the chords connect smoothly.
+ */
+export function blockChord(melody: number, h: Harmony): number[] {
+  const colours: Record<string, number[]> = {
+    "^7": [4, 7, 11, 14],
+    m7: [3, 7, 10, 14],
+    "7": [4, 9, 10, 14], // 3, 13, ♭7, 9
+  };
+  const pcs = colours[h.quality].map((interval) => (h.root + interval) % 12);
+  const voices = [melody];
+  for (let midi = melody - 2; midi > melody - 14 && voices.length < 4; midi--) {
+    const pc = ((midi % 12) + 12) % 12;
+    if (pc === ((melody % 12) + 12) % 12 || !pcs.includes(pc)) continue;
+    if (voices[voices.length - 1] - midi < 2) continue; // keep a whole step from the voice above
+    voices.push(midi);
+  }
+  return voices;
+}
+
 /** The melody stays in a comfortable singing range. */
 const LOW = 62; // D4
 const HIGH = 79; // G5
