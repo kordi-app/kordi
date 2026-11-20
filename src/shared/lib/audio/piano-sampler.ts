@@ -97,6 +97,9 @@ let currentId: InstrumentId | null = null;
 
 // --- Public API ---
 
+/** Give up on the piano samples after this long (slow or blocked network). */
+const SAMPLE_TIMEOUT_MS = 20_000;
+
 export async function loadInstrument(id: InstrumentId): Promise<void> {
   if (currentId === id && current) return;
 
@@ -105,16 +108,27 @@ export async function loadInstrument(id: InstrumentId): Promise<void> {
   currentId = null;
 
   if (id === "grand-piano") {
-    // Sampler needs async loading via onload callback
-    await new Promise<void>((resolve) => {
+    // Sampler loads its samples asynchronously. A failed or hung download
+    // must reject, or callers waiting on it (and their UI) stay stuck forever.
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        s.dispose();
+        reject(new Error("Piano samples timed out"));
+      }, SAMPLE_TIMEOUT_MS);
       const s = new Tone.Sampler({
         urls: SALAMANDER_URLS,
         baseUrl: SAMPLE_BASE_URL,
         release: 1,
         onload: () => {
+          clearTimeout(timeout);
           current = s;
           currentId = id;
           resolve();
+        },
+        onerror: (error) => {
+          clearTimeout(timeout);
+          s.dispose();
+          reject(error);
         },
       }).toDestination();
     });

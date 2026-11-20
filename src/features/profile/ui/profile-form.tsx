@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { updateProfile } from "../api/update-profile";
 import { Button } from "@/shared/ui/button";
@@ -17,7 +19,11 @@ interface ProfileFormProps {
 
 export function ProfileForm({ currentNickname }: ProfileFormProps) {
   const t = useTranslations("me");
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
+  /** the nickname as last saved (the prop only updates when the page re-renders) */
+  const [savedNickname, setSavedNickname] = useState(currentNickname);
 
   const {
     register,
@@ -27,23 +33,34 @@ export function ProfileForm({ currentNickname }: ProfileFormProps) {
     formState: { errors },
   } = useForm<NicknameFormValues>({
     resolver: zodResolver(nicknameSchema),
-    defaultValues: { nickname: currentNickname },
+    defaultValues: { nickname: savedNickname },
   });
 
   const nickname = watch("nickname");
-  const duplicateStatus = useNicknameCheck(nickname, currentNickname);
+  const duplicateStatus = useNicknameCheck(nickname, savedNickname);
   const { mutate, isPending } = useMutation({
     mutationFn: updateProfile,
-    onSuccess: () => setIsEditing(false),
+    onSuccess: (user) => {
+      setSavedNickname(user.nickname);
+      reset({ nickname: user.nickname });
+      setIsEditing(false);
+      queryClient.setQueryData(["user", "me"], user);
+      toast.success(t("saveSuccess"));
+      router.refresh(); // server-rendered places (sidebar, other pages) pick up the new name
+    },
   });
 
+  // Only a nickname the server just confirmed as free can be saved — this also
+  // covers the debounce gap, before the check has even started
+  const canSave = duplicateStatus === "available" && !isPending && nickname !== savedNickname;
+
   const onSubmit = (data: NicknameFormValues) => {
-    if (duplicateStatus === "duplicated") return;
+    if (!canSave) return;
     mutate(data.nickname);
   };
 
   const onDiscard = () => {
-    reset({ nickname: currentNickname });
+    reset({ nickname: savedNickname });
     setIsEditing(false);
   };
 
@@ -58,7 +75,7 @@ export function ProfileForm({ currentNickname }: ProfileFormProps) {
       {!isEditing ? (
         <div className="flex items-center gap-3">
           <div className="glass flex-1 rounded-xl px-4 py-3">
-            <span className="text-sm text-foreground">{currentNickname}</span>
+            <span className="text-sm text-foreground">{savedNickname}</span>
           </div>
           <Button
             variant="outline"
@@ -108,12 +125,7 @@ export function ProfileForm({ currentNickname }: ProfileFormProps) {
             <Button
               type="submit"
               size="sm"
-              disabled={
-                duplicateStatus === "duplicated" ||
-                duplicateStatus === "checking" ||
-                isPending ||
-                nickname === currentNickname
-              }
+              disabled={!canSave}
             >
               {isPending ? "..." : t("save")}
             </Button>

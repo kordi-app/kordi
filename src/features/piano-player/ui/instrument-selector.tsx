@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import {
   INSTRUMENTS,
   loadInstrument,
@@ -17,13 +18,23 @@ export function InstrumentSelector() {
   );
   const [loading, setLoading] = useState(false);
 
-  const handleSelect = useCallback(async (id: InstrumentId) => {
-    if (id === activeId) return;
-    setLoading(true);
-    await loadInstrument(id);
-    setActiveId(id);
-    setLoading(false);
-  }, [activeId]);
+  const handleSelect = useCallback(
+    async (id: InstrumentId) => {
+      if (id === activeId) return;
+      setLoading(true);
+      try {
+        await loadInstrument(id);
+        setActiveId(id);
+      } catch {
+        toast.error(t("loadFailed"));
+        // the failed load already dropped the previous sound: bring it back
+        await loadInstrument(activeId).catch(() => {});
+      } finally {
+        setLoading(false);
+      }
+    },
+    [activeId, t]
+  );
 
   return (
     <div className="flex flex-wrap gap-1.5">

@@ -117,7 +117,8 @@
     "electricPiano": "일렉트릭 피아노",
     "synthPad": "신스 패드",
     "organ": "오르간",
-    "brightSynth": "브라이트 신스"
+    "brightSynth": "브라이트 신스",
+    "loadFailed": "악기를 불러오지 못했어요. 잠시 후 다시 시도해 주세요"
   },
   "home": {
     "world": {

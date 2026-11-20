@@ -117,7 +117,8 @@
     "electricPiano": "Electric Piano",
     "synthPad": "Synth Pad",
     "organ": "Organ",
-    "brightSynth": "Bright Synth"
+    "brightSynth": "Bright Synth",
+    "loadFailed": "Couldn't load that instrument. Try again in a moment"
   },
   "home": {
     "world": {
