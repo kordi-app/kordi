@@ -20,8 +20,11 @@ export function generateChordPool(
 ): GeneratedChord[] {
   if (keyFilter) {
     const key = ALL_KEYS.find((k) => k.name === keyFilter);
-    if (key) {
-      return getDiatonicChords(key, allowedTypes).map((dc) => ({
+    const diatonic = key ? getDiatonicChords(key, allowedTypes) : [];
+    // none of the chosen chord types fits the key (say, only aug in a major key):
+    // practise them in every key rather than deal from an empty deck
+    if (diatonic.length > 0) {
+      return diatonic.map((dc) => ({
         name: dc.name,
         rootIndex: dc.root,
         type: dc.type,

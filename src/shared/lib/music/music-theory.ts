@@ -1,4 +1,4 @@
-import { NOTE_LABELS, type ChordType } from "./chord-templates";
+import { CHORD_TEMPLATES, NOTE_LABELS, type ChordType } from "./chord-templates";
 import { keyLabels } from "./note-names";
 
 export interface KeySignature {
@@ -70,15 +70,18 @@ export function getDiatonicChords(
     const root = (key.root + scale[degree]) % 12;
     const rootName = labels[root];
 
-    // Suspended chords that stay in the key (their 2nd or 4th and 5th are scale tones)
-    const inScale = (interval: number) => isInKey(key, root + interval);
-    const suspended: ChordType[] = [
-      ...(inScale(2) && inScale(7) ? (["sus2"] as ChordType[]) : []),
-      ...(inScale(5) && inScale(7) ? (["sus4"] as ChordType[]) : []),
-    ];
+    // Any other allowed chord whose every tone stays in the key: sus2/sus4,
+    // sixths, add9, and the 9ths, 11ths and 13ths built on this degree (Dm11 and
+    // G13 in C major, but not C11, whose 7th would be B♭)
+    const others = allowedTypes.filter(
+      (type) =>
+        type !== triads[degree] &&
+        type !== sevenths[degree] &&
+        CHORD_TEMPLATES[type].every((interval) => isInKey(key, root + interval)),
+    );
 
-    // Triad first, then 7th, then the suspensions
-    for (const type of [triads[degree], sevenths[degree], ...suspended]) {
+    // Triad first, then 7th, then the rest
+    for (const type of [triads[degree], sevenths[degree], ...others]) {
       if (allowedTypes.includes(type)) {
         chords.push({
           root,
