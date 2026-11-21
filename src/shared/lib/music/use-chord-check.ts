@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useEffectEvent, useRef } from "react";
-import { validateChord } from "./chord-validator";
+import { isPartialChord, validateChord } from "./chord-validator";
 
 /** Wrong answers only count once at least this many notes are pressed. */
 const INCORRECT_MIN_NOTES = 3;
@@ -83,7 +83,9 @@ export function useChordCheck({
       if (validateChord(targetChordName, midiNotes)) {
         answeredRef.current = true;
         reportCorrect();
-      } else if (midiNotes.length >= INCORRECT_MIN_NOTES) {
+      } else if (midiNotes.length >= INCORRECT_MIN_NOTES && !isPartialChord(targetChordName, midiNotes)) {
+        // part of the right chord is one still being formed — e.g. the left-hand root
+        // and the first notes of a rolled right hand — not a wrong answer
         if (finalizeIncorrect) answeredRef.current = true;
         reportIncorrect();
       }
