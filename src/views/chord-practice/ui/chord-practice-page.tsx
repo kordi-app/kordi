@@ -17,7 +17,14 @@ import {
   DrillControls,
   DrillSettingsPanel,
 } from "@/widgets/chord-practice-game";
+import { displaySuffix } from "@/shared/lib/music";
 import { cn } from "@/shared/lib/utils";
+
+/**
+ * Practice names are already spelled for the chosen key (Bbmaj7 in F major),
+ * so only the suffix is re-written in chart style: maj → M (Bbmaj7 → BbM7).
+ */
+const practiceChordLabel = (name: string | undefined) => (name ? displaySuffix(name) : null);
 
 export function ChordPracticePage() {
   const t = useTranslations("chordPractice");
@@ -72,8 +79,8 @@ export function ChordPracticePage() {
           <div className="flex flex-col items-center gap-6">
             <ChordPrompt
               ns="chordPractice"
-              chordName={state.currentChord?.name ?? null}
-              nextChordName={state.nextChord?.name ?? null}
+              chordName={practiceChordLabel(state.currentChord?.name)}
+              nextChordName={practiceChordLabel(state.nextChord?.name)}
               showNext={settings.showNextChord}
               feedbackState={feedbackState}
             />

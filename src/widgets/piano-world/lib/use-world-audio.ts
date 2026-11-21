@@ -170,7 +170,7 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
       if (regionRef.current.music === "jazz" && isLoungeBandPlaying()) {
         const played = playLoungeStep(STEP_VELOCITY);
         if (played) {
-          setNote(played.chord.replace("^7", "maj7"));
+          setNote(played.chord.replace("^7", "M7"));
           debugSeam?.voices.push({ id: "lounge", midi: played.midi, t: performance.now() });
         }
         return;

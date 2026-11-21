@@ -11,7 +11,7 @@ const BPM = 124;
 
 /** A bar each; stab voicings sit mid-keyboard, bass roots low. */
 const BARS = [
-  { name: "Fmaj9", stab: ["A3", "C4", "E4", "G4"], bass: "F1" }, // 3, 5, 7, 9
+  { name: "FM9", stab: ["A3", "C4", "E4", "G4"], bass: "F1" }, // 3, 5, 7, 9
   { name: "Em7", stab: ["G3", "B3", "D4", "E4"], bass: "E1" },
   { name: "Am9", stab: ["C4", "E4", "G4", "B4"], bass: "A1" },
   { name: "Dm9", stab: ["F3", "A3", "C4", "E4"], bass: "D1" },

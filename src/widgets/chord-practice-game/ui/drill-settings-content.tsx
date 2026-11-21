@@ -2,7 +2,7 @@
 
 import { ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { CHORD_TEMPLATES, ALL_KEYS, type ChordType } from "@/shared/lib/music";
+import { CHORD_TEMPLATES, ALL_KEYS, displaySuffix, type ChordType } from "@/shared/lib/music";
 import {
   DIFFICULTY_CHORD_TYPES,
   type DrillSettings,
@@ -182,7 +182,7 @@ function CustomChordTypes({
               if (next.length > 0) onChange(next);
             }}
           >
-            {type === "" ? "Maj" : type}
+            {type === "" ? "M" : displaySuffix(type)}
           </MonoPill>
         );
       })}
