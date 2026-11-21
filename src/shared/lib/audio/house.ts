@@ -11,10 +11,10 @@ const BPM = 124;
 
 /** A bar each; stab voicings sit mid-keyboard, bass roots low. */
 const BARS = [
-  { stab: ["A3", "C4", "E4", "G4"], bass: "F1" }, // Fmaj9 (3, 5, 7, 9)
-  { stab: ["G3", "B3", "D4", "E4"], bass: "E1" }, // Em7
-  { stab: ["C4", "E4", "G4", "B4"], bass: "A1" }, // Am9
-  { stab: ["F3", "A3", "C4", "E4"], bass: "D1" }, // Dm9
+  { name: "Fmaj9", stab: ["A3", "C4", "E4", "G4"], bass: "F1" }, // 3, 5, 7, 9
+  { name: "Em7", stab: ["G3", "B3", "D4", "E4"], bass: "E1" },
+  { name: "Am9", stab: ["C4", "E4", "G4", "B4"], bass: "A1" },
+  { name: "Dm9", stab: ["F3", "A3", "C4", "E4"], bass: "D1" },
 ];
 
 /** Levels, matched by ear-proxy (K-weighted RMS) to sit around the piano's loudness. */
@@ -98,13 +98,15 @@ export function stopHouse() {
   groove = null;
 }
 
-/** Fire a chord stab of the current bar, on the next 16th note so it lands in time. */
-export function houseStab(velocity = 0.8) {
-  if (!groove) return;
-  const transport = Tone.getTransport();
-  const at = transport.nextSubdivision("16n");
-  const chord = barNow().stab;
-  groove.stab.triggerAttackRelease(chord, "16n", at, velocity);
+/**
+ * Fire a chord stab of the current bar, right as you step (waiting for the
+ * grid felt like lag). Returns the chord's name, or null with no groove.
+ */
+export function houseStab(velocity = 0.8): string | null {
+  if (!groove) return null;
+  const bar = barNow();
+  groove.stab.triggerAttackRelease(bar.stab, "16n", Tone.immediate(), velocity);
+  return bar.name;
 }
 
 export const isHousePlaying = () => groove !== null;

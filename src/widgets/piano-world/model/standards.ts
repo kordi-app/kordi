@@ -84,27 +84,66 @@ export function rootAndFifth(h: Harmony): [number, number] {
 }
 
 /**
- * A block chord under a melody note, the way jazz pianists harmonise a line:
- * the melody on top, then three tones of the chord below it — chosen from the
- * 3rd, 5th, 7th and 9th (13th on a dominant), always at least a whole step
- * under the next voice so nothing rubs. Because the line moves by step, the
- * voices under it move by step too: the chords connect smoothly.
+ * How a style harmonises your line: which chord tones it may use under the
+ * melody (intervals above the root, per quality), how many voices, and how
+ * far below the melody the lowest may reach.
  */
-export function blockChord(melody: number, h: Harmony): number[] {
-  const colours: Record<string, number[]> = {
-    "^7": [4, 7, 11, 14],
-    m7: [3, 7, 10, 14],
-    "7": [4, 9, 10, 14], // 3, 13, ♭7, 9
+export interface Voicing {
+  colours: Record<string, number[]>;
+  voices: number;
+  span: number;
+  /** smallest gap between neighbouring voices, in semitones (wider = more open) */
+  gap: number;
+}
+
+export const VOICINGS = {
+  /** swing: close four-voice block chords — 3, 5, 7, 9 (13 on the dominant) */
+  block: {
+    colours: { "^7": [4, 7, 11, 14], m7: [3, 7, 10, 14], "7": [4, 9, 10, 14] },
+    voices: 4,
+    span: 14,
+    gap: 2,
+  },
+  /** bossa: light three-voice 9th chords, no 5th — the guitar's soft colours */
+  light: {
+    colours: { "^7": [4, 11, 14], m7: [3, 10, 14], "7": [4, 10, 14] },
+    voices: 3,
+    span: 12,
+    gap: 3,
+  },
+  /** ballad: wide five-voice chords with every colour (9ths, 11 on minor, 13 on the dominant) */
+  lush: {
+    colours: { "^7": [4, 7, 9, 11, 14], m7: [3, 5, 7, 10, 14], "7": [4, 9, 10, 14, 7] },
+    voices: 5,
+    span: 22,
+    gap: 3,
+  },
+} satisfies Record<string, Voicing>;
+
+/**
+ * A block chord under a melody note, the way jazz pianists harmonise a line:
+ * the melody on top, then tones of the chord below it (from the voicing's
+ * colours), always at least a whole step under the next voice so nothing
+ * rubs. Because the line moves by step, the voices under it move by step
+ * too: the chords connect smoothly.
+ */
+export function blockChord(melody: number, h: Harmony, voicing: Voicing = VOICINGS.block): number[] {
+  const pc = (midi: number) => ((midi % 12) + 12) % 12;
+  const fill = (pcs: number[], span: number) => {
+    const voices = [melody];
+    for (let midi = melody - voicing.gap; midi > melody - span && voices.length < voicing.voices; midi--) {
+      if (pc(midi) === pc(melody) || !pcs.includes(pc(midi))) continue;
+      if (voices[voices.length - 1] - midi < voicing.gap) continue; // room between neighbours
+      voices.push(midi);
+    }
+    return voices;
   };
-  const pcs = colours[h.quality].map((interval) => (h.root + interval) % 12);
-  const voices = [melody];
-  for (let midi = melody - 2; midi > melody - 14 && voices.length < 4; midi--) {
-    const pc = ((midi % 12) + 12) % 12;
-    if (pc === ((melody % 12) + 12) % 12 || !pcs.includes(pc)) continue;
-    if (voices[voices.length - 1] - midi < 2) continue; // keep a whole step from the voice above
-    voices.push(midi);
-  }
-  return voices;
+  const colours = voicing.colours[h.quality].map((interval) => (h.root + interval) % 12);
+  const voices = fill(colours, voicing.span);
+  if (voices.length === voicing.voices) return voices;
+  // a melody note that leaves too few colours below it: let in the 5th and root, a little lower
+  const fuller = fill([...colours, (h.root + 7) % 12, h.root], voicing.span + 5);
+  return fuller.length > voices.length ? fuller : voices;
 }
 
 /** The melody stays in a comfortable singing range. */

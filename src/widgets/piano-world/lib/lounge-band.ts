@@ -1,9 +1,9 @@
 import * as Tone from "tone";
-import { blockChord, compVoicing, createImproviser, harmonyAt, rootAndFifth, walkingBar, type Harmony } from "../model/standards";
+import { VOICINGS, blockChord, chordSymbol, compVoicing, createImproviser, harmonyAt, rootAndFifth, walkingBar, type Harmony, type Voicing } from "../model/standards";
 
 /**
  * The lounge's jazz trio, all synthesized, round ii–V–I in every key — and a
- * vibraphone that plays your line in block chords, one per step, on the next eighth.
+ * vibraphone that plays your line in block chords, the moment you step.
  * The jukebox switches what the band plays: swing, bossa nova or a ballad.
  *
  * One band at a time; start() is idempotent and stop() frees everything.
@@ -27,6 +27,8 @@ interface StyleDef {
   rim: Hit[];
   bass: BassHit[];
   comp: Hit[];
+  /** how your steps are harmonised, how long they ring, and how hard (relative) */
+  step: { voicing: Voicing; length: string; level: number };
 }
 
 const walk = (beat: number) => (h: Harmony, next: Harmony) => walkingBar(h, next)[beat];
@@ -45,6 +47,7 @@ const STYLES: Record<LoungeStyle, StyleDef> = {
     bass: [0, 1, 2, 3].map((beat): BassHit => [`0:${beat}`, walk(beat), "8n"]),
     // the Charleston: on 1 and on the "and" of 2
     comp: [["0:0", "4n", 0.55], ["0:1:2", "8n", 0.45]],
+    step: { voicing: VOICINGS.block, length: "8n", level: 1 },
   },
   bossa: {
     bpm: 132,
@@ -56,6 +59,7 @@ const STYLES: Record<LoungeStyle, StyleDef> = {
     // root and fifth, each anticipated by an eighth
     bass: [["0:0", root, "4n."], ["0:1:2", fifth, "8n"], ["0:2", fifth, "4n."], ["0:3:2", root, "8n"]],
     comp: [["0:0", "8n", 0.45], ["0:1:2", "8n", 0.4], ["0:3", "8n", 0.4]],
+    step: { voicing: VOICINGS.light, length: "8n", level: 0.85 },
   },
   ballad: {
     bpm: 68,
@@ -65,6 +69,7 @@ const STYLES: Record<LoungeStyle, StyleDef> = {
     rim: [],
     bass: [["0:0", root, "2n"], ["0:2", fifth, "2n"]],
     comp: [["0:0", "2n.", 0.42], ["0:3:2", "8n", 0.3]],
+    step: { voicing: VOICINGS.lush, length: "2n", level: 0.8 },
   },
 };
 
@@ -202,10 +207,11 @@ export function nextLoungeStyle(): LoungeStyle {
 /**
  * Your step: the improviser picks a short phrase for the chord the band is on,
  * each note harmonised as a four-voice block chord (melody on top, voices
- * moving by step from chord to chord), and the vibraphone plays it from the
- * next eighth (swung when the style swings). Returns the phrase's last note.
+ * moving by step from chord to chord), and the vibraphone plays it right
+ * away — waiting for the beat felt like lag. Returns the phrase's last note
+ * and the chord it was played over (what the note display shows here).
  */
-export function playLoungeStep(velocity = 0.75): number | null {
+export function playLoungeStep(velocity = 0.75): { midi: number; chord: string } | null {
   if (!band) return null;
   const transport = Tone.getTransport();
   const ticks = transport.ticks;
@@ -216,17 +222,17 @@ export function playLoungeStep(velocity = 0.75): number | null {
   const phrase = band.improviser.next(harmonyAt(bar), harmonyAt(bar + 1), beat, beatsLeft);
   const { vibes } = band;
   const harmony = harmonyAt(bar);
-  transport.scheduleOnce((time) => {
-    const eighth = Tone.Time("8n").toSeconds();
-    phrase.forEach((midi, i) => {
-      const at = time + i * eighth;
-      const v = velocity * (i ? 0.85 : 1);
-      const [top, ...under] = blockChord(midi, harmony);
-      // the melody a touch louder than the voices under it, the last chord left to ring
-      const length = i === phrase.length - 1 ? "4n" : "8n";
-      vibes.triggerAttackRelease(note(top), length, at, v);
-      if (under.length) vibes.triggerAttackRelease(under.map(note), length, at, v * 0.6);
-    });
-  }, "@8n");
-  return phrase[phrase.length - 1];
+  const { voicing, length: ring, level } = STYLES[style].step;
+  const time = Tone.immediate();
+  const eighth = Tone.Time("8n").toSeconds();
+  phrase.forEach((midi, i) => {
+    const at = time + i * eighth;
+    const v = velocity * level * (i ? 0.85 : 1);
+    const [top, ...under] = blockChord(midi, harmony, voicing);
+    // the melody a touch louder than the voices under it, the last chord left to ring
+    const length = i === phrase.length - 1 ? ring : "8n";
+    vibes.triggerAttackRelease(note(top), length, at, v);
+    if (under.length) vibes.triggerAttackRelease(under.map(note), length, at, v * 0.6);
+  });
+  return { midi: phrase[phrase.length - 1], chord: chordSymbol(harmony) };
 }

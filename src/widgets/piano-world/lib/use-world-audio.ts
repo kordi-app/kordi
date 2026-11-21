@@ -20,6 +20,7 @@ import {
   type WarpEffect,
 } from "@/shared/lib/audio";
 import { useCallbackRef } from "@/shared/lib/react/use-callback-ref";
+import { midiToNoteName } from "@/shared/lib/music";
 import { isLoungeBandPlaying, playLoungeStep, startLoungeBand, stopLoungeBand } from "./lounge-band";
 import { debugSeam } from "./debug-seam";
 import type { RegionDef } from "../model/regions";
@@ -56,7 +57,8 @@ const CAT_VELOCITY = 0.18;
 export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: number) => void) {
   const [audio, setAudio] = useState<AudioState>("off");
   const audioRef = useRef<AudioState>("off");
-  const [note, setNote] = useState<number | null>(null);
+  /** What the top-right display shows: the key's name, or the chord a band region played */
+  const [note, setNote] = useState<string | null>(null);
   const onStepRef = useCallbackRef(onStep);
 
   /** Notes I'm holding (several in the lounge, where a step is a chord) */
@@ -150,7 +152,7 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
   /** Your step changed key: how it sounds depends on the region's feature. */
   const handleStep = useCallback(
     (midi: number | null) => {
-      setNote(midi);
+      setNote(midi === null ? null : midiToNoteName(midi));
       releaseHeld();
       if (midi === null) return;
 
@@ -160,14 +162,17 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
 
       // neon: steps are chord stabs in time with the house groove
       if (regionRef.current.music === "house" && isHousePlaying()) {
-        houseStab(STEP_VELOCITY);
+        setNote(houseStab(STEP_VELOCITY));
         debugSeam?.voices.push({ id: "house-stab", midi, t: performance.now() });
         return;
       }
       // the lounge: steps play your line on the vibraphone, over the trio
       if (regionRef.current.music === "jazz" && isLoungeBandPlaying()) {
         const played = playLoungeStep(STEP_VELOCITY);
-        if (played !== null) debugSeam?.voices.push({ id: "lounge", midi: played, t: performance.now() });
+        if (played) {
+          setNote(played.chord.replace("^7", "maj7"));
+          debugSeam?.voices.push({ id: "lounge", midi: played.midi, t: performance.now() });
+        }
         return;
       }
       // the key itself (in the cathedral it may still be ringing: restrike it cleanly)

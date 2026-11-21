@@ -1,6 +1,5 @@
 "use client";
 
-import { midiToNoteName } from "@/shared/lib/music";
 import { cn } from "@/shared/lib/utils";
 import type { PianoWorldCopy } from "../../model/copy";
 import type { RegionDef } from "../../model/regions";
@@ -38,8 +37,8 @@ export function ZoneBanner({ name }: { name: string | null }) {
   );
 }
 
-/** Top-right: the note you're standing on. */
-export function NoteDisplay({ note }: { note: number | null }) {
+/** Top-right: the note you're standing on (or, where a band plays, the chord you just played). */
+export function NoteDisplay({ note }: { note: string | null }) {
   return (
     <div className="pointer-events-none absolute right-0 top-0 p-5 md:p-6">
       <div
@@ -49,7 +48,7 @@ export function NoteDisplay({ note }: { note: number | null }) {
           note === null && "opacity-0",
         )}
       >
-        {note !== null ? midiToNoteName(note) : "–"}
+        {note ?? "–"}
       </div>
     </div>
   );
