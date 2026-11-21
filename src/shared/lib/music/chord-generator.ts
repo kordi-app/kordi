@@ -45,17 +45,35 @@ export function generateChordPool(
   return pool;
 }
 
-export function pickNextChord(
-  pool: GeneratedChord[],
-  previousName: string | null
-): GeneratedChord {
+/**
+ * Deals chords like a shuffled deck: every chord in the pool comes up once
+ * before any repeats, then the deck is reshuffled — never the same chord twice
+ * in a row, even across a reshuffle. (Plain random picks bunch up: in 20 draws
+ * from 12 chords, a couple turn up three or four times and others never.)
+ * `random` is injectable for tests.
+ */
+export function createChordDeck(pool: readonly GeneratedChord[], random: () => number = Math.random) {
   if (pool.length === 0) throw new Error("Chord pool is empty");
-  if (pool.length === 1) return pool[0];
+  let deck: GeneratedChord[] = [];
 
-  let next: GeneratedChord;
-  do {
-    next = pool[Math.floor(Math.random() * pool.length)];
-  } while (next.name === previousName);
+  const shuffle = () => {
+    const cards = [...pool];
+    for (let i = cards.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1));
+      [cards[i], cards[j]] = [cards[j], cards[i]];
+    }
+    return cards;
+  };
 
-  return next;
+  return {
+    next(previousName: string | null): GeneratedChord {
+      if (pool.length === 1) return pool[0];
+      if (deck.length === 0) {
+        deck = shuffle();
+        // the new deck's first card mustn't repeat the one just played
+        if (deck[deck.length - 1].name === previousName) [deck[0], deck[deck.length - 1]] = [deck[deck.length - 1], deck[0]];
+      }
+      return deck.pop()!;
+    },
+  };
 }

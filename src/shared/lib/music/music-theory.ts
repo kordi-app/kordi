@@ -70,8 +70,15 @@ export function getDiatonicChords(
     const root = (key.root + scale[degree]) % 12;
     const rootName = labels[root];
 
-    // Try triad first, then 7th
-    for (const type of [triads[degree], sevenths[degree]]) {
+    // Suspended chords that stay in the key (their 2nd or 4th and 5th are scale tones)
+    const inScale = (interval: number) => isInKey(key, root + interval);
+    const suspended: ChordType[] = [
+      ...(inScale(2) && inScale(7) ? (["sus2"] as ChordType[]) : []),
+      ...(inScale(5) && inScale(7) ? (["sus4"] as ChordType[]) : []),
+    ];
+
+    // Triad first, then 7th, then the suspensions
+    for (const type of [triads[degree], sevenths[degree], ...suspended]) {
       if (allowedTypes.includes(type)) {
         chords.push({
           root,

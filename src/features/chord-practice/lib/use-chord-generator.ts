@@ -2,8 +2,8 @@
 
 import { useCallback, useMemo } from "react";
 import {
+  createChordDeck,
   generateChordPool,
-  pickNextChord,
   type ChordType,
   type GeneratedChord,
 } from "@/shared/lib/music";
@@ -24,11 +24,12 @@ export function useChordGenerator(settings: DrillSettings) {
     [chordTypes, settings.keyFilter]
   );
 
+  // a fresh deck whenever the pool changes (difficulty, chord types or key)
+  const deck = useMemo(() => createChordDeck(pool), [pool]);
+
   const generateNext = useCallback(
-    (previousName: string | null): GeneratedChord => {
-      return pickNextChord(pool, previousName);
-    },
-    [pool]
+    (previousName: string | null): GeneratedChord => deck.next(previousName),
+    [deck]
   );
 
   return { generateNext, poolSize: pool.length };

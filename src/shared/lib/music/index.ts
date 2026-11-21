@@ -43,7 +43,7 @@ export {
 
 export {
   generateChordPool,
-  pickNextChord,
+  createChordDeck,
   type GeneratedChord,
 } from "./chord-generator";
 
