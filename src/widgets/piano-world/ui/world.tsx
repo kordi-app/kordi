@@ -311,7 +311,8 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
           return { height: g.height, midi: g.midi };
         },
         colliders: solids,
-        bounds: BOUNDS,
+        // the same edges you walk within (the island's are wider, the band rooms' narrower)
+        bounds: region.bounds ?? BOUNDS,
         player: { x: s.pos.x, y: s.pos.y, z: s.pos.z, vx: s.vx, vz: s.vz },
       });
       if (note) {
