@@ -301,6 +301,7 @@
     "difficulty_beginner": "초급",
     "difficulty_intermediate": "중급",
     "difficulty_advanced": "고급",
+    "difficulty_expert": "전문가",
     "difficulty_custom": "사용자 정의",
     "chordTypes": "코드 종류",
     "key": "조성",

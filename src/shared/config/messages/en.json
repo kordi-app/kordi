@@ -301,6 +301,7 @@
     "difficulty_beginner": "Beginner",
     "difficulty_intermediate": "Intermediate",
     "difficulty_advanced": "Advanced",
+    "difficulty_expert": "Expert",
     "difficulty_custom": "Custom",
     "chordTypes": "Chord Types",
     "key": "Key",

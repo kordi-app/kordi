@@ -49,6 +49,21 @@ const TENSIONS: Partial<Record<ChordType, number[]>> = {
 const PERFECT_FIFTH = 7;
 
 /**
+ * Tones an 11th or 13th chord may leave out, the way it is really played: no
+ * hand holds all seven notes of a 13th, so the 5th, 9th and (on a 13th) the
+ * 11th are optional, and a dominant 11th usually drops its 3rd (it clashes
+ * with the 11th). What remains — root, 3rd, 7th and the named tension — is the
+ * sound of the chord.
+ */
+const OPTIONAL: Partial<Record<ChordType, number[]>> = {
+  "11": [4, 7, 2],
+  m11: [7, 2],
+  "13": [7, 2, 5],
+  maj13: [7, 2, 5],
+  m13: [7, 2, 5],
+};
+
+/**
  * What the target asks for, relative to its root: the tones that must sound
  * (root, 3rd, 7th and any altered tone) and those that may (adding the
  * perfect 5th, which a four-or-more-note chord can drop, and the tensions).
@@ -59,9 +74,12 @@ function chordRules(targetChordName: string) {
   const template = CHORD_TEMPLATES[parsed.type];
   if (!template) return null;
   const fifthOptional = template.length >= 4 && template.includes(PERFECT_FIFTH);
+  const optional = OPTIONAL[parsed.type] ?? [];
   return {
     root: parsed.rootIndex,
-    required: template.filter((interval) => !(fifthOptional && interval === PERFECT_FIFTH)),
+    required: template.filter(
+      (interval) => !(fifthOptional && interval === PERFECT_FIFTH) && !optional.includes(interval),
+    ),
     allowed: new Set([...template, ...(TENSIONS[parsed.type] ?? [])]),
   };
 }
@@ -86,7 +104,8 @@ export function isPartialChord(targetChordName: string, playedMidiNotes: number[
  * Whether the played notes make the target chord, in any octave or inversion:
  * every required tone is there, and nothing outside the chord and its
  * tensions. So a seventh chord may drop its 5th and add a 9th (or 11th/13th
- * where they fit) — LH root + RH rootless voicing counts. Triads are exact.
+ * where they fit) — LH root + RH rootless voicing counts — and an 11th or
+ * 13th needs only its core (see OPTIONAL). Triads are exact.
  */
 export function validateChord(targetChordName: string, playedMidiNotes: number[]): boolean {
   if (playedMidiNotes.length === 0) return false;

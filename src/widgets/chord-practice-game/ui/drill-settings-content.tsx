@@ -21,7 +21,7 @@ import {
 import { PillGroup, SettingsSection, Toggle } from "./settings-controls";
 
 const GAME_MODES: readonly GameMode[] = ["practice", "timeattack"];
-const DIFFICULTIES: readonly Difficulty[] = ["beginner", "intermediate", "advanced", "custom"];
+const DIFFICULTIES: readonly Difficulty[] = ["beginner", "intermediate", "advanced", "expert", "custom"];
 const TIME_SIGNATURES: readonly TimeSignature[] = ["4/4", "3/4", "2/4", "6/8"];
 const BARS_PER_CHORD = [1, 2, 3, 4] as const;
 const ALL_CHORD_TYPES = Object.keys(CHORD_TEMPLATES) as ChordType[];

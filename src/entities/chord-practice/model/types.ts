@@ -1,6 +1,6 @@
 import type { ChordType, TimeSignature } from "@/shared/lib/music";
 
-export type Difficulty = "beginner" | "intermediate" | "advanced" | "custom";
+export type Difficulty = "beginner" | "intermediate" | "advanced" | "expert" | "custom";
 export type GameMode = "practice" | "timeattack";
 
 export interface DrillSettings {
@@ -38,9 +38,14 @@ export interface DrillState {
   lastResult: DrillResult;
 }
 
+/** Everything up to the diminished and altered sevenths, plus the 9th chords. */
+const ADVANCED: ChordType[] = ["", "m", "7", "m7", "maj7", "sus2", "sus4", "dim", "aug", "dim7", "m7b5", "7#5", "maj9", "9", "m9"];
+
 export const DIFFICULTY_CHORD_TYPES: Record<Difficulty, ChordType[]> = {
   beginner: ["", "m"],
   intermediate: ["", "m", "7", "m7", "maj7", "sus2", "sus4"],
-  advanced: ["", "m", "7", "m7", "maj7", "sus2", "sus4", "dim", "aug", "dim7", "m7b5", "7#5"],
+  advanced: ADVANCED,
+  // tensions on top: 11ths and 13ths
+  expert: [...ADVANCED, "m11", "11", "13", "maj13", "m13"],
   custom: [],
 };
