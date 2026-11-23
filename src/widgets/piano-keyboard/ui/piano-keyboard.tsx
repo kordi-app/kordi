@@ -23,8 +23,13 @@ interface PianoKeyboardProps {
   className?: string;
 }
 
-/** Below this, keys get too thin to hit by touch: the keyboard scrolls sideways instead. */
-const MIN_WHITE_KEY_PX = 30;
+/**
+ * Every keyboard in the app has keys of this one size (the height is shared
+ * too), so the instrument feels the same in every mode. A mode picks its
+ * range; a range wider than the screen scrolls sideways, a narrower one sits
+ * centred. 32px: five octaves fit a laptop screen, and it's still a fair touch target.
+ */
+const WHITE_KEY_PX = 32;
 
 // Black key offsets relative to the white key on the left (percentage of white key width)
 const BLACK_KEY_OFFSETS: Record<number, number> = {
@@ -78,7 +83,7 @@ export function PianoKeyboard({
     return { whiteKeys: whites, blackKeys: blacks, whiteKeyCount: wIndex };
   }, [startMidi, endMidi]);
 
-  // too narrow for every key: start centred (around middle C)
+  // wider than the screen: start centred (around middle C)
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = scrollRef.current;
@@ -89,11 +94,11 @@ export function PianoKeyboard({
     <div
       ref={scrollRef}
       className={cn(
-        "w-full max-w-4xl overflow-x-auto overscroll-x-contain",
+        "w-full overflow-x-auto overscroll-x-contain",
         className,
       )}
     >
-      <div style={{ minWidth: whiteKeyCount * MIN_WHITE_KEY_PX }}>
+      <div className="mx-auto" style={{ width: whiteKeyCount * WHITE_KEY_PX }}>
         {/* keys don't pan (a touch plays them), so touch screens get this strip to swipe the keyboard along */}
         <div
           aria-hidden

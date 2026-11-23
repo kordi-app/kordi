@@ -95,7 +95,6 @@ export function ChordAdventurePage() {
           onNoteOff={mouse.onNoteOff}
           showShortcuts
           octave={keyboard.octave}
-          className="max-w-none"
         />
       </div>
     </div>

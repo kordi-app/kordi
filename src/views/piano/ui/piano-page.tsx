@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Volume2, VolumeX } from "lucide-react";
 import { usePianoInput, InstrumentSelector } from "@/features/piano-player";
@@ -34,15 +34,6 @@ export function PianoPage() {
   } = usePianoInput();
 
   const [musicKey, setMusicKey] = useState<KeySignature | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  // Start scrolled to the middle of the 88-key strip (around middle C)
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2;
-  }, []);
-
   return (
     <main className="flex flex-1 flex-col px-4 pb-10 pt-2 md:px-8">
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3">
@@ -95,21 +86,18 @@ export function PianoPage() {
               onStart={startAudio}
             />
           ) : null}
-          <div ref={scrollRef} className="w-full overflow-x-auto pb-2">
-            <div className="min-w-[1800px]">
-              <PianoKeyboard
-                startMidi={KEYBOARD_START_MIDI}
-                endMidi={KEYBOARD_END_MIDI}
-                activeNotes={activeNotes}
-                ringingNotes={ringingNotes}
-                onNoteOn={mouse.onNoteOn}
-                onNoteOff={mouse.onNoteOff}
-                showShortcuts
-                octave={keyboard.octave}
-                className="max-w-none"
-              />
-            </div>
-          </div>
+          {/* all 88 keys: the keyboard scrolls itself, starting around middle C */}
+          <PianoKeyboard
+            startMidi={KEYBOARD_START_MIDI}
+            endMidi={KEYBOARD_END_MIDI}
+            activeNotes={activeNotes}
+            ringingNotes={ringingNotes}
+            onNoteOn={mouse.onNoteOn}
+            onNoteOff={mouse.onNoteOff}
+            showShortcuts
+            octave={keyboard.octave}
+            className="pb-2"
+          />
         </div>
 
         <p className="mt-4 text-center text-xs text-muted-foreground">

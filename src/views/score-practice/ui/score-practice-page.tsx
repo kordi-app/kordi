@@ -213,7 +213,6 @@ export function ScorePracticePage() {
           onNoteOff={mouse.onNoteOff}
           showShortcuts
           octave={keyboard.octave}
-          className="max-w-none"
         />
       </div>
     </div>
