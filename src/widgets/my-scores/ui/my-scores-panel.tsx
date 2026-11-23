@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { Trophy } from "lucide-react";
 import type { ScoreRecord, QuizDifficulty } from "@/entities/chord-quiz";
 import { MonoCard } from "@/shared/ui/mono-card";
@@ -10,12 +10,23 @@ import { SectionHeader } from "@/shared/ui/section-header";
 
 const DIFFICULTIES: QuizDifficulty[] = ["EASY", "MEDIUM", "HARD"];
 
+/**
+ * The server sends createdAt without an offset ("2026-11-23T10:00:00"). Parsed
+ * as-is it lands on the runtime's zone — UTC while server rendering, KST in the
+ * browser — so the two renders disagreed (hydration mismatch) and the date
+ * could shift by a day. Read it as the wall-clock day it names, the same way
+ * on both sides.
+ */
+const recordedDay = (createdAt: string) => new Date(`${createdAt.slice(0, 10)}T00:00:00Z`);
+const RECORDED_DAY_FORMAT = { dateStyle: "medium", timeZone: "UTC" } as const;
+
 interface MyScoresPanelProps {
   scores: ScoreRecord[];
 }
 
 export function MyScoresPanel({ scores }: MyScoresPanelProps) {
   const t = useTranslations("me");
+  const format = useFormatter();
   const [selected, setSelected] = useState<QuizDifficulty>("EASY");
 
   const filtered = useMemo(
@@ -83,7 +94,7 @@ export function MyScoresPanel({ scores }: MyScoresPanelProps) {
                 </span>
               </div>
               <span className="text-xs opacity-60">
-                {new Date(score.createdAt).toLocaleDateString()}
+                {format.dateTime(recordedDay(score.createdAt), RECORDED_DAY_FORMAT)}
               </span>
             </div>
           ))}
