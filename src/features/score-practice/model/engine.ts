@@ -23,6 +23,12 @@ export interface PracticeView {
   stats: PracticeStats;
 }
 
+/** Where the music is, between two cursor steps: step `index`, `fraction` of the way to the next. */
+export interface PracticePosition {
+  index: number;
+  fraction: number;
+}
+
 export interface PracticeSettings {
   mode: PracticeMode;
   hands: Hands;
@@ -148,6 +154,23 @@ export class PracticeEngine {
       this.finished = true;
     }
     return this.view(frozen);
+  }
+
+  /**
+   * The exact place in the music right now (for a playhead that glides
+   * rather than jumping from note to note). Stops at the note being waited on.
+   */
+  position(now: number): PracticePosition {
+    const groups = this.groups;
+    if (groups.length === 0) return { index: 0, fraction: 0 };
+    let beat = this.running ? this.beatAt(now) : groups[this.cursor].beat;
+    if (this.running && this.settings.mode === "wait" && this.block >= 0) beat = Math.min(beat, groups[this.block].beat);
+    let g = this.cursor;
+    while (g + 1 < groups.length && groups[g + 1].beat <= beat + EPSILON) g += 1;
+    while (g > 0 && groups[g].beat > beat + EPSILON) g -= 1;
+    const span = (groups[g + 1]?.beat ?? this.endBeat) - groups[g].beat;
+    const fraction = span > 0 ? Math.min(Math.max((beat - groups[g].beat) / span, 0), 1) : 0;
+    return { index: g, fraction };
   }
 
   /** A key went down. */

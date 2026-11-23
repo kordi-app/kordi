@@ -5,7 +5,13 @@ import * as Tone from "tone";
 import type { ActiveNote } from "@/entities/note";
 import type { ScoreTimeline } from "@/entities/score";
 import { playNoteAt } from "@/shared/lib/audio";
-import { PracticeEngine, type Hands, type PracticeMode, type PracticeView } from "../model/engine";
+import {
+  PracticeEngine,
+  type Hands,
+  type PracticeMode,
+  type PracticePosition,
+  type PracticeView,
+} from "../model/engine";
 
 const IDLE: PracticeView = { status: "idle", cursor: 0, expected: [], stats: { hits: 0, misses: 0, wrong: 0 } };
 const ACCOMPANIMENT_VELOCITY = 0.5;
@@ -102,5 +108,11 @@ export function useScorePractice(timeline: ScoreTimeline | null, activeNotes: Ac
     held.current = current;
   }, [activeNotes]);
 
-  return { mode, setMode, hands, setHands, speed, setSpeed, view, play, pause, restart };
+  /** The playhead's exact place, read every frame by the sheet (null when stopped). */
+  const getPosition = useCallback((): PracticePosition | null => {
+    const e = engine.current;
+    return e?.isRunning ? e.position(Tone.now()) : null;
+  }, []);
+
+  return { mode, setMode, hands, setHands, speed, setSpeed, view, play, pause, restart, getPosition };
 }

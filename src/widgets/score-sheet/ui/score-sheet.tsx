@@ -6,36 +6,56 @@ import type { ScoreTimeline } from "@/entities/score";
 import { cn } from "@/shared/lib/utils";
 import { extractTimeline } from "../lib/extract-timeline";
 
+/** Where the music is: cursor step `index`, `fraction` of the way to the next step. */
+export interface SheetPosition {
+  index: number;
+  fraction: number;
+}
+
 interface ScoreSheetProps {
   /** MusicXML text, or a compressed .mxl file */
   source: string | Blob | null;
-  /** which cursor step to show (see ScoreGroup) */
+  /** the step to show while stopped */
   cursorIndex: number;
+  /** read every frame while playing: the playhead glides between steps */
+  getPosition?: () => SheetPosition | null;
   onLoad: (timeline: ScoreTimeline) => void;
   onError: () => void;
-  /** sizing of the sheet's own scroll box (the cursor is kept in view inside it) */
+  /** sizing of the sheet's own scroll box (the playhead is kept in view inside it) */
   className?: string;
 }
 
+/** A cursor step on the page: its x (centre), line top and height, and where its line ends. */
+interface StepBox {
+  x: number;
+  top: number;
+  height: number;
+  lineEnd: number;
+}
+
+/** OSMD draws in units of 10 px (times the zoom). */
+const UNIT = 10;
 /** Narrow screens get smaller notation, so a system still fits a few bars. */
 const zoomFor = (width: number) => (width < 640 ? 0.6 : width < 1024 ? 0.8 : 1);
 
 /**
- * The engraved score (OpenSheetMusicDisplay), with a cursor over the notes
- * being played. OSMD is loaded on demand — it is large and browser-only.
+ * The engraved score (OpenSheetMusicDisplay) with a playhead. OSMD's own
+ * cursor jumps from note to note; we measure where each of its steps sits
+ * once, then draw our own line that glides between them every frame.
+ * OSMD is loaded on demand — it is large and browser-only.
  */
-export function ScoreSheet({ source, cursorIndex, onLoad, onError, className }: ScoreSheetProps) {
+export function ScoreSheet({ source, cursorIndex, getPosition, onLoad, onError, className }: ScoreSheetProps) {
   const box = useRef<HTMLDivElement>(null);
   const container = useRef<HTMLDivElement>(null);
+  const playhead = useRef<HTMLDivElement>(null);
   const osmd = useRef<OpenSheetMusicDisplay | null>(null);
-  /** how many steps the OSMD cursor has taken since its last reset */
-  const steps = useRef(0);
+  const steps = useRef<StepBox[]>([]);
   const [loading, setLoading] = useState(false);
-  const callbacks = useRef({ onLoad, onError });
+  const latest = useRef({ onLoad, onError, getPosition, cursorIndex });
 
   useEffect(() => {
-    callbacks.current = { onLoad, onError };
-  }, [onLoad, onError]);
+    latest.current = { onLoad, onError, getPosition, cursorIndex };
+  }, [onLoad, onError, getPosition, cursorIndex]);
 
   useEffect(() => {
     if (!source || !container.current) return;
@@ -47,27 +67,23 @@ export function ScoreSheet({ source, cursorIndex, onLoad, onError, className }: 
         const { OpenSheetMusicDisplay } = await import("opensheetmusicdisplay");
         if (cancelled) return;
         osmd.current ??= new OpenSheetMusicDisplay(el, {
-          autoResize: true,
+          // we re-render on resize ourselves (and re-measure the steps)
+          autoResize: false,
           backend: "svg",
           drawTitle: true,
           drawComposer: true,
           drawPartNames: false,
           drawMeasureNumbers: true,
-          // we scroll the sheet's own box instead (OSMD would scroll the whole page)
           followCursor: false,
-          cursorsOptions: [{ type: 0, color: "#e0a030", alpha: 0.45, follow: false }],
+          cursorsOptions: [{ type: 0, color: "#e0a030", alpha: 0, follow: false }],
         });
         await osmd.current.load(source);
         if (cancelled) return;
-        osmd.current.zoom = zoomFor(el.clientWidth);
-        osmd.current.render();
+        steps.current = draw(osmd.current, el);
         box.current?.scrollTo({ top: 0 });
-        osmd.current.cursor.show();
-        osmd.current.cursor.reset();
-        steps.current = 0;
-        callbacks.current.onLoad(extractTimeline(osmd.current));
+        latest.current.onLoad(extractTimeline(osmd.current));
       } catch {
-        if (!cancelled) callbacks.current.onError();
+        if (!cancelled) latest.current.onError();
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -77,35 +93,114 @@ export function ScoreSheet({ source, cursorIndex, onLoad, onError, className }: 
     };
   }, [source]);
 
-  // walk the cursor to the requested step (forward is cheap; going back resets first)
+  // a new width: lay the score out again
   useEffect(() => {
-    const cursor = osmd.current?.cursor;
-    if (!cursor || loading) return;
-    if (cursorIndex < steps.current) {
-      cursor.reset();
-      steps.current = 0;
-    }
-    while (steps.current < cursorIndex && !cursor.Iterator.EndReached) {
-      cursor.next();
-      steps.current += 1;
-    }
-    // keep the cursor's system in view (with a little of the one above)
-    const scroller = box.current;
-    const marker = cursor.cursorElement;
-    if (!scroller || !marker || cursorIndex === 0) return;
-    const top = marker.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
-    const bottom = top + marker.getBoundingClientRect().height;
-    if (top < scroller.scrollTop || bottom > scroller.scrollTop + scroller.clientHeight) {
-      scroller.scrollTo({ top: Math.max(0, top - 32), behavior: "smooth" });
-    }
-  }, [cursorIndex, loading]);
+    const el = container.current;
+    if (!el) return;
+    let width = el.clientWidth;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const observer = new ResizeObserver(() => {
+      if (el.clientWidth === width) return;
+      width = el.clientWidth;
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (osmd.current?.IsReadyToRender()) steps.current = draw(osmd.current, el);
+      }, 200);
+    });
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      clearTimeout(timer);
+    };
+  }, []);
+
+  // the playhead: placed every frame, between the step it's at and the next
+  useEffect(() => {
+    let frame = 0;
+    let lastTop = -1;
+    const place = () => {
+      frame = requestAnimationFrame(place);
+      const line = playhead.current;
+      const all = steps.current;
+      if (!line || all.length === 0) return;
+      const { getPosition: read, cursorIndex: stopped } = latest.current;
+      const pos = read?.() ?? { index: stopped, fraction: 0 };
+      const here = all[Math.min(pos.index, all.length - 1)];
+      const next = all[pos.index + 1];
+      // to the next note on this line, or on to the end of the line before wrapping
+      const target = next && next.top === here.top ? next.x : here.lineEnd;
+      const x = here.x + (target - here.x) * pos.fraction;
+      line.style.transform = `translate(${x}px, ${here.top}px)`;
+      line.style.height = `${here.height}px`;
+      line.style.opacity = "1";
+      if (here.top !== lastTop) {
+        lastTop = here.top;
+        keepInView(box.current, here);
+      }
+    };
+    frame = requestAnimationFrame(place);
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   return (
     <div ref={box} className={cn("relative overflow-y-auto", className)}>
-      <div ref={container} />
+      <div className="relative">
+        <div ref={container} />
+        <div
+          ref={playhead}
+          aria-hidden
+          className="pointer-events-none absolute top-0 left-0 w-0.5 -translate-x-1/2 rounded-full bg-palette-yellow-500 opacity-0 shadow-[0_0_0_4px_color-mix(in_oklab,var(--palette-yellow-300)_45%,transparent)] will-change-transform"
+        />
+      </div>
       {loading ? (
         <div className="absolute inset-0 flex items-center justify-center text-t3 text-fg-neutral-muted">…</div>
       ) : null}
     </div>
   );
+}
+
+/** Lay the score out for the container's width, then measure every cursor step. */
+function draw(osmd: OpenSheetMusicDisplay, el: HTMLElement): StepBox[] {
+  osmd.zoom = zoomFor(el.clientWidth);
+  osmd.render();
+  const scale = UNIT * osmd.zoom;
+  const systems = osmd.GraphicSheet.MusicPages.flatMap((page) =>
+    page.MusicSystems.map((system) => {
+      const box = system.PositionAndShape;
+      return {
+        top: (box.AbsolutePosition.y + box.BorderTop) * scale,
+        bottom: (box.AbsolutePosition.y + box.BorderBottom) * scale,
+        right: (box.AbsolutePosition.x + box.BorderRight) * scale,
+      };
+    }),
+  );
+
+  const cursor = osmd.cursor;
+  cursor.show();
+  cursor.reset();
+  const boxes: StepBox[] = [];
+  while (!cursor.Iterator.EndReached) {
+    const marker = cursor.cursorElement;
+    const left = parseFloat(marker.style.left) || 0;
+    const top = parseFloat(marker.style.top) || 0;
+    const height = parseFloat(marker.style.height) || marker.height;
+    const width = parseFloat(marker.style.width) || marker.width;
+    const middle = top + height / 2;
+    const system = systems.find((s) => middle >= s.top - 10 && middle <= s.bottom + 10);
+    boxes.push({ x: left + width / 2, top, height, lineEnd: system?.right ?? el.clientWidth - 16 });
+    cursor.next();
+  }
+  cursor.reset();
+  cursor.hide();
+  return boxes;
+}
+
+/** Scroll the sheet's box so the playhead's line is visible (with a little of the line above). */
+function keepInView(scroller: HTMLElement | null, step: StepBox) {
+  if (!scroller) return;
+  const visibleTop = scroller.scrollTop;
+  const visibleBottom = visibleTop + scroller.clientHeight;
+  if (step.top < visibleTop || step.top + step.height > visibleBottom) {
+    scroller.scrollTo({ top: Math.max(0, step.top - 32), behavior: "smooth" });
+  }
 }
