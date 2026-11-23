@@ -2,17 +2,16 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Volume2, VolumeX } from "lucide-react";
 import { usePianoInput, InstrumentSelector } from "@/features/piano-player";
 import {
   AudioStartPrompt,
   ChordDisplay,
+  KeyboardBar,
   KeySelect,
   MidiStatus,
   PianoKeyboard,
 } from "@/widgets/piano-keyboard";
 import type { KeySignature } from "@/shared/lib/music";
-import { cn } from "@/shared/lib/utils";
 
 // Full 88-key range (A0–C8) so real digital pianos highlight every key
 const KEYBOARD_START_MIDI = 21;
@@ -35,7 +34,7 @@ export function PianoPage() {
 
   const [musicKey, setMusicKey] = useState<KeySignature | null>(null);
   return (
-    <main className="flex flex-1 flex-col px-4 pb-10 pt-2 md:px-8">
+    <main className="flex flex-1 flex-col px-page-x pt-4 pb-page-y md:px-page-x-wide md:pt-5">
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3">
         <InstrumentSelector />
         <div className="flex items-center gap-3">
@@ -63,13 +62,11 @@ export function PianoPage() {
           musicKey={musicKey}
           placeholder={t("playHint")}
         />
-        {isAudioStarted && !isLoaded ? (
-          <p className="mt-2 text-sm text-muted-foreground">{t("loadingSamples")}</p>
-        ) : null}
       </div>
 
       <div className="mx-auto w-full max-w-6xl">
-        <KeyboardStatusBar
+        <KeyboardBar
+          loading={isAudioStarted && !isLoaded}
           octave={keyboard.octave}
           velocity={keyboard.velocity}
           sustain={keyboard.sustain}
@@ -105,74 +102,5 @@ export function PianoPage() {
         </p>
       </div>
     </main>
-  );
-}
-
-function Kbd({ children }: { children: React.ReactNode }) {
-  return (
-    <kbd className="rounded border border-border bg-background px-1 font-sans text-t1 text-muted-foreground">
-      {children}
-    </kbd>
-  );
-}
-
-function KeyboardStatusBar({
-  octave,
-  velocity,
-  sustain,
-  isMuted,
-  onToggleMute,
-}: {
-  octave: number;
-  velocity: number;
-  sustain: boolean;
-  isMuted: boolean;
-  onToggleMute: () => void;
-}) {
-  const t = useTranslations("piano");
-  const chip =
-    "flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 text-xs text-foreground";
-
-  return (
-    <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
-      <span className={chip}>
-        {t("octave")} <span className="font-medium tabular-nums">{octave}</span>
-        <Kbd>Z</Kbd>
-        <Kbd>X</Kbd>
-      </span>
-      <span className={chip}>
-        {t("velocity")} <span className="font-medium tabular-nums">{velocity}</span>
-        <Kbd>C</Kbd>
-        <Kbd>V</Kbd>
-      </span>
-      <span
-        className={cn(
-          chip,
-          "transition-colors",
-          sustain && "border-foreground/30 bg-foreground text-background",
-        )}
-      >
-        {t("sustain")}
-        <Kbd>Tab</Kbd>
-      </span>
-      <button
-        type="button"
-        onClick={onToggleMute}
-        aria-pressed={isMuted}
-        aria-label={isMuted ? t("soundOff") : t("soundOn")}
-        title={isMuted ? t("soundOff") : t("soundOn")}
-        className={cn(
-          chip,
-          "px-2 hover:bg-muted",
-          isMuted && "text-muted-foreground",
-        )}
-      >
-        {isMuted ? (
-          <VolumeX className="size-4" />
-        ) : (
-          <Volume2 className="size-4" />
-        )}
-      </button>
-    </div>
   );
 }

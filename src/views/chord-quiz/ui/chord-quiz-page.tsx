@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { usePianoInput } from "@/features/piano-player";
 import { getTotalScore } from "@/entities/chord-quiz";
 import { useQuizOrchestrator } from "@/features/chord-quiz";
-import { PianoKeyboard, MidiStatus } from "@/widgets/piano-keyboard";
+import { KeyboardBar, MidiStatus, PianoKeyboard } from "@/widgets/piano-keyboard";
 import { ChordPrompt } from "@/widgets/chord-prompt";
 import {
   DifficultySelect,
@@ -18,7 +18,7 @@ import { cn } from "@/shared/lib/utils";
 
 export function ChordQuizPage() {
   const t = useTranslations("chordQuiz");
-  const { activeNotes, isAudioStarted, isLoaded, startAudio, keyboard, midi, mouse } =
+  const { activeNotes, isAudioStarted, isLoaded, startAudio, keyboard, midi, mouse, sound } =
     usePianoInput();
 
   const {
@@ -71,12 +71,11 @@ export function ChordQuizPage() {
 
       {/* Playing phase: chord-practice-style top-aligned layout */}
       {isPlaying && currentChord && (
-        <div className="w-full px-page-x py-page-y md:px-page-x-wide md:py-page-y-wide">
-          <div className="mx-auto w-full max-w-4xl space-y-10">
-            <MidiStatus
-              midiName={midi.selectedDevice?.name}
-              fallback={t("noMidiDevice")}
-            />
+        <div className="w-full px-page-x pt-4 pb-page-y md:px-page-x-wide md:pt-5">
+          <div className="mx-auto w-full max-w-[44rem] space-y-10">
+            <div className="flex justify-end">
+              <MidiStatus inline midiName={midi.selectedDevice?.name} fallback={t("noMidiDevice")} />
+            </div>
 
             <QuizProgress
               currentIndex={state.currentIndex}
@@ -93,16 +92,14 @@ export function ChordQuizPage() {
               />
             </div>
 
-            <div
-              className={cn(
-                "h-5 text-center text-sm transition-opacity duration-300",
-                isLoaded ? "opacity-0" : "opacity-60",
-              )}
-              aria-hidden={isLoaded}
-            >
-              {t("loadingSamples")}
-            </div>
-
+            {/* the bar and the keyboard share one width (the keyboard\'s, or the page\'s if it scrolls) */}
+            <div className="mx-auto w-fit max-w-full">
+            <KeyboardBar
+              loading={isAudioStarted && !isLoaded}
+              octave={keyboard.octave}
+              isMuted={sound.isMuted}
+              onToggleMute={sound.toggleMute}
+            />
             <div
               className={cn(
                 "w-full rounded-lg transition-all duration-200",
@@ -118,6 +115,7 @@ export function ChordQuizPage() {
                 showShortcuts
                 octave={keyboard.octave}
               />
+            </div>
             </div>
           </div>
         </div>

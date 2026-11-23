@@ -7,7 +7,7 @@ import type { ScoreEntry, ScoreTimeline } from "@/entities/score";
 import { usePianoInput } from "@/features/piano-player";
 import { loadScoreSource, useScoreLibrary } from "@/features/score-library";
 import { useScorePractice, type Hands, type PracticeMode } from "@/features/score-practice";
-import { MidiStatus, PianoKeyboard } from "@/widgets/piano-keyboard";
+import { KeyboardBar, MidiStatus, PianoKeyboard } from "@/widgets/piano-keyboard";
 import { ScoreSheet } from "@/widgets/score-sheet";
 import { Button } from "@/shared/ui/button";
 import { MonoPill } from "@/shared/ui/mono-button";
@@ -32,7 +32,7 @@ const KEYBOARD_END = 96;
  */
 export function ScorePracticePage() {
   const t = useTranslations("scorePractice");
-  const { activeNotes, isAudioStarted, isLoaded, startAudio, keyboard, midi, mouse } = usePianoInput();
+  const { activeNotes, isAudioStarted, isLoaded, startAudio, keyboard, midi, mouse, sound } = usePianoInput();
   const library = useScoreLibrary();
   const [selected, setSelected] = useState<ScoreEntry>(library.scores[0]);
   const [source, setSource] = useState<string | Blob | null>(null);
@@ -73,6 +73,24 @@ export function ScorePracticePage() {
     await library.remove(selected.id);
     setSelected(library.scores[0]);
   };
+
+  // the start button is the gesture that unlocks sound; play once the piano has loaded
+  const playWhenLoaded = useRef(false);
+  const { play } = practice;
+  const startWithSound = () => {
+    if (isLoaded) {
+      play();
+      return;
+    }
+    playWhenLoaded.current = true;
+    if (!isAudioStarted) startAudio();
+  };
+  useEffect(() => {
+    if (!playWhenLoaded.current || !isLoaded) return;
+    playWhenLoaded.current = false;
+    play();
+  }, [isLoaded, play]);
+  const waitingForSound = isAudioStarted && !isLoaded;
 
   const running = view.status === "playing" || view.status === "waiting";
   const { hits, misses, wrong } = view.stats;
@@ -162,17 +180,13 @@ export function ScorePracticePage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {!isAudioStarted ? (
-            <Button onClick={startAudio}>
-              <Play /> {t("soundOn")}
-            </Button>
-          ) : running ? (
+          {running ? (
             <Button onClick={practice.pause}>
               <Pause /> {t("pause")}
             </Button>
           ) : (
-            <Button onClick={practice.play} disabled={!timeline || !isLoaded}>
-              <Play /> {isLoaded ? t(view.cursor > 0 && view.status !== "finished" ? "resume" : "play") : t("loadingSound")}
+            <Button onClick={startWithSound} disabled={!timeline || waitingForSound}>
+              <Play /> {t(view.cursor > 0 && view.status !== "finished" ? "resume" : "play")}
             </Button>
           )}
           <Button variant="outline" size="icon" aria-label={t("restart")} onClick={practice.restart}>
@@ -204,6 +218,16 @@ export function ScorePracticePage() {
         />
         <p className="text-t2 text-fg-neutral-subtle">{t("localNote")}</p>
 
+        {/* the bar and the keyboard share one width (the keyboard\'s, or the page\'s if it scrolls) */}
+        <div className="mx-auto w-fit max-w-full">
+        <KeyboardBar
+          loading={isAudioStarted && !isLoaded}
+          octave={keyboard.octave}
+          velocity={keyboard.velocity}
+          sustain={keyboard.sustain}
+          isMuted={sound.isMuted}
+          onToggleMute={sound.toggleMute}
+        />
         <PianoKeyboard
           startMidi={KEYBOARD_START}
           endMidi={KEYBOARD_END}
@@ -214,6 +238,7 @@ export function ScorePracticePage() {
           showShortcuts
           octave={keyboard.octave}
         />
+        </div>
       </div>
     </div>
   );

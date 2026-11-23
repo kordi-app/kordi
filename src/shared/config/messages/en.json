@@ -429,8 +429,6 @@
       "both": "Both"
     },
     "speedLabel": "Speed",
-    "soundOn": "Turn sound on",
-    "loadingSound": "Loading piano…",
     "play": "Start",
     "resume": "Resume",
     "pause": "Pause",

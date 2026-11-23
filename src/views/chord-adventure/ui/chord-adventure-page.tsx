@@ -7,9 +7,8 @@ import { adventureQueries } from "@/entities/chord-adventure";
 import { useAdventureGame } from "@/features/chord-adventure";
 import { usePianoInput } from "@/features/piano-player";
 import { AdventureStage } from "@/widgets/chord-adventure-stage";
-import { MidiStatus, PianoKeyboard } from "@/widgets/piano-keyboard";
+import { KeyboardBar, MidiStatus, PianoKeyboard } from "@/widgets/piano-keyboard";
 import { Button } from "@/shared/ui/button";
-import { cn } from "@/shared/lib/utils";
 
 /**
  * Chord Adventure: the chord quiz as an endless run. The piano is the only
@@ -17,7 +16,7 @@ import { cn } from "@/shared/lib/utils";
  */
 export function ChordAdventurePage() {
   const t = useTranslations("chordAdventure");
-  const { activeNotes, isAudioStarted, isLoaded, startAudio, keyboard, midi, mouse } = usePianoInput();
+  const { activeNotes, isAudioStarted, isLoaded, startAudio, keyboard, midi, mouse, sound } = usePianoInput();
   const { view, clock, start, result, problem, saving } = useAdventureGame({ activeNotes, isAudioStarted, startAudio });
   const action = useRef<HTMLButtonElement>(null);
 
@@ -82,13 +81,14 @@ export function ChordAdventurePage() {
           ) : null}
         </div>
 
-        <div
-          className={cn("h-4 text-center text-t2 transition-opacity", isLoaded ? "opacity-0" : "opacity-60")}
-          aria-hidden={isLoaded}
-        >
-          {t("loadingSamples")}
-        </div>
-
+        {/* the bar and the keyboard share one width (the keyboard\'s, or the page\'s if it scrolls) */}
+        <div className="mx-auto w-fit max-w-full">
+        <KeyboardBar
+          loading={isAudioStarted && !isLoaded}
+          octave={keyboard.octave}
+          isMuted={sound.isMuted}
+          onToggleMute={sound.toggleMute}
+        />
         <PianoKeyboard
           activeNotes={activeNotes}
           onNoteOn={mouse.onNoteOn}
@@ -96,6 +96,7 @@ export function ChordAdventurePage() {
           showShortcuts
           octave={keyboard.octave}
         />
+        </div>
       </div>
     </div>
   );
