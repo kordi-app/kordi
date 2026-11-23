@@ -27,7 +27,8 @@
       "friends": "친구",
       "profile": "내 프로필",
       "character": "내 캐릭터",
-      "adventure": "코드 모험"
+      "adventure": "코드 모험",
+      "score": "악보 연습"
     }
   },
   "me": {
@@ -409,5 +410,38 @@
     },
     "chordsFailed": "코드를 불러오지 못했어요. 잠시 후 다시 시도해 주세요",
     "saveFailed": "기록을 저장하지 못했어요"
+  },
+  "scorePractice": {
+    "title": "악보 연습",
+    "add": "악보 추가",
+    "remove": "이 악보 삭제",
+    "noMidiDevice": "MIDI 장치 없음",
+    "modeLabel": "방식",
+    "mode": {
+      "listen": "듣기",
+      "wait": "기다림",
+      "tempo": "박자"
+    },
+    "handsLabel": "손",
+    "hands": {
+      "right": "오른손",
+      "left": "왼손",
+      "both": "양손"
+    },
+    "speedLabel": "속도",
+    "soundOn": "소리 켜기",
+    "loadingSound": "피아노 소리 준비 중…",
+    "play": "시작",
+    "resume": "이어서",
+    "pause": "일시정지",
+    "restart": "처음으로",
+    "waiting": "기다리는 중 — 표시된 건반을 눌러요",
+    "statsWait": "맞힌 음 {hits} · 틀린 건반 {wrong}",
+    "statsTempo": "정확 {hits} · 놓침 {misses} · 틀린 건반 {wrong}",
+    "finished": "끝까지 쳤어요!",
+    "finishedTempo": "끝! {total}음 중 {hits}음 정확 · 틀린 건반 {wrong}",
+    "loadFailed": "악보를 불러오지 못했어요",
+    "notAScore": "MusicXML(.musicxml, .xml) 또는 .mxl 파일만 추가할 수 있어요",
+    "localNote": "추가한 악보는 이 브라우저에만 저장돼요. 다른 곳에 올라가지 않아요."
   }
 }

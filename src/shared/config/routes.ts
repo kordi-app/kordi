@@ -9,4 +9,5 @@ export const ROUTES = {
   RANKING: "/ranking",
   FRIENDS: "/friends",
   CHARACTER: "/character",
+  SCORE: "/score",
 } as const;

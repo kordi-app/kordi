@@ -151,6 +151,13 @@ export function playNoteOn(midi: number, velocity: number): void {
   current.triggerAttack(note, Tone.now(), velocity);
 }
 
+/** Schedule a whole note (attack + release) at an audio-clock time, e.g. score playback. */
+export function playNoteAt(midi: number, velocity: number, time: number, duration: number): void {
+  if (!current) return;
+  const note = Tone.Frequency(midi, "midi").toNote();
+  current.triggerAttackRelease(note, duration, time, velocity);
+}
+
 export function playNoteOff(midi: number): void {
   if (!current) return;
   const note = Tone.Frequency(midi, "midi").toNote();

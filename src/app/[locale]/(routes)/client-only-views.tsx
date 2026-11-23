@@ -27,3 +27,8 @@ export const PianoView = dynamic(
   () => import("@/views/piano").then((m) => m.PianoPage),
   { ssr: false },
 );
+
+export const ScorePracticeView = dynamic(
+  () => import("@/views/score-practice").then((m) => m.ScorePracticePage),
+  { ssr: false },
+);

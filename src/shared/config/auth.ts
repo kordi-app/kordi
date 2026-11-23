@@ -24,4 +24,4 @@ export const TOKEN_TTL = {
   REFRESH_TOKEN: 14 * 24 * 60 * 60, // 14 days (seconds)
 } as const;
 
-export const PUBLIC_ROUTES = [ROUTES.HOME, ROUTES.LOGIN, ROUTES.PIANO] as const;
+export const PUBLIC_ROUTES = [ROUTES.HOME, ROUTES.LOGIN, ROUTES.PIANO, ROUTES.SCORE] as const;

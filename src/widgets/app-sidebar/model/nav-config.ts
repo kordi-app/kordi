@@ -1,4 +1,5 @@
 import {
+  FileMusic,
   Globe,
   KeyboardMusic,
   Piano,
@@ -34,6 +35,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       { href: ROUTES.CHORD_QUIZ, icon: Timer, labelKey: "sidebar.nav.quiz" },
       { href: ROUTES.CHORD_ADVENTURE, icon: Swords, labelKey: "sidebar.nav.adventure" },
+      { href: ROUTES.SCORE, icon: FileMusic, labelKey: "sidebar.nav.score" },
     ],
   },
   {
