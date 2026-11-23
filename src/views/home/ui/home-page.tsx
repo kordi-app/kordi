@@ -46,6 +46,7 @@ export async function HomePage() {
           wishSend: t("wishSend"),
           wishSent: t("wishSent"),
           jukeboxStyle: t.raw("jukeboxStyle") as string,
+          jukeboxStyleQuiet: t.raw("jukeboxStyleQuiet") as string,
           loungeStyles: t.raw("loungeStyles") as PianoWorldCopy["loungeStyles"],
           warpStones: t.raw("warpStones") as PianoWorldCopy["warpStones"],
           warpTitle: t("warpTitle"),

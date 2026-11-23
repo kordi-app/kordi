@@ -256,6 +256,7 @@
       "warpHere": "You are here",
       "warpAsleep": "Not found yet",
       "jukeboxStyle": "The band switches to {style}",
+      "jukeboxStyleQuiet": "Turn the sound on and the band plays {style}",
       "loungeStyles": {
         "swing": "swing",
         "bossa": "bossa nova",

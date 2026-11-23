@@ -13,6 +13,8 @@ interface UseChordValidatorOptions {
   targetChordName: string | null;
   /** changes with every new chord (so a repeated chord is still a fresh question) */
   questionKey?: unknown;
+  /** the drill's chord types: a voicing that makes another pool chord answers that one */
+  rivals?: readonly string[];
   enabled: boolean;
   onCorrect: () => void;
   onIncorrect: () => void;
@@ -22,6 +24,7 @@ export function useChordValidator({
   activeNotes,
   targetChordName,
   questionKey,
+  rivals,
   enabled,
   onCorrect,
   onIncorrect,
@@ -38,6 +41,7 @@ export function useChordValidator({
   useChordCheck({
     targetChordName,
     questionKey,
+    rivals,
     midiNotes,
     enabled,
     debounceMs: 150,

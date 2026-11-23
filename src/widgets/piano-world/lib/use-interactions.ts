@@ -6,7 +6,7 @@ import type { PianoWorldCopy } from "../model/copy";
 import type { InteractableId } from "../model/interactables";
 import type { WarpStoneId } from "../model/island";
 import { MUSIC_BOX, playSequence } from "../model/sequencer";
-import { nextLoungeStyle } from "./lounge-band";
+import { isLoungeBandPlaying, nextLoungeStyle } from "./lounge-band";
 
 /** Overlay panels opened by interactables */
 export type Panel =
@@ -121,7 +121,8 @@ export function useInteractions(copy: PianoWorldCopy, audio: AudioApi, onCelebra
         case "jukebox": {
           // the lounge's band changes what it plays: swing → bossa nova → ballad
           const style = nextLoungeStyle();
-          say(copy.jukeboxStyle.replace("{style}", copy.loungeStyles[style]));
+          const message = isLoungeBandPlaying() ? copy.jukeboxStyle : copy.jukeboxStyleQuiet;
+          say(message.replace("{style}", copy.loungeStyles[style]));
           break;
         }
         case "discoBall":

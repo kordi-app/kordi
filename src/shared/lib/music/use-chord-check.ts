@@ -24,6 +24,11 @@ interface UseChordCheckOptions {
    * a repeated chord as already answered.
    */
   questionKey?: unknown;
+  /**
+   * Chord types that could be asked instead (a drill's pool). A voicing that makes a
+   * more-extended rival (Cmaj9 for Cmaj7) answers that one, not the target. Omit for strict.
+   */
+  rivals?: readonly string[];
   /** Extra dependency that re-triggers validation while notes are held (e.g. a timer tick). */
   revalidateKey?: unknown;
   onCorrect: () => void;
@@ -40,6 +45,7 @@ export function useChordCheck({
   finalizeIncorrect = false,
   revalidateKey,
   questionKey,
+  rivals,
   onCorrect,
   onIncorrect,
 }: UseChordCheckOptions) {
@@ -80,7 +86,7 @@ export function useChordCheck({
     if (performance.now() - lastChangeRef.current < cooldownMs) return;
 
     const check = () => {
-      if (validateChord(targetChordName, midiNotes)) {
+      if (validateChord(targetChordName, midiNotes, rivals)) {
         answeredRef.current = true;
         reportCorrect();
       } else if (midiNotes.length >= INCORRECT_MIN_NOTES && !isPartialChord(targetChordName, midiNotes)) {
@@ -117,6 +123,7 @@ export function useChordCheck({
     minNotesToCheck,
     finalizeIncorrect,
     revalidateKey,
+    rivals,
   ]);
 
   const reset = useCallback(() => {

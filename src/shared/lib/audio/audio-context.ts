@@ -1,9 +1,19 @@
 import * as Tone from "tone";
 
 let started = false;
+/** the one start in flight: callers racing in await it instead of starting again */
+let starting: Promise<void> | null = null;
 
-export async function ensureAudioStarted(): Promise<void> {
-  if (started) return;
+export function ensureAudioStarted(): Promise<void> {
+  if (started) return Promise.resolve();
+  starting ??= start().catch((error) => {
+    starting = null; // let a later gesture try again
+    throw error;
+  });
+  return starting;
+}
+
+async function start(): Promise<void> {
   await Tone.start();
   // Default lookAhead (0.1s) adds ~100ms latency — unacceptable for live playing
   Tone.getContext().lookAhead = 0;

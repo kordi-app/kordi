@@ -55,7 +55,9 @@ export const ADVENTURE_DEATH_MS = 1800;
 
 /** Time limit for the nth monster (1-based). */
 export function timeLimitFor(stage: number) {
-  return Math.max(ADVENTURE_MIN_TIME_MS, ADVENTURE_START_TIME_MS - (stage - 1) * ADVENTURE_TIME_STEP_MS);
+  // the warm-up keeps the full time; shrinking starts with the real chords, like their mix does
+  const n = Math.max(0, stage - WARM_UP_STAGES - 1);
+  return Math.max(ADVENTURE_MIN_TIME_MS, ADVENTURE_START_TIME_MS - n * ADVENTURE_TIME_STEP_MS);
 }
 
 /** How likely each chord difficulty is at the nth monster (counting from the end of the warm-up). */

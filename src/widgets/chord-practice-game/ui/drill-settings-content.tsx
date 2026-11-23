@@ -182,7 +182,7 @@ function CustomChordTypes({
               if (next.length > 0) onChange(next);
             }}
           >
-            {type === "" ? "M" : displaySuffix(type)}
+            {type === "" ? "Maj" : displaySuffix(type)}
           </MonoPill>
         );
       })}

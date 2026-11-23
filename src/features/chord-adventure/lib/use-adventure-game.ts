@@ -18,7 +18,6 @@ import {
   type AdventureRecordResult,
   type AdventureView,
 } from "@/entities/chord-adventure";
-import { isPartialChord } from "@/shared/lib/music";
 import { useChordCheck } from "@/shared/lib/music/use-chord-check";
 import { saveAdventureRecord, startAdventureRun } from "../api/save-adventure-record";
 import { ChordDeck } from "./chord-deck";
@@ -195,8 +194,6 @@ export function useAdventureGame({
   const onIncorrect = useCallback(() => {
     const current = viewRef.current;
     if (current.phase !== "playing" || !current.chord) return;
-    // part of the right chord is a chord still being formed (or let go), not a wrong one
-    if (isPartialChord(current.chord.name, notesRef.current)) return;
     const now = performance.now();
     const c = clock.current;
     if (now - c.lastMissAt < ADVENTURE_MISS_COOLDOWN_MS) return;

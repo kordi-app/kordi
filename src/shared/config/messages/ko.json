@@ -256,6 +256,7 @@
       "warpHere": "지금 여기",
       "warpAsleep": "아직 찾지 못했어요",
       "jukeboxStyle": "밴드가 {style} 연주해요",
+      "jukeboxStyleQuiet": "소리를 켜면 밴드가 {style} 연주해요",
       "loungeStyles": {
         "swing": "스윙으로",
         "bossa": "보사노바로",
