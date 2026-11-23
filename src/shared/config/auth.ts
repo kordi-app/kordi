@@ -3,7 +3,12 @@ import { ROUTES } from "./routes";
 export const AUTH_COOKIES = {
   ACCESS_TOKEN: "kordi_at",
   REFRESH_TOKEN: "kordi_rt",
+  /** binds the one-time login code to the browser that started sign-in */
+  LOGIN_NONCE: "kordi_ln",
 } as const;
+
+/** long enough to get through Google's consent screen (seconds) */
+export const LOGIN_NONCE_TTL = 10 * 60;
 
 export const COOKIE_OPTIONS = {
   httpOnly: true,

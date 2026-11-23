@@ -1,3 +1,2 @@
-import { API_BASE_URL } from "@/shared/config/api";
-
-export const GOOGLE_LOGIN_URL = `${API_BASE_URL}/oauth2/authorization/google`;
+/** our own route: it sets the login nonce cookie, then hands off to the API */
+export const GOOGLE_LOGIN_URL = "/api/auth/login";

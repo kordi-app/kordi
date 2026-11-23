@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import ky from "ky";
 import { API_BASE_URL } from "@/shared/config/api";
+import { AUTH_COOKIES } from "@/shared/config/auth";
 import { ROUTES } from "@/shared/config/routes";
 import { unwrap, type ApiEnvelope } from "@/shared/api";
 import { setAuthCookies, type AuthTokens } from "@/shared/api/auth-tokens.server";
 
 /** Trade the one-time login code for tokens, server to server. */
-async function exchange(code: string): Promise<AuthTokens | null> {
+async function exchange(code: string, nonce: string): Promise<AuthTokens | null> {
   try {
     return await ky
-      .post(`${API_BASE_URL}/api/auth/exchange`, { json: { code } })
+      .post(`${API_BASE_URL}/api/auth/exchange`, { json: { code, nonce } })
       .json<ApiEnvelope<AuthTokens>>()
       .then(unwrap);
   } catch {
@@ -28,13 +29,14 @@ async function exchange(code: string): Promise<AuthTokens | null> {
  */
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
-  const tokens = code ? await exchange(code) : null;
+  // set by /api/auth/login in this browser; a code from anyone else's sign-in won't match it
+  const nonce = request.cookies.get(AUTH_COOKIES.LOGIN_NONCE)?.value;
+  const tokens = code && nonce ? await exchange(code, nonce) : null;
 
-  if (!tokens) {
-    return NextResponse.redirect(new URL(ROUTES.LOGIN, request.url));
-  }
-
-  const response = NextResponse.redirect(new URL(ROUTES.HOME, request.url));
-  setAuthCookies(response, tokens);
+  const response = NextResponse.redirect(
+    new URL(tokens ? ROUTES.HOME : ROUTES.LOGIN, request.url),
+  );
+  response.cookies.delete(AUTH_COOKIES.LOGIN_NONCE);
+  if (tokens) setAuthCookies(response, tokens);
   return response;
 }
