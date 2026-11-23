@@ -45,6 +45,8 @@ export function useQuizOrchestrator({
 }: UseQuizOrchestratorArgs) {
   const queryClient = useQueryClient();
   const [isFetching, setIsFetching] = useState(false);
+  /** the last question set could not be loaded (network, server, or no questions) */
+  const [loadFailed, setLoadFailed] = useState(false);
   const [pendingQuiz, setPendingQuiz] = useState<PendingQuiz | null>(null);
 
   const { state, startQuiz, answer, tick, reset } = useQuizGameState();
@@ -59,14 +61,17 @@ export function useQuizOrchestrator({
   const loadQuiz = useCallback(
     async (difficulty: QuizDifficulty) => {
       setIsFetching(true);
+      setLoadFailed(false);
       try {
         // staleTime 0 → every call draws a new random set from the server
         const chords = await queryClient.fetchQuery(
           quizQueries.chords(difficulty),
         );
         if (chords.length > 0) setPendingQuiz({ difficulty, chords });
+        else setLoadFailed(true);
       } catch {
-        // stay on the select screen; the user can pick again
+        // stay on the select screen with a message; the user can pick again
+        setLoadFailed(true);
       } finally {
         setIsFetching(false);
       }
@@ -169,6 +174,7 @@ export function useQuizOrchestrator({
     feedbackState,
     showCountdown: pendingQuiz !== null,
     isFetching,
+    loadFailed,
     scoreMutation,
     // handlers
     handleSelectDifficulty,

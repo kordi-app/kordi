@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { HTTPError } from "ky";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
@@ -47,6 +48,11 @@ export function ProfileForm({ currentNickname }: ProfileFormProps) {
       queryClient.setQueryData(["user", "me"], user);
       toast.success(t("saveSuccess"));
       router.refresh(); // server-rendered places (sidebar, other pages) pick up the new name
+    },
+    onError: (error) => {
+      // 409: someone took the name between the check and the save
+      const taken = error instanceof HTTPError && error.response.status === 409;
+      toast.error(t(taken ? "nicknameDuplicated" : "saveError"));
     },
   });
 

@@ -6,6 +6,7 @@ const CODE_TO_KEY: Record<number, string> = {
   4001: "friends.error.cannotAddSelf",
   4002: "friends.error.alreadyExists",
   4003: "friends.error.notFound",
+  4004: "friends.error.notPending",
   3001: "friends.error.userNotFound",
   1003: "friends.error.invalid",
 };

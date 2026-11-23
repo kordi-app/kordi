@@ -16,6 +16,8 @@ interface QuizResultProps {
   state: QuizGameState;
   isSaving: boolean;
   isSaved: boolean;
+  saveFailed?: boolean;
+  onRetrySave?: () => void;
   onRetry: () => void;
   onBackToSelect: () => void;
 }
@@ -24,6 +26,8 @@ export function QuizResult({
   state,
   isSaving,
   isSaved,
+  saveFailed = false,
+  onRetrySave,
   onRetry,
   onBackToSelect,
 }: QuizResultProps) {
@@ -80,6 +84,16 @@ export function QuizResult({
         <p className="text-xs font-semibold uppercase tracking-widest text-foreground">
           {t("saved")}
         </p>
+      )}
+      {saveFailed && (
+        <div role="alert" className="flex items-center gap-3 text-sm">
+          <span className="text-destructive">{t("saveError")}</span>
+          {onRetrySave && (
+            <Button size="sm" variant="outline" onClick={onRetrySave}>
+              {t("retrySave")}
+            </Button>
+          )}
+        </div>
       )}
 
       <div className="flex gap-3">

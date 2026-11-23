@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQueryErrorResetBoundary, useSuspenseQuery } from "@tanstack/react-query";
 import { ErrorBoundary, Suspense } from "@suspensive/react";
 import { useTranslations } from "next-intl";
 import { Trophy } from "lucide-react";
@@ -19,6 +19,7 @@ type Board = RankingDifficulty | "ADVENTURE";
 export function RankingBoard() {
   const t = useTranslations("ranking");
   const [board, setBoard] = useState<Board>("EASY");
+  const { reset: resetQueryErrors } = useQueryErrorResetBoundary();
 
   return (
     <div className="w-full">
@@ -33,10 +34,14 @@ export function RankingBoard() {
         </MonoPill>
       </div>
 
+      {/* a failed board must not stick to the other tabs, and must not read as "no records" */}
       <ErrorBoundary
-        fallback={() => (
-          <div className="py-12 text-center text-sm opacity-60">
-            {t("empty")}
+        resetKeys={[board]}
+        onReset={resetQueryErrors}
+        fallback={({ reset }) => (
+          <div className="flex flex-col items-center gap-3 py-12 text-center text-sm">
+            <span className="opacity-60">{t("error")}</span>
+            <MonoPill onClick={reset}>{t("retry")}</MonoPill>
           </div>
         )}
       >

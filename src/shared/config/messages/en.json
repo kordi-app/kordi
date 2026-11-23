@@ -49,6 +49,7 @@
     "nicknameTooLong": "Nickname must be 20 characters or less",
     "nicknameInvalid": "Only letters, numbers, and underscores allowed",
     "saveSuccess": "Profile updated successfully",
+    "saveError": "Couldn't save. Please try again",
     "quizScores": "Quiz Scores",
     "bestScore": "Best Score",
     "noScores": "No scores yet"
@@ -61,6 +62,8 @@
     "hard": "Hard",
     "loading": "Loading rankings...",
     "empty": "No records yet. Be the first challenger!",
+    "error": "Couldn't load the rankings",
+    "retry": "Try again",
     "adventure": "Chord Adventure",
     "monsters": "{count, plural, one {# monster} other {# monsters}}"
   },
@@ -101,6 +104,7 @@
       "cannotAddSelf": "You cannot send a request to yourself",
       "alreadyExists": "A friend request already exists",
       "notFound": "Friend request not found",
+      "notPending": "Only pending requests can be handled",
       "userNotFound": "User not found",
       "invalid": "Invalid request"
     },
@@ -339,6 +343,9 @@
     "backToSelect": "Select Difficulty",
     "saving": "Saving score...",
     "saved": "Score saved!",
+    "saveError": "Couldn't save your score",
+    "retrySave": "Save again",
+    "loadError": "Couldn't load the questions. Pick again",
     "loading": "Loading questions...",
     "upNext": "Up next"
   },

@@ -27,6 +27,7 @@ export function ChordQuizPage() {
     feedbackState,
     showCountdown,
     isFetching,
+    loadFailed,
     scoreMutation,
     handleSelectDifficulty,
     handleCountdownComplete,
@@ -51,6 +52,12 @@ export function ChordQuizPage() {
             />
           )}
 
+          {state.phase === "select" && loadFailed && !isFetching && (
+            <p role="alert" className="text-sm text-destructive">
+              {t("loadError")}
+            </p>
+          )}
+
           {isFetching && !showCountdown && (
             <p className="text-sm opacity-60">{t("loading")}</p>
           )}
@@ -62,6 +69,10 @@ export function ChordQuizPage() {
               state={state}
               isSaving={scoreMutation.isPending}
               isSaved={scoreMutation.isSuccess}
+              saveFailed={scoreMutation.isError}
+              onRetrySave={() => {
+                if (scoreMutation.variables) scoreMutation.mutate(scoreMutation.variables);
+              }}
               onRetry={handleRetry}
               onBackToSelect={handleBackToSelect}
             />
