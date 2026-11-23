@@ -3,19 +3,26 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Arrival } from "../../engine/physics";
 import { REGIONS, arrivalPoint, isRegionId, type RegionDef, type RegionId } from "../../engine/regions";
+import { readCourseBest } from "./course-record";
 
 const FADE_MS = 260;
 
 /**
  * Which region you're in, and the portal hop between regions: fade out, swap
  * (with the caller's cleanup run while the screen is covered), fade in.
- * The region lives in ?region= so a place can be linked to directly.
+ * The region lives in ?region= so a place can be linked to directly — except
+ * the night course, which is reached from the top of the clouds: a link to it
+ * before you've cleared the clouds starts you at the clouds instead.
  */
+function initialRegion(): RegionId {
+  const param = new URLSearchParams(window.location.search).get("region");
+  if (!isRegionId(param)) return "hall";
+  if (param === "night" && readCourseBest("clouds") === null) return "clouds";
+  return param;
+}
+
 export function useRegionTravel() {
-  const [regionId, setRegionId] = useState<RegionId>(() => {
-    const param = new URLSearchParams(window.location.search).get("region");
-    return isRegionId(param) ? param : "hall";
-  });
+  const [regionId, setRegionId] = useState<RegionId>(initialRegion);
   const region = REGIONS[regionId];
   /** For callbacks that must see the region without re-subscribing */
   const regionRef = useRef<RegionDef>(region);
@@ -25,6 +32,15 @@ export function useRegionTravel() {
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => () => clearTimeout(timer.current), []);
+
+  // a link we didn't follow (the night before the clouds are cleared): show where you really are
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const linked = url.searchParams.get("region");
+    if (linked === null || linked === regionRef.current.id || !isRegionId(linked)) return;
+    url.searchParams.set("region", regionRef.current.id);
+    window.history.replaceState(window.history.state, "", url);
+  }, []);
 
   const travel = useCallback((to: RegionId, onSwap: (next: RegionDef) => void) => {
     if (transitioning.current) return;

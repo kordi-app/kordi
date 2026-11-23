@@ -121,6 +121,12 @@ const homePortal = (color: string): PortalDef[] => [
 
 const CLOUDS = COURSES.clouds;
 const NIGHT = COURSES.night;
+/**
+ * A course's way back down: out in the front-left corner of the start area.
+ * Beside the start it sat half a step from the first platform, so a jump
+ * onto it could brush the portal and send you home.
+ */
+const backPortal = (course: CourseDef) => ({ x: course.start.x - 4.5, z: course.start.z + 0.6 });
 /** The one way off a course's summit: a portal at its back, behind the treasure. */
 const goalPortal = (course: CourseDef, to: RegionId, color: string): PortalDef => ({
   to,
@@ -244,7 +250,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     feature: "course",
     camera: [0, 4.5, 12],
     portals: [
-      { to: "hall", x: CLOUDS.start.x - 3, z: CLOUDS.start.z, color: "#8f7cff" },
+      { to: "hall", ...backPortal(CLOUDS), color: "#8f7cff" },
       // at the top, the only way on is into the night (home is back down at the start)
       goalPortal(CLOUDS, "night", "#5b6cff"),
     ],
@@ -274,7 +280,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     feature: "course",
     camera: [0, 4.5, 12],
     portals: [
-      { to: "clouds", x: NIGHT.start.x - 3, z: NIGHT.start.z, color: "#8f7cff" },
+      { to: "clouds", ...backPortal(NIGHT), color: "#8f7cff" },
       goalPortal(NIGHT, "hall", "#ffd36a"),
     ],
     course: NIGHT,
