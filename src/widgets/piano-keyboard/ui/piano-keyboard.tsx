@@ -30,6 +30,8 @@ interface PianoKeyboardProps {
  * centred. 32px: five octaves fit a laptop screen, and it's still a fair touch target.
  */
 const WHITE_KEY_PX = 32;
+/** A real white key is about 6.5× as long as it is wide (23.5 × 150 mm). */
+const KEY_LENGTH_RATIO = 6.5;
 
 // Black key offsets relative to the white key on the left (percentage of white key width)
 const BLACK_KEY_OFFSETS: Record<number, number> = {
@@ -119,7 +121,8 @@ export function PianoKeyboard({
         <div
           role="group"
           aria-label="Piano keyboard"
-          className="relative flex h-48 w-full select-none sm:h-56 md:h-64"
+          className="relative flex w-full select-none"
+          style={{ height: WHITE_KEY_PX * KEY_LENGTH_RATIO }}
         >
           {/* White keys */}
           {whiteKeys.map(({ midi }) => (
