@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "storybook": "storybook dev -p 6007",
     "build-storybook": "storybook build"
   },
@@ -54,6 +56,7 @@
     "storybook": "10.6.7",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vite": "^7.3.8"
+    "vite": "^7.3.8",
+    "vitest": "^3.2.7"
   }
 }

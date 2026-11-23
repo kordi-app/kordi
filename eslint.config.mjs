@@ -73,7 +73,7 @@ const eslintConfig = defineConfig([
   },
 
   // app/ is the top layer: nothing to ban but the public API contract.
-  // Also covers src/middleware.ts.
+  // Also covers src/proxy.ts.
   { rules: { "no-restricted-imports": ["error", { patterns: [PUBLIC_API] }] } },
 
   // Unidirectional imports, one block per layer below app/.
@@ -86,6 +86,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // tooling and build output, not app code
+    ".claude/**",
+    "storybook-static/**",
   ]),
 ]);
 
