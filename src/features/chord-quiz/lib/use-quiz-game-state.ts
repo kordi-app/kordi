@@ -2,7 +2,6 @@
 
 import { useReducer, useCallback } from "react";
 import {
-  QUIZ_TIME_PER_QUESTION_MS,
   type QuizAnswer,
   type QuizChordItem,
   type QuizDifficulty,
@@ -14,7 +13,6 @@ const INITIAL_STATE: QuizGameState = {
   difficulty: null,
   questions: [],
   currentIndex: 0,
-  timeLeft: QUIZ_TIME_PER_QUESTION_MS,
   answers: [],
 };
 
@@ -25,7 +23,6 @@ type Action =
       questions: QuizChordItem[];
     }
   | { type: "ANSWER"; answer: QuizAnswer; questionIndex: number }
-  | { type: "TICK"; timeLeft: number }
   | { type: "RESET" };
 
 function reducer(state: QuizGameState, action: Action): QuizGameState {
@@ -46,12 +43,9 @@ function reducer(state: QuizGameState, action: Action): QuizGameState {
         ...state,
         answers,
         currentIndex: isLast ? state.currentIndex : state.currentIndex + 1,
-        timeLeft: QUIZ_TIME_PER_QUESTION_MS,
         phase: isLast ? "result" : "playing",
       };
     }
-    case "TICK":
-      return { ...state, timeLeft: action.timeLeft };
     case "RESET":
       return INITIAL_STATE;
     default:
@@ -74,13 +68,9 @@ export function useQuizGameState() {
     dispatch({ type: "ANSWER", answer, questionIndex });
   }, []);
 
-  const tick = useCallback((timeLeft: number) => {
-    dispatch({ type: "TICK", timeLeft });
-  }, []);
-
   const reset = useCallback(() => {
     dispatch({ type: "RESET" });
   }, []);
 
-  return { state, startQuiz, answer, tick, reset };
+  return { state, startQuiz, answer, reset };
 }

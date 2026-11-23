@@ -39,7 +39,6 @@ export interface QuizGameState {
   difficulty: QuizDifficulty | null;
   questions: QuizChordItem[];
   currentIndex: number;
-  timeLeft: number;
   /** One entry per answered question, in order. */
   answers: QuizAnswer[];
 }

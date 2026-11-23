@@ -1,16 +1,19 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useChordCheck } from "@/shared/lib/music/use-chord-check";
 import type { ActiveNote } from "@/entities/note";
 import { scoreForTimeLeft, type QuizChordItem } from "@/entities/chord-quiz";
+
+const CHECK_COOLDOWN_MS = 600;
 
 interface UseQuizChordCheckOptions {
   currentChord: QuizChordItem | null;
   /** the question's index (a repeated chord is still a new question) */
   questionIndex: number;
   activeNotes: ActiveNote[];
-  timeLeft: number;
+  /** remaining time right now (read when an answer lands, so the timer never re-renders this) */
+  getTimeLeft: () => number;
   enabled: boolean;
   onCorrect: (score: number) => void;
   onIncorrect: () => void;
@@ -20,12 +23,21 @@ export function useQuizChordCheck({
   currentChord,
   questionIndex,
   activeNotes,
-  timeLeft,
+  getTimeLeft,
   enabled,
   onCorrect,
   onIncorrect,
 }: UseQuizChordCheckOptions) {
   const midiNotes = useMemo(() => activeNotes.map((n) => n.midi), [activeNotes]);
+
+  // a chord held from the previous answer is ignored during the cooldown; check
+  // once more when it ends so a chord still held then counts (not every frame)
+  const [checkTick, setCheckTick] = useState(0);
+  useEffect(() => {
+    if (!enabled) return;
+    const id = setTimeout(() => setCheckTick((n) => n + 1), CHECK_COOLDOWN_MS + 20);
+    return () => clearTimeout(id);
+  }, [questionIndex, enabled]);
 
   useChordCheck({
     targetChordName: currentChord?.name ?? null,
@@ -37,9 +49,9 @@ export function useQuizChordCheck({
     // chord is judged as a wrong answer before the chord can be completed
     debounceMs: 150,
     finalizeIncorrect: true,
-    // Timer ticks re-run validation so a chord held through the cooldown still registers
-    revalidateKey: timeLeft,
-    onCorrect: () => onCorrect(scoreForTimeLeft(timeLeft)),
+    cooldownMs: CHECK_COOLDOWN_MS,
+    revalidateKey: checkTick,
+    onCorrect: () => onCorrect(scoreForTimeLeft(getTimeLeft())),
     onIncorrect,
   });
 }

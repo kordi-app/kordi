@@ -26,7 +26,7 @@ const questions: QuizChordItem[] = CHORDS.map(([chordKey, chordType, notes], i) 
 }));
 
 function makeState(answers: QuizAnswer[]): QuizGameState {
-  return { phase: "result", difficulty: "MEDIUM", questions, currentIndex: questions.length - 1, timeLeft: 0, answers };
+  return { phase: "result", difficulty: "MEDIUM", questions, currentIndex: questions.length - 1, answers };
 }
 
 const goodAnswers: QuizAnswer[] = [

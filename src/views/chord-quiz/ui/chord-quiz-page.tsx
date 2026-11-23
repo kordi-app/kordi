@@ -1,10 +1,11 @@
 "use client";
 
+import type { ComponentProps } from "react";
 import { useTranslations } from "next-intl";
 import { usePianoInput } from "@/features/piano-player";
 import { getTotalScore } from "@/entities/chord-quiz";
 import { useQuizOrchestrator } from "@/features/chord-quiz";
-import { KeyboardBar, MidiStatus, PianoKeyboard } from "@/widgets/piano-keyboard";
+import { MidiStatus, PracticeKeyboard } from "@/widgets/piano-keyboard";
 import { ChordPrompt } from "@/widgets/chord-prompt";
 import {
   DifficultySelect,
@@ -14,17 +15,18 @@ import {
 } from "@/widgets/chord-quiz-panel";
 import { toDisplayChordName } from "@/shared/lib/music";
 import { Countdown } from "@/shared/ui/countdown";
-import { cn } from "@/shared/lib/utils";
+import { useStoreValue, type ValueStore } from "@/shared/lib/react/value-store";
 
 export function ChordQuizPage() {
   const t = useTranslations("chordQuiz");
-  const { activeNotes, isAudioStarted, isLoaded, startAudio, keyboard, midi, mouse, sound } =
-    usePianoInput();
+  const piano = usePianoInput();
+  const { activeNotes, isAudioStarted, startAudio, midi } = piano;
 
   const {
     state,
     currentChord,
     feedbackState,
+    timeLeft,
     showCountdown,
     isFetching,
     loadFailed,
@@ -88,10 +90,10 @@ export function ChordQuizPage() {
               <MidiStatus inline midiName={midi.selectedDevice?.name} fallback={t("noMidiDevice")} />
             </div>
 
-            <QuizProgress
+            <LiveQuizProgress
               currentIndex={state.currentIndex}
               totalCount={state.questions.length}
-              timeLeft={state.timeLeft}
+              timeLeft={timeLeft}
               totalScore={totalScore}
             />
 
@@ -103,34 +105,18 @@ export function ChordQuizPage() {
               />
             </div>
 
-            {/* the bar and the keyboard share one width (the keyboard\'s, or the page\'s if it scrolls) */}
-            <div className="mx-auto w-fit max-w-full">
-            <KeyboardBar
-              loading={isAudioStarted && !isLoaded}
-              octave={keyboard.octave}
-              isMuted={sound.isMuted}
-              onToggleMute={sound.toggleMute}
-            />
-            <div
-              className={cn(
-                "w-full rounded-lg transition-all duration-200",
-                feedbackState === "correct" && "ring-2 ring-ring",
-                feedbackState === "incorrect" &&
-                  "ring-2 ring-ring ring-offset-2 ring-offset-background",
-              )}
-            >
-              <PianoKeyboard
-                activeNotes={activeNotes}
-                onNoteOn={mouse.onNoteOn}
-                onNoteOff={mouse.onNoteOff}
-                showShortcuts
-                octave={keyboard.octave}
-              />
-            </div>
-            </div>
+            <PracticeKeyboard input={piano} feedback={feedbackState} />
           </div>
         </div>
       )}
     </>
   );
+}
+
+/** Subscribes to the countdown so only the progress bar re-renders as it ticks. */
+function LiveQuizProgress({
+  timeLeft,
+  ...props
+}: Omit<ComponentProps<typeof QuizProgress>, "timeLeft"> & { timeLeft: ValueStore<number> }) {
+  return <QuizProgress {...props} timeLeft={useStoreValue(timeLeft)} />;
 }

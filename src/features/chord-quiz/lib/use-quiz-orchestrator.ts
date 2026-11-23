@@ -17,6 +17,10 @@ import { useQuizFeedback } from "./use-quiz-feedback";
 import { useQuizTimer } from "./use-quiz-timer";
 import { useQuizChordCheck } from "./use-quiz-chord-check";
 import { saveScore } from "../api/save-score";
+import { createValueStore } from "@/shared/lib/react/value-store";
+
+/** the countdown display updates in these steps, not every frame */
+const TIME_DISPLAY_STEP_MS = 100;
 
 interface UseQuizOrchestratorArgs {
   activeNotes: ActiveNote[];
@@ -49,7 +53,20 @@ export function useQuizOrchestrator({
   const [loadFailed, setLoadFailed] = useState(false);
   const [pendingQuiz, setPendingQuiz] = useState<PendingQuiz | null>(null);
 
-  const { state, startQuiz, answer, tick, reset } = useQuizGameState();
+  const { state, startQuiz, answer, reset } = useQuizGameState();
+  // The countdown changes every frame. Kept out of React state so only the
+  // progress bar re-renders (10×/s via the store), not the page and keyboard;
+  // the exact value is read from the ref when scoring an answer.
+  const timeLeftRef = useRef(QUIZ_TIME_PER_QUESTION_MS);
+  const [timeLeftStore] = useState(() => createValueStore(QUIZ_TIME_PER_QUESTION_MS));
+  const tick = useCallback(
+    (remaining: number) => {
+      timeLeftRef.current = remaining;
+      timeLeftStore.set(Math.ceil(remaining / TIME_DISPLAY_STEP_MS) * TIME_DISPLAY_STEP_MS);
+    },
+    [timeLeftStore],
+  );
+  const getTimeLeft = useCallback(() => timeLeftRef.current, []);
   const { feedbackState, showCorrect, showIncorrect, showTimeout } =
     useQuizFeedback();
   const scoreMutation = useMutation({ mutationFn: saveScore });
@@ -132,7 +149,7 @@ export function useQuizOrchestrator({
     currentChord,
     questionIndex: state.currentIndex,
     activeNotes,
-    timeLeft: state.timeLeft,
+    getTimeLeft,
     enabled: state.phase === "playing",
     onCorrect: handleCorrect,
     onIncorrect: handleIncorrect,
@@ -172,6 +189,7 @@ export function useQuizOrchestrator({
     state,
     currentChord,
     feedbackState,
+    timeLeft: timeLeftStore,
     showCountdown: pendingQuiz !== null,
     isFetching,
     loadFailed,
