@@ -15,8 +15,9 @@ interface UseQuizChordCheckOptions {
   /** remaining time right now (read when an answer lands, so the timer never re-renders this) */
   getTimeLeft: () => number;
   enabled: boolean;
-  onCorrect: (score: number) => void;
-  onIncorrect: () => void;
+  /** provisional score (instant feedback) and the notes that were judged */
+  onCorrect: (score: number, notes: number[]) => void;
+  onIncorrect: (notes: number[]) => void;
 }
 
 export function useQuizChordCheck({
@@ -51,7 +52,7 @@ export function useQuizChordCheck({
     finalizeIncorrect: true,
     cooldownMs: CHECK_COOLDOWN_MS,
     revalidateKey: checkTick,
-    onCorrect: () => onCorrect(scoreForTimeLeft(getTimeLeft())),
+    onCorrect: (notes) => onCorrect(scoreForTimeLeft(getTimeLeft()), notes),
     onIncorrect,
   });
 }

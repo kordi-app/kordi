@@ -2,20 +2,27 @@
 
 import { useTranslations } from "next-intl";
 import {
-  QUIZ_MAX_TOTAL_SCORE,
   getCorrectCount,
   getTotalScore,
+  type QuizAnswerResult,
   type QuizGameState,
+  type QuizResult as ServerQuizResult,
 } from "@/entities/chord-quiz";
 import { toDisplayChordName } from "@/shared/lib/music";
 import { MonoCard } from "@/shared/ui/mono-card";
 import { Button } from "@/shared/ui/button";
 import { SectionHeader } from "@/shared/ui/section-header";
+import { cn } from "@/shared/lib/utils";
 
 interface QuizResultProps {
   state: QuizGameState;
+  /**
+   * The server's verdict. When present it is what is shown — total, per-question
+   * results — even where the local instant feedback disagreed. Until then the
+   * local numbers are shown, dimmed, as provisional.
+   */
+  result?: ServerQuizResult;
   isSaving: boolean;
-  isSaved: boolean;
   saveFailed?: boolean;
   onRetrySave?: () => void;
   onRetry: () => void;
@@ -24,16 +31,25 @@ interface QuizResultProps {
 
 export function QuizResult({
   state,
+  result,
   isSaving,
-  isSaved,
   saveFailed = false,
   onRetrySave,
   onRetry,
   onBackToSelect,
 }: QuizResultProps) {
   const t = useTranslations("chordQuiz");
-  const correctCount = getCorrectCount(state.answers);
+  const judged = result !== undefined;
+  const totalScore = result?.totalScore ?? getTotalScore(state.answers);
+  const correctCount = result?.correctCount ?? getCorrectCount(state.answers);
   const incorrectCount = state.questions.length - correctCount;
+  const rowResult = (i: number): { label: QuizAnswerResult; score: number } => {
+    const local = state.answers[i];
+    const server = result?.results[i];
+    if (!server) return { label: local?.result ?? "timeout", score: local?.score ?? 0 };
+    if (server.correct) return { label: "correct", score: server.score };
+    return { label: local?.result === "timeout" ? "timeout" : "incorrect", score: 0 };
+  };
 
   return (
     <div className="flex w-full max-w-md flex-col items-center gap-6 p-6">
@@ -41,14 +57,28 @@ export function QuizResult({
         {t("result")}
       </SectionHeader>
 
-      <div className="rounded-lg border border-border bg-primary px-10 py-6 text-center text-primary-foreground">
+      <div
+        className={cn(
+          "rounded-lg border border-border bg-primary px-10 py-6 text-center text-primary-foreground",
+          !judged && "opacity-60",
+        )}
+      >
         <div className="font-heading text-4xl font-semibold tabular-nums">
-          {getTotalScore(state.answers)}
+          {totalScore}
         </div>
         <div className="mt-1 text-xs font-semibold uppercase tracking-widest opacity-70">
-          / {QUIZ_MAX_TOTAL_SCORE} {t("maxScore")}
+          / {state.maxTotalScore} {t("maxScore")}
         </div>
       </div>
+
+      {judged ? (
+        <p className="text-xs font-semibold uppercase tracking-widest text-foreground tabular-nums">
+          {result.improved ? t("newBest") : t("best", { best: result.best })} ·{" "}
+          {t("rank", { rank: result.rank })}
+        </p>
+      ) : (
+        <p className="text-xs opacity-60">{t("provisional")}</p>
+      )}
 
       <div className="flex w-full gap-4">
         <StatBlock value={correctCount} label={t("correct")} />
@@ -56,7 +86,9 @@ export function QuizResult({
       </div>
 
       <div className="w-full overflow-hidden rounded-lg border border-border">
-        {state.questions.map((q, i) => (
+        {state.questions.map((q, i) => {
+          const row = rowResult(i);
+          return (
           <div
             key={q.id}
             className="flex items-center justify-between border-b border-border px-4 py-2 last:border-b-0"
@@ -69,18 +101,24 @@ export function QuizResult({
             </div>
             <div className="flex items-center gap-2">
               <span className="text-t1 font-semibold uppercase tracking-widest opacity-70">
-                {t(state.answers[i]?.result ?? "timeout")}
+                {t(row.label)}
               </span>
-              <span className="font-heading font-semibold tabular-nums text-foreground">
-                {state.answers[i]?.score ?? 0}
+              <span
+                className={cn(
+                  "font-heading font-semibold tabular-nums text-foreground",
+                  !judged && "opacity-60",
+                )}
+              >
+                {row.score}
               </span>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {isSaving && <p className="text-sm opacity-60">{t("saving")}</p>}
-      {isSaved && (
+      {judged && (
         <p className="text-xs font-semibold uppercase tracking-widest text-foreground">
           {t("saved")}
         </p>

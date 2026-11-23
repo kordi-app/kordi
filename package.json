@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "gen:api": "node scripts/gen-api.mjs",
+    "gen:chord-fixtures": "node scripts/gen-chord-fixtures.mjs",
     "test": "vitest run",
     "storybook": "storybook dev -p 6007",
     "build-storybook": "storybook build"

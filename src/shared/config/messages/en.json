@@ -347,7 +347,11 @@
     "retrySave": "Save again",
     "loadError": "Couldn't load the questions. Pick again",
     "loading": "Loading questions...",
-    "upNext": "Up next"
+    "upNext": "Up next",
+    "provisional": "Checking your answers — these numbers aren't final yet",
+    "newBest": "New best!",
+    "best": "Best {best}",
+    "rank": "Rank #{rank}"
   },
   "character": {
     "title": "Dress up my Kordi",

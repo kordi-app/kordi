@@ -1,13 +1,14 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { QUIZ_TIME_PER_QUESTION_MS } from "@/entities/chord-quiz";
 import { cn } from "@/shared/lib/utils";
 
 interface QuizProgressProps {
   currentIndex: number;
   totalCount: number;
   timeLeft: number;
+  /** the question's full time (from the quiz session) */
+  timePerQuestionMs: number;
   totalScore: number;
 }
 
@@ -15,11 +16,12 @@ export function QuizProgress({
   currentIndex,
   totalCount,
   timeLeft,
+  timePerQuestionMs,
   totalScore,
 }: QuizProgressProps) {
   const t = useTranslations("chordQuiz");
   const seconds = Math.ceil(timeLeft / 1000);
-  const progress = (timeLeft / QUIZ_TIME_PER_QUESTION_MS) * 100;
+  const progress = timePerQuestionMs > 0 ? (timeLeft / timePerQuestionMs) * 100 : 0;
 
   return (
     <div className="flex w-full max-w-4xl flex-col gap-3">

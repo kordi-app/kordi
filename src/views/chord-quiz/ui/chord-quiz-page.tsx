@@ -28,16 +28,20 @@ export function ChordQuizPage() {
     feedbackState,
     timeLeft,
     showCountdown,
+    countdownSeconds,
     isFetching,
     loadFailed,
-    scoreMutation,
+    resultMutation,
+    canRetrySubmit,
     handleSelectDifficulty,
     handleCountdownComplete,
     handleRetry,
+    handleRetrySubmit,
     handleBackToSelect,
   } = useQuizOrchestrator({ activeNotes, isAudioStarted, startAudio });
 
   const isPlaying = state.phase === "playing";
+  // provisional running total (local instant feedback); the result screen shows the server's
   const totalScore = getTotalScore(state.answers);
 
   return (
@@ -64,17 +68,17 @@ export function ChordQuizPage() {
             <p className="text-sm opacity-60">{t("loading")}</p>
           )}
 
-          {showCountdown && <Countdown onComplete={handleCountdownComplete} />}
+          {showCountdown && (
+            <Countdown from={countdownSeconds} onComplete={handleCountdownComplete} />
+          )}
 
           {state.phase === "result" && (
             <QuizResult
               state={state}
-              isSaving={scoreMutation.isPending}
-              isSaved={scoreMutation.isSuccess}
-              saveFailed={scoreMutation.isError}
-              onRetrySave={() => {
-                if (scoreMutation.variables) scoreMutation.mutate(scoreMutation.variables);
-              }}
+              result={resultMutation.data}
+              isSaving={resultMutation.isPending}
+              saveFailed={resultMutation.isError}
+              onRetrySave={canRetrySubmit ? handleRetrySubmit : undefined}
               onRetry={handleRetry}
               onBackToSelect={handleBackToSelect}
             />
@@ -94,6 +98,7 @@ export function ChordQuizPage() {
               currentIndex={state.currentIndex}
               totalCount={state.questions.length}
               timeLeft={timeLeft}
+              timePerQuestionMs={state.timePerQuestionMs}
               totalScore={totalScore}
             />
 

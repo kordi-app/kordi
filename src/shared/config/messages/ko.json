@@ -347,7 +347,11 @@
     "retrySave": "다시 저장",
     "loadError": "문제를 불러오지 못했어요. 다시 골라 주세요",
     "loading": "문제를 불러오는 중...",
-    "upNext": "다음"
+    "upNext": "다음",
+    "provisional": "채점 중이에요 — 아직 확정된 점수가 아니에요",
+    "newBest": "최고 기록 갱신!",
+    "best": "최고 {best}점",
+    "rank": "{rank}위"
   },
   "character": {
     "title": "내 캐릭터 꾸미기",

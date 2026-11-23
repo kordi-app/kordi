@@ -1,6 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { fn } from "storybook/test";
-import type { QuizAnswer, QuizChordItem, QuizChordType, QuizGameState } from "@/entities/chord-quiz";
+import type {
+  QuizAnswer,
+  QuizAnswerResult,
+  QuizChordItem,
+  QuizChordType,
+  QuizGameState,
+  QuizResult as ServerQuizResult,
+} from "@/entities/chord-quiz";
 import { QuizResult } from "./quiz-result";
 
 // [root, server ChordType, chord symbol suffix, notes] — the API sends the enum name, not the suffix
@@ -27,33 +34,64 @@ const questions: QuizChordItem[] = CHORDS.map(([chordKey, chordType, suffix, not
 }));
 
 function makeState(answers: QuizAnswer[]): QuizGameState {
-  return { phase: "result", difficulty: "MEDIUM", questions, currentIndex: questions.length - 1, answers };
+  return {
+    phase: "result",
+    difficulty: "MEDIUM",
+    sessionId: "story",
+    timePerQuestionMs: 20_000,
+    maxTotalScore: 2_000,
+    questions,
+    currentIndex: questions.length - 1,
+    answers,
+  };
+}
+
+/** A local answer; notes and time don't matter for display. */
+const a = (result: QuizAnswerResult, score: number): QuizAnswer => ({
+  result,
+  score,
+  notes: [],
+  elapsedMs: result === "timeout" ? 20_000 : 20_000 - score * 100,
+});
+
+/** The server agreeing with the local judgement. */
+function judged(answers: QuizAnswer[], rank: number, improved: boolean): ServerQuizResult {
+  const totalScore = answers.reduce((sum, x) => sum + x.score, 0);
+  return {
+    totalScore,
+    correctCount: answers.filter((x) => x.result === "correct").length,
+    totalCount: answers.length,
+    results: answers.map((x) => ({ correct: x.result === "correct", score: x.score })),
+    best: improved ? totalScore : 1_700,
+    rank,
+    improved,
+  };
 }
 
 const goodAnswers: QuizAnswer[] = [
-  { result: "correct", score: 182 },
-  { result: "correct", score: 175 },
-  { result: "correct", score: 168 },
-  { result: "correct", score: 190 },
-  { result: "incorrect", score: 0 },
-  { result: "correct", score: 186 },
-  { result: "correct", score: 151 },
-  { result: "correct", score: 129 },
-  { result: "correct", score: 164 },
-  { result: "correct", score: 193 },
+  a("correct", 182),
+  a("correct", 175),
+  a("correct", 168),
+  a("correct", 190),
+  a("incorrect", 0),
+  a("correct", 186),
+  a("correct", 151),
+  a("correct", 129),
+  a("correct", 164),
+  a("correct", 193),
 ];
 
 const poorAnswers: QuizAnswer[] = [
-  { result: "correct", score: 98 },
-  { result: "incorrect", score: 0 },
-  { result: "timeout", score: 0 },
-  { result: "correct", score: 64 },
-  { result: "incorrect", score: 0 },
-  { result: "timeout", score: 0 },
-  { result: "incorrect", score: 0 },
-  { result: "timeout", score: 0 },
-  { result: "correct", score: 41 },
-  { result: "incorrect", score: 0 },
+  a("correct", 98),
+  a("incorrect", 0),
+  a("timeout", 0),
+  a("correct", 64),
+  a("incorrect", 0),
+  a("timeout", 0),
+  a("incorrect", 0),
+  a("timeout", 0),
+  a("correct", 41),
+  a("incorrect", 0),
 ];
 
 const meta = {
@@ -62,8 +100,8 @@ const meta = {
   tags: ["autodocs"],
   args: {
     state: makeState(goodAnswers),
+    result: judged(goodAnswers, 3, true),
     isSaving: false,
-    isSaved: true,
     onRetry: fn(),
     onBackToSelect: fn(),
   },
@@ -74,11 +112,30 @@ type Story = StoryObj<typeof meta>;
 
 export const GoodScore: Story = {};
 
-export const PoorScore: Story = { args: { state: makeState(poorAnswers) } };
+export const PoorScore: Story = {
+  args: { state: makeState(poorAnswers), result: judged(poorAnswers, 41, false) },
+};
 
-export const Saving: Story = { args: { isSaving: true, isSaved: false } };
+/** Waiting for the server: the local numbers, dimmed. */
+export const Saving: Story = { args: { result: undefined, isSaving: true } };
+
+/** The server did not accept one of the local "correct" answers (e.g. too fast) — the server wins. */
+export const ServerDisagrees: Story = {
+  args: {
+    result: {
+      ...judged(goodAnswers, 5, false),
+      totalScore: judged(goodAnswers, 5, false).totalScore - 182,
+      correctCount: 8,
+      results: judged(goodAnswers, 5, false).results.map((r, i) =>
+        i === 0 ? { correct: false, score: 0 } : r,
+      ),
+    },
+  },
+};
+
+export const SaveFailed: Story = { args: { result: undefined, saveFailed: true, onRetrySave: fn() } };
 
 /** Fewer answers than questions — the rest are shown as timeouts. */
 export const Unfinished: Story = {
-  args: { state: makeState(goodAnswers.slice(0, 6)), isSaved: false },
+  args: { state: makeState(goodAnswers.slice(0, 6)), result: undefined },
 };

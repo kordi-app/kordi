@@ -3,25 +3,24 @@
 import { useReducer, useCallback } from "react";
 import {
   type QuizAnswer,
-  type QuizChordItem,
   type QuizDifficulty,
   type QuizGameState,
+  type QuizSession,
 } from "@/entities/chord-quiz";
 
 const INITIAL_STATE: QuizGameState = {
   phase: "select",
   difficulty: null,
+  sessionId: null,
+  timePerQuestionMs: 0,
+  maxTotalScore: 0,
   questions: [],
   currentIndex: 0,
   answers: [],
 };
 
 type Action =
-  | {
-      type: "START_QUIZ";
-      difficulty: QuizDifficulty;
-      questions: QuizChordItem[];
-    }
+  | { type: "START_QUIZ"; difficulty: QuizDifficulty; session: QuizSession }
   | { type: "ANSWER"; answer: QuizAnswer; questionIndex: number }
   | { type: "RESET" };
 
@@ -32,7 +31,10 @@ function reducer(state: QuizGameState, action: Action): QuizGameState {
         ...INITIAL_STATE,
         phase: "playing",
         difficulty: action.difficulty,
-        questions: action.questions,
+        sessionId: action.session.sessionId,
+        timePerQuestionMs: action.session.timePerQuestionMs,
+        maxTotalScore: action.session.maxTotalScore,
+        questions: action.session.questions,
       };
     case "ANSWER": {
       // A timeout and a correct chord can land in the same frame — only the first counts
@@ -57,8 +59,8 @@ export function useQuizGameState() {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
 
   const startQuiz = useCallback(
-    (difficulty: QuizDifficulty, questions: QuizChordItem[]) => {
-      dispatch({ type: "START_QUIZ", difficulty, questions });
+    (difficulty: QuizDifficulty, session: QuizSession) => {
+      dispatch({ type: "START_QUIZ", difficulty, session });
     },
     [],
   );

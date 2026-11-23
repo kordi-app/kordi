@@ -31,8 +31,9 @@ interface UseChordCheckOptions {
   rivals?: readonly string[];
   /** Extra dependency that re-triggers validation while notes are held (e.g. a timer tick). */
   revalidateKey?: unknown;
-  onCorrect: () => void;
-  onIncorrect: () => void;
+  /** Called with the notes that were judged (the ones held when the check fired). */
+  onCorrect: (notes: number[]) => void;
+  onIncorrect: (notes: number[]) => void;
 }
 
 export function useChordCheck({
@@ -55,8 +56,8 @@ export function useChordCheck({
   /** which target+notes the pending debounced check is for */
   const pendingKeyRef = useRef<string | null>(null);
   const enabledRef = useRef(enabled);
-  const reportCorrect = useEffectEvent(() => onCorrect());
-  const reportIncorrect = useEffectEvent(() => onIncorrect());
+  const reportCorrect = useEffectEvent((notes: number[]) => onCorrect(notes));
+  const reportIncorrect = useEffectEvent((notes: number[]) => onIncorrect(notes));
 
   useEffect(() => {
     answeredRef.current = false;
@@ -95,12 +96,12 @@ export function useChordCheck({
     const check = () => {
       if (validateChord(targetChordName, midiNotes, rivals)) {
         answeredRef.current = true;
-        reportCorrect();
+        reportCorrect(midiNotes);
       } else if (midiNotes.length >= INCORRECT_MIN_NOTES && !isPartialChord(targetChordName, midiNotes)) {
         // part of the right chord is one still being formed — e.g. the left-hand root
         // and the first notes of a rolled right hand — not a wrong answer
         if (finalizeIncorrect) answeredRef.current = true;
-        reportIncorrect();
+        reportIncorrect(midiNotes);
       }
     };
 

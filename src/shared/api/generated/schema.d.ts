@@ -29,7 +29,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["submit"];
+        post: operations["submit_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -260,6 +260,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/quiz/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quiz/sessions/{sessionId}/result": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/rankings": {
         parameters: {
             query?: never;
@@ -285,6 +317,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @deprecated */
         post: operations["saveScore"];
         delete?: never;
         options?: never;
@@ -471,6 +504,12 @@ export interface components {
                 [key: string]: string;
             };
         };
+        ApiResponseQuizResultResponse: {
+            data: components["schemas"]["QuizResultResponse"];
+        };
+        ApiResponseQuizSessionResponse: {
+            data: components["schemas"]["QuizSessionResponse"];
+        };
         ApiResponseScoreResponse: {
             data: components["schemas"]["ScoreResponse"];
         };
@@ -531,6 +570,11 @@ export interface components {
         FriendshipStatus: "PENDING" | "ACCEPTED" | "REJECTED" | "CANCELLED";
         /** @enum {string} */
         OAuthProvider: "GOOGLE" | "NAVER" | "KAKAO";
+        QuizAnswerRequest: {
+            /** Format: int32 */
+            elapsedMs: number;
+            notes: number[];
+        };
         QuizChordResponse: {
             chordKey: string;
             chordType: components["schemas"]["ChordType"];
@@ -539,6 +583,41 @@ export interface components {
             id: number;
             name: string;
             notes: string;
+        };
+        QuizQuestionResult: {
+            correct: boolean;
+            /** Format: int32 */
+            score: number;
+        };
+        QuizResultRequest: {
+            answers: components["schemas"]["QuizAnswerRequest"][];
+        };
+        QuizResultResponse: {
+            /** Format: int32 */
+            best: number;
+            /** Format: int32 */
+            correctCount: number;
+            improved: boolean;
+            /** Format: int64 */
+            rank: number;
+            results: components["schemas"]["QuizQuestionResult"][];
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            totalScore: number;
+        };
+        QuizSessionResponse: {
+            /** Format: int32 */
+            countdownMs: number;
+            /** Format: int32 */
+            maxTotalScore: number;
+            questions: components["schemas"]["QuizChordResponse"][];
+            sessionId: string;
+            /** Format: int32 */
+            timePerQuestionMs: number;
+        };
+        QuizSessionStartRequest: {
+            difficulty: components["schemas"]["Difficulty"];
         };
         RankingResponse: {
             /** Format: int32 */
@@ -631,7 +710,7 @@ export interface operations {
             };
         };
     };
-    submit: {
+    submit_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -1145,6 +1224,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponseListQuizChordResponse"];
+                };
+            };
+            /** @description Error (CoreExceptionCode) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuizSessionStartRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponseQuizSessionResponse"];
+                };
+            };
+            /** @description Error (CoreExceptionCode) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    submit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuizResultRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponseQuizResultResponse"];
                 };
             };
             /** @description Error (CoreExceptionCode) */
