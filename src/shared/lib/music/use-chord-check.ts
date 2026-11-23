@@ -61,6 +61,13 @@ export function useChordCheck({
   useEffect(() => {
     answeredRef.current = false;
     lastChangeRef.current = performance.now();
+    // a check still pending for the previous question must not judge this one
+    // (e.g. a chord finished just before a timeout would score the next question)
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+      pendingKeyRef.current = null;
+    }
   }, [targetChordName, questionKey]);
 
   useEffect(() => {
