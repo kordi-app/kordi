@@ -77,12 +77,19 @@ export function AdventureStage({ view, clock }: { view: AdventureView; clock: Re
   const newWorld = fighting && round === 1;
 
   return (
-    <div className={cn("relative w-full overflow-hidden rounded-card bg-palette-gray-1000 shadow-pixel", pixelFont.className)}>
+    // a card like the rest of the page (soft shadow, hairline edge); the canvas is
+    // rounded itself too — a pixelated canvas can escape its parent's rounded clip
+    <div
+      className={cn(
+        "relative isolate w-full overflow-hidden rounded-card bg-palette-gray-1000 shadow-raised ring-1 ring-palette-gray-1000/15",
+        pixelFont.className,
+      )}
+    >
       <canvas
         ref={canvas}
         width={W}
         height={H}
-        className="block aspect-[2/1] w-full [image-rendering:pixelated]"
+        className="block aspect-[2/1] w-full rounded-[inherit] [image-rendering:pixelated]"
         role="img"
         aria-label={t("stageLabel")}
       />
