@@ -4,6 +4,9 @@ import { memo, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { CASE_H, PRESS_DEPTH, WHITE_L, keySpan, keysIn, type KeyDef, type KeyRange } from "../model/layout";
+
+/** the back edge of the keyboard case (the white keys end 0.6 in front of it) */
+const BACK = -0.15 - (WHITE_L + 0.9) / 2;
 import type { RegionTheme } from "../model/regions";
 
 /** Underdamped: a pressed key overshoots a little and wobbles back, like a real key. */
@@ -137,6 +140,21 @@ export const PianoFloor = memo(function PianoFloor({
         <boxGeometry args={[caseWidth, CASE_H, WHITE_L + 0.9]} />
         <meshStandardMaterial color={theme.keyboardCase} roughness={0.5} />
       </mesh>
+      {/* like a real piano: the fallboard behind the keys, a strip of red felt, and end blocks */}
+      <mesh position={[caseX, CASE_H + 0.27, BACK + 0.15]} castShadow receiveShadow>
+        <boxGeometry args={[caseWidth, 0.54, 0.3]} />
+        <meshStandardMaterial color={theme.keyboardCase} roughness={0.35} />
+      </mesh>
+      <mesh position={[caseX, CASE_H + 0.025, BACK + 0.36]}>
+        <boxGeometry args={[caseWidth - 0.2, 0.05, 0.12]} />
+        <meshStandardMaterial color="#8c2f39" roughness={1} />
+      </mesh>
+      {[-1, 1].map((side) => (
+        <mesh key={side} position={[caseX + side * (caseWidth / 2 + 0.25), 0.2, -0.15]} castShadow receiveShadow>
+          <boxGeometry args={[0.5, 0.4, WHITE_L + 0.9]} />
+          <meshStandardMaterial color={theme.keyboardCase} roughness={0.35} />
+        </mesh>
+      ))}
 
       <KeyRow
         key={`white-${id}`}

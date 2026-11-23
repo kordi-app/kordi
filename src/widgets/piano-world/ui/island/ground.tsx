@@ -81,9 +81,38 @@ function paintGround() {
   ctx.arc(px(TOWER.x), pz(TOWER.z), 9 * PX_PER_UNIT, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
-  // the keyboard plaza: pale stone with a border
-  softRect(-35, 35, -9.5, 15.5, "#d9cfbd", 6.5, 4);
-  softRect(-34, 34, -9, 15, "#f3eee4", 6, 1);
+  // the keyboard plaza: a worn border, then pale paving slabs in a running bond
+  softRect(-35, 35, -9.5, 15.5, "#cfc3ad", 6.5, 4);
+  softRect(-34, 34, -9, 15, "#e8e0d2", 6, 1);
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(px(-33.2), pz(-8.2), 66.4 * PX_PER_UNIT, 22.4 * PX_PER_UNIT, 5.4 * PX_PER_UNIT);
+  ctx.clip();
+  const SLAB = 2;
+  for (let row = 0, z = -8.2; z < 14.2; row++, z += SLAB) {
+    for (let x = -33.2 - (row % 2) * (SLAB / 2); x < 33.2; x += SLAB) {
+      const tone = 236 + Math.floor(hash(row * 131 + Math.round(x * 7), 61) * 14);
+      ctx.fillStyle = `rgb(${tone + 6}, ${tone + 1}, ${tone - 9})`;
+      ctx.fillRect(px(x) + 1, pz(z) + 1, SLAB * PX_PER_UNIT - 2, SLAB * PX_PER_UNIT - 2);
+    }
+  }
+  // an inlaid stave across the open front of the plaza, with a few notes resting on it
+  const STAVE = { x0: -22, x1: 22, z: 10.2, gap: 0.45 };
+  ctx.strokeStyle = "#c4b597";
+  ctx.lineWidth = 0.12 * PX_PER_UNIT;
+  for (let line = 0; line < 5; line++) {
+    ctx.beginPath();
+    ctx.moveTo(px(STAVE.x0), pz(STAVE.z + line * STAVE.gap));
+    ctx.lineTo(px(STAVE.x1), pz(STAVE.z + line * STAVE.gap));
+    ctx.stroke();
+  }
+  ctx.fillStyle = "#b9a888";
+  [[-14, 3], [-10, 2], [-6, 4], [-2, 1], [3, 3], [7, 2], [11, 0], [15, 2]].forEach(([x, step]) => {
+    ctx.beginPath();
+    ctx.ellipse(px(x), pz(STAVE.z + (4 - step) * STAVE.gap), 0.32 * PX_PER_UNIT, 0.22 * PX_PER_UNIT, -0.35, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.restore();
   for (let i = 0; i < 9000; i++) {
     const x = GROUND.x0 + hash(i, 91) * (GROUND.x1 - GROUND.x0);
     const z = GROUND.z0 + hash(i, 92) * (GROUND.z1 - GROUND.z0);

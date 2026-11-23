@@ -48,6 +48,58 @@ const TRIM = "#e9dfcb";
 const SLATE = "#5b6b8c";
 const LEVELS = [TOWER.top / 3, (TOWER.top * 2) / 3];
 
+/** The tower's two see-through parts, as boxes (world space): ground → roof, and roof → spire tip. */
+const REACH = TOWER.half + 0.6;
+const BODY_BOX = { x0: TOWER.x - REACH, x1: TOWER.x + REACH, y0: 0, y1: TOWER.top, z0: TOWER.z - REACH, z1: TOWER.z + REACH };
+const TOP_BOX = { ...BODY_BOX, y0: TOWER.top, y1: TOWER.top + BELFRY.height + BELFRY.spire + 2 };
+type Box = typeof BODY_BOX;
+const scratchHead = new THREE.Vector3();
+
+/** Does the segment a→b pass through the box? (slab test) */
+function segmentHitsBox(a: THREE.Vector3, b: THREE.Vector3, box: Box) {
+  let t0 = 0;
+  let t1 = 1;
+  for (const [from, to, lo, hi] of [
+    [a.x, b.x, box.x0, box.x1],
+    [a.y, b.y, box.y0, box.y1],
+    [a.z, b.z, box.z0, box.z1],
+  ] as const) {
+    const d = to - from;
+    if (Math.abs(d) < 1e-9) {
+      if (from < lo || from > hi) return false;
+      continue;
+    }
+    let near = (lo - from) / d;
+    let far = (hi - from) / d;
+    if (near > far) [near, far] = [far, near];
+    t0 = Math.max(t0, near);
+    t1 = Math.min(t1, far);
+    if (t0 > t1) return false;
+  }
+  return true;
+}
+
+/** Every material under the groups, made fadeable (transparent, still fully opaque until faded). */
+function collectFading(body: THREE.Group | null, tops: (THREE.Group | null)[]) {
+  if (!body || tops.some((g) => !g)) return null;
+  const gather = (groups: (THREE.Group | null)[]) => {
+    const found = new Set<THREE.Material>();
+    for (const group of groups) {
+      group?.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+          m.transparent = true;
+          m.needsUpdate = true;
+          found.add(m);
+        }
+      });
+    }
+    return [...found];
+  };
+  return { body: gather([body]), top: gather(tops) };
+}
+
 /** An arched opening set into a wall face (drawn just proud of it). */
 function ArchWindow({ width, height, color = "#2f2a33" }: { width: number; height: number; color?: string }) {
   return (
@@ -126,29 +178,36 @@ export function BellTower({ player }: { player: THREE.Vector3 }) {
   }, []);
   useEffect(() => () => stone.dispose(), [stone]);
   const bell = useRef<THREE.Group>(null);
-  const walls = useRef<THREE.MeshStandardMaterial>(null);
-  const spire = useRef<THREE.MeshStandardMaterial>(null);
+  const body = useRef<THREE.Group>(null);
+  const top = useRef<THREE.Group>(null);
+  const fading = useRef<{ body: THREE.Material[]; top: THREE.Material[] } | null>(null);
   const hands = useRef<(THREE.Group | null)[]>([]);
   const last = useRef(0);
 
-  useFrame(({ clock }, delta) => {
+  useFrame(({ clock, camera }, delta) => {
     const now = clock.getElapsedTime();
     if (bell.current) {
       const t = sinceHit("bell", now);
       bell.current.rotation.z = t < 6 ? Math.sin(t * 5) * 0.45 * Math.exp(-t * 0.7) : 0;
     }
-    // see-through when Kordi is behind the tower (or up on its roof, under the spire)
-    const behind =
-      player.z < TOWER.z + 1 && Math.abs(player.x - TOWER.x) < TOWER.half + 4 && player.z > TOWER.z - TOWER.half - 6;
-    const onRoof = player.y > TOWER.top - 6 && Math.hypot(player.x - TOWER.x, player.z - TOWER.z) < TOWER.half + 3;
-    const ease = 1 - Math.exp(-delta * 6);
-    for (const [material, fade] of [
-      [walls.current, behind && player.y < TOWER.top - 0.5],
-      [spire.current, onRoof],
-    ] as const) {
-      if (!material) continue;
-      material.opacity += ((fade ? 0.22 : 1) - material.opacity) * ease;
-      material.depthWrite = material.opacity > 0.95;
+    // see-through whenever the tower stands between the camera and Kordi: the body
+    // (ground to roof) and the top (belfry, spire, bell) each fade as a whole
+    fading.current ??= collectFading(body.current, [top.current, bell.current]);
+    if (fading.current) {
+      const head = scratchHead.set(player.x, player.y + 0.8, player.z);
+      const onRoof = player.y > TOWER.top - 1 && Math.abs(player.x - TOWER.x) < TOWER.half + 0.4 && Math.abs(player.z - TOWER.z) < TOWER.half + 0.4;
+      const fadeBody = !onRoof && segmentHitsBox(camera.position, head, BODY_BOX);
+      const fadeTop = onRoof || segmentHitsBox(camera.position, head, TOP_BOX);
+      const ease = 1 - Math.exp(-delta * 6);
+      for (const [materials, fade] of [
+        [fading.current.body, fadeBody],
+        [fading.current.top, fadeTop],
+      ] as const) {
+        for (const material of materials) {
+          material.opacity += ((fade ? 0.22 : 1) - material.opacity) * ease;
+          material.depthWrite = material.opacity > 0.95;
+        }
+      }
     }
     // the clocks show the real local time
     if (now - last.current > 0.5) {
@@ -166,6 +225,7 @@ export function BellTower({ player }: { player: THREE.Vector3 }) {
   return (
     <group>
       <group position={[TOWER.x, 0, TOWER.z]}>
+        <group ref={body}>
         {/* plinth */}
         <mesh position={[0, 0.45, 0]} castShadow receiveShadow>
           <boxGeometry args={[size + 0.8, 0.9, size + 0.8]} />
@@ -174,7 +234,7 @@ export function BellTower({ player }: { player: THREE.Vector3 }) {
         {/* the shaft */}
         <mesh position={[0, roofY / 2, 0]} castShadow receiveShadow>
           <boxGeometry args={[size - 0.1, roofY, size - 0.1]} />
-          <meshStandardMaterial ref={walls} map={stone} transparent roughness={0.9} />
+          <meshStandardMaterial map={stone} roughness={0.9} />
         </mesh>
         {/* corner quoins */}
         {[-1, 1].flatMap((sx) =>
@@ -214,11 +274,14 @@ export function BellTower({ player }: { player: THREE.Vector3 }) {
             )}
           </group>
         ))}
-        {/* roof deck, battlements and belfry */}
+        {/* roof deck (part of the body: it stays solid under Kordi's feet) */}
         <mesh position={[0, roofY - 0.2, 0]} castShadow receiveShadow>
           <boxGeometry args={[size + 0.5, 0.4, size + 0.5]} />
           <meshStandardMaterial color={TRIM} roughness={0.8} />
         </mesh>
+        </group>
+        {/* battlements, belfry and spire */}
+        <group ref={top}>
         {MERLONS.map((m, i) => (
           <mesh key={i} position={[m.x - TOWER.x, roofY + 0.38, m.z - TOWER.z]} castShadow>
             <boxGeometry args={[MERLON_SIZE, 0.8, MERLON_SIZE]} />
@@ -246,7 +309,7 @@ export function BellTower({ player }: { player: THREE.Vector3 }) {
           </mesh>
           <mesh position={[0, 0.3 + BELFRY.spire / 2, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
             <coneGeometry args={[(BELFRY.inset + 0.6) * Math.SQRT2, BELFRY.spire, 4]} />
-            <meshStandardMaterial ref={spire} color={SLATE} transparent roughness={0.6} flatShading />
+            <meshStandardMaterial color={SLATE} roughness={0.6} flatShading />
           </mesh>
           <mesh position={[0, 0.4 + BELFRY.spire, 0]}>
             <sphereGeometry args={[0.28, 16, 12]} />
@@ -262,6 +325,7 @@ export function BellTower({ player }: { player: THREE.Vector3 }) {
               <meshStandardMaterial color={GOLD} metalness={0.3} roughness={0.3} />
             </mesh>
           </group>
+        </group>
         </group>
       </group>
       {/* the bell swings from the crossbeam */}

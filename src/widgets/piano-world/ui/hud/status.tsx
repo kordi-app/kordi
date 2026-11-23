@@ -20,23 +20,6 @@ export function RegionLabel({ region, copy }: { region: RegionDef; copy: PianoWo
   );
 }
 
-/**
- * "Xylophone Bridge": fades in at the top when you walk into a named place on
- * the island, then fades away. Keyed by place so each arrival replays it.
- */
-export function ZoneBanner({ name }: { name: string | null }) {
-  if (!name) return null;
-  return (
-    <div
-      key={name}
-      aria-live="polite"
-      className="pointer-events-none absolute left-1/2 top-[30%] -translate-x-1/2 animate-[zone-banner_2.8s_ease-out_forwards] text-center motion-reduce:animate-none"
-    >
-      <p className="rounded-full border border-border bg-card/90 px-5 py-1.5 text-sm font-semibold text-foreground shadow-md">{name}</p>
-    </div>
-  );
-}
-
 /** Top-right: the note you're standing on (or, where a band plays, the chord you just played). */
 export function NoteDisplay({ note }: { note: string | null }) {
   return (

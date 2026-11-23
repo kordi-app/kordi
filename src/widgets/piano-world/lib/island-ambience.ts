@@ -11,7 +11,6 @@ import {
   WARP_REACH,
   WARP_STONES,
   islandHits,
-  zoneAt,
   type WarpStoneId,
 } from "../model/island";
 
@@ -29,8 +28,6 @@ export interface AmbienceEvents {
   bell: () => void;
   /** the warp stone in reach changed */
   warpNearby: (id: WarpStoneId | null) => void;
-  /** you walked into a different named place */
-  zone: (id: WarpStoneId | null) => void;
 }
 
 /** Per-player memory between frames. */
@@ -38,10 +35,9 @@ export interface Ambience {
   played: Map<string, number>;
   lastX: number;
   warp: WarpStoneId | null;
-  zone: WarpStoneId | null;
 }
 
-export const createAmbience = (): Ambience => ({ played: new Map(), lastX: 0, warp: null, zone: null });
+export const createAmbience = (): Ambience => ({ played: new Map(), lastX: 0, warp: null });
 
 /** Forget where you were (on arrival somewhere new), reporting the reset. */
 export function resetAmbience(a: Ambience, x: number, events: AmbienceEvents) {
@@ -101,10 +97,5 @@ export function stepAmbience(
   if (stone !== a.warp) {
     a.warp = stone;
     events.warpNearby(stone);
-  }
-  const zone = zoneAt(pos.x, pos.z);
-  if (zone !== a.zone) {
-    a.zone = zone;
-    events.zone(zone);
   }
 }

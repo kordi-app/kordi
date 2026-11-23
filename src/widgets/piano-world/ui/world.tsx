@@ -78,8 +78,6 @@ export interface WorldEvents {
   onVoice: (voice: VoiceId, midi: number, velocity: number) => void;
   /** the warp stone now in reach (island only) */
   onWarpNearby: (id: WarpStoneId | null) => void;
-  /** the named place on the island you're in (null between places) */
-  onZone: (id: WarpStoneId | null) => void;
   /** whether you're on the keyboard plaza (the melody game only shows there) */
   onNearKeys: (near: boolean) => void;
 }
@@ -192,7 +190,6 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     () => ({
       voice: events.onVoice,
       warpNearby: events.onWarpNearby,
-      zone: events.onZone,
       bell: () => {
         const p = sim.current.pos;
         fx.current?.confetti(p.x, p.y, p.z);
