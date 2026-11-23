@@ -31,11 +31,14 @@ export function ChordAdventurePage() {
   return (
     // sits high on the page: the game screen and the keyboard should fit in one view
     <div className="w-full px-page-x pt-4 pb-page-y md:px-page-x-wide md:pt-5">
-      <div className="mx-auto w-full max-w-4xl space-y-3">
-        <MidiStatus midiName={midi.selectedDevice?.name} fallback={t("noMidiDevice")} />
+      {/* the game screen (2:1) and the keyboard share one width: as wide as the window allows,
+          but short enough that the keyboard stays visible below (~24rem for keyboard + chrome) */}
+      <div className="mx-auto w-full max-w-[min(80rem,max(26rem,calc((100svh-24rem)*2)))] space-y-3">
+        <div className="flex justify-end">
+          <MidiStatus inline midiName={midi.selectedDevice?.name} fallback={t("noMidiDevice")} />
+        </div>
 
-        {/* the screen shrinks on short windows so the keyboard stays visible below it (2:1 stage) */}
-        <div className="relative mx-auto w-full max-w-[min(56rem,max(26rem,calc((100svh-24rem)*2)))]">
+        <div className="relative w-full">
           <AdventureStage view={view} clock={clock} />
 
           {/* over the screen where it fits; on phones the screen is too short for it, so it sits below */}
@@ -92,6 +95,7 @@ export function ChordAdventurePage() {
           onNoteOff={mouse.onNoteOff}
           showShortcuts
           octave={keyboard.octave}
+          className="max-w-none"
         />
       </div>
     </div>
