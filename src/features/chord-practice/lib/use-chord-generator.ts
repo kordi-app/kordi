@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import {
   createChordDeck,
   generateChordPool,
@@ -9,7 +9,7 @@ import {
 } from "@/shared/lib/music";
 import { DIFFICULTY_CHORD_TYPES, type DrillSettings } from "@/entities/chord-practice";
 
-function getChordTypes(settings: DrillSettings): ChordType[] {
+export function getChordTypes(settings: DrillSettings): ChordType[] {
   if (settings.difficulty === "custom") {
     return settings.customChordTypes;
   }
@@ -24,12 +24,16 @@ export function useChordGenerator(settings: DrillSettings) {
     [chordTypes, settings.keyFilter]
   );
 
-  // a fresh deck whenever the pool changes (difficulty, chord types or key)
-  const deck = useMemo(() => createChordDeck(pool), [pool]);
+  // a fresh deck whenever the pool changes (difficulty, chord types or key). Kept in a ref:
+  // a memo may be thrown away and recomputed, which would reshuffle mid-cycle.
+  const deck = useRef<{ pool: typeof pool; deck: ReturnType<typeof createChordDeck> } | null>(null);
 
   const generateNext = useCallback(
-    (previousName: string | null): GeneratedChord => deck.next(previousName),
-    [deck]
+    (previousName: string | null): GeneratedChord => {
+      if (deck.current?.pool !== pool) deck.current = { pool, deck: createChordDeck(pool) };
+      return deck.current.deck.next(previousName);
+    },
+    [pool]
   );
 
   return { generateNext, poolSize: pool.length };

@@ -7,7 +7,19 @@ const CHORD_TYPES_LONGEST_FIRST = Object.keys(CHORD_TEMPLATES).toSorted(
   (a, b) => b.length - a.length
 );
 
-function parseChordName(
+/** Other spellings of a chord suffix the server data uses (e.g. "C69" for C6/9). */
+const SUFFIX_ALIASES: readonly [RegExp, string][] = [[/69$/, "6/9"]];
+
+function parseChordName(name: string): { rootIndex: number; type: ChordType } | null {
+  const direct = parseCanonical(name);
+  if (direct) return direct;
+  for (const [pattern, canonical] of SUFFIX_ALIASES) {
+    if (pattern.test(name)) return parseCanonical(name.replace(pattern, canonical));
+  }
+  return null;
+}
+
+function parseCanonical(
   name: string
 ): { rootIndex: number; type: ChordType } | null {
   for (const type of CHORD_TYPES_LONGEST_FIRST) {
@@ -70,17 +82,25 @@ const OPTIONAL: Partial<Record<ChordType, number[]>> = {
  */
 function chordRules(targetChordName: string) {
   const parsed = parseChordName(targetChordName);
-  if (!parsed) return null;
-  const template = CHORD_TEMPLATES[parsed.type];
+  return parsed ? rulesFor(parsed.rootIndex, parsed.type) : null;
+}
+
+function rulesFor(root: number, type: ChordType) {
+  const template = CHORD_TEMPLATES[type];
   if (!template) return null;
-  const fifthOptional = template.length >= 4 && template.includes(PERFECT_FIFTH);
-  const optional = OPTIONAL[parsed.type] ?? [];
+  // only a chord with a 7th may drop its 5th: on a 6th or add9 chord the 5th is what keeps
+  // it from being another chord (C–E–A is Am/C, not C6)
+  const hasSeventh = template.includes(10) || template.includes(11);
+  const fifthOptional = hasSeventh && template.includes(PERFECT_FIFTH);
+  const optional = OPTIONAL[type] ?? [];
   return {
-    root: parsed.rootIndex,
+    type,
+    template,
+    root,
     required: template.filter(
       (interval) => !(fifthOptional && interval === PERFECT_FIFTH) && !optional.includes(interval),
     ),
-    allowed: new Set([...template, ...(TENSIONS[parsed.type] ?? [])]),
+    allowed: new Set([...template, ...(TENSIONS[type] ?? [])]),
   };
 }
 
@@ -97,8 +117,18 @@ export function isPartialChord(targetChordName: string, playedMidiNotes: number[
   const rules = chordRules(targetChordName);
   if (!rules || playedMidiNotes.length === 0) return false;
   const played = intervalsAbove(rules.root, playedMidiNotes);
-  return played.every((i) => rules.allowed.has(i)) && !rules.required.every((i) => played.includes(i));
+  // "still forming" means only the chord's skeleton so far (its required tones, plus the 5th):
+  // not its optional tensions — on a 13th those cover the whole scale, and any diatonic chord
+  // would pass as "forming" and never count as wrong
+  const core = new Set([...rules.required, ...(rules.template.includes(PERFECT_FIFTH) ? [PERFECT_FIFTH] : [])]);
+  return played.every((i) => core.has(i)) && !rules.required.every((i) => played.includes(i));
 }
+
+const ALL_TYPES = Object.keys(CHORD_TEMPLATES) as ChordType[];
+
+/** Does `played` (intervals above the root) make a chord with these rules? */
+const matches = (rules: NonNullable<ReturnType<typeof chordRules>>, played: number[]) =>
+  rules.required.every((i) => played.includes(i)) && played.every((i) => rules.allowed.has(i));
 
 /**
  * Whether the played notes make the target chord, in any octave or inversion:
@@ -106,11 +136,30 @@ export function isPartialChord(targetChordName: string, playedMidiNotes: number[
  * tensions. So a seventh chord may drop its 5th and add a 9th (or 11th/13th
  * where they fit) — LH root + RH rootless voicing counts — and an 11th or
  * 13th needs only its core (see OPTIONAL). Triads are exact.
+ *
+ * `rivals` are the chord types that could be asked instead (a drill's pool). If
+ * the notes also make one of them that extends the target — Cmaj9 played for a
+ * Cmaj7 — they answer that chord, not this one; otherwise a pool holding both
+ * could never teach the difference. Defaults to every chord type (strict).
  */
-export function validateChord(targetChordName: string, playedMidiNotes: number[]): boolean {
+export function validateChord(
+  targetChordName: string,
+  playedMidiNotes: number[],
+  rivals: readonly string[] = ALL_TYPES,
+): boolean {
   if (playedMidiNotes.length === 0) return false;
   const rules = chordRules(targetChordName);
   if (!rules) return false;
   const played = intervalsAbove(rules.root, playedMidiNotes);
-  return rules.required.every((i) => played.includes(i)) && played.every((i) => rules.allowed.has(i));
+  if (!matches(rules, played)) return false;
+  const target = new Set(rules.template);
+  for (const type of rivals as ChordType[]) {
+    const template = CHORD_TEMPLATES[type];
+    if (!template || type === rules.type) continue;
+    const extendsTarget = template.length > target.size && [...target].every((i) => template.includes(i));
+    if (!extendsTarget) continue;
+    const rival = rulesFor(rules.root, type);
+    if (rival && matches(rival, played)) return false;
+  }
+  return true;
 }

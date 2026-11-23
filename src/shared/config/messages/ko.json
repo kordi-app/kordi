@@ -19,6 +19,7 @@
       "community": "커뮤니티"
     },
     "nav": {
+      "world": "피아노 월드",
       "piano": "자유 연주",
       "practice": "코드 연습",
       "quiz": "코드 퀴즈",
@@ -149,11 +150,11 @@
         "maryLamb": "떴다 떴다 비행기"
       },
       "melodyNext": "다음",
-      "melodyHint": "같은 음이 이어지면 점프(Space)로 다시 밟아요",
+      "melodyHint": "같은 음이 이어지면 점프({jump})로 다시 밟아요",
       "melodyDone": "완성!",
       "melodyNextSong": "다음 곡을 준비하는 중…",
       "courseTitle": "꼭대기까지 올라가 보세요",
-      "courseHint": "Space로 점프 · 떨어지면 처음부터 다시",
+      "courseHint": "{jump}로 점프 · 떨어지면 처음부터 다시",
       "nightTitle": "빛이 닿는 건반만 밟을 수 있어요",
       "nightHint": "조명이 비출 때 건너세요 · 떨어지면 처음부터",
       "courseRankingTitle": "역대 랭킹",
@@ -256,6 +257,7 @@
       "warpHere": "지금 여기",
       "warpAsleep": "아직 찾지 못했어요",
       "jukeboxStyle": "밴드가 {style} 연주해요",
+      "jukeboxStyleQuiet": "소리를 켜면 밴드가 {style} 연주해요",
       "loungeStyles": {
         "swing": "스윙으로",
         "bossa": "보사노바로",

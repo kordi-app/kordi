@@ -4,10 +4,6 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from "react"
 import {
   disposeSampler,
   disposeVoices,
-  houseStab,
-  isHousePlaying,
-  startHouse,
-  stopHouse,
   ensureAudioStarted,
   getCurrentInstrumentId,
   loadInstrument,
@@ -19,6 +15,7 @@ import {
   type VoiceId,
   type WarpEffect,
 } from "@/shared/lib/audio";
+import { houseStab, isHousePlaying, startHouse, stopHouse } from "./house-groove";
 import { useCallbackRef } from "@/shared/lib/react/use-callback-ref";
 import { midiToNoteName } from "@/shared/lib/music";
 import { isLoungeBandPlaying, playLoungeStep, startLoungeBand, stopLoungeBand } from "./lounge-band";

@@ -30,10 +30,13 @@ export interface PianoWorldCopy {
   wishSent: string;
   /** "{style}" is filled in: what the lounge band switched to */
   jukeboxStyle: string;
+  /** the band is silent (sound off): the style is queued for when it plays */
+  jukeboxStyleQuiet: string;
   loungeStyles: Record<LoungeStyle, string>;
   // melody game
   melodies: Record<Melody["key"], string>;
   melodyNext: string;
+  /** "{jump}" marks the jump control (Space, or the on-screen button on touch) */
   melodyHint: string;
   melodyDone: string;
   melodyNextSong: string;

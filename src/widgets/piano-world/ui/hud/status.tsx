@@ -30,7 +30,7 @@ export function ZoneBanner({ name }: { name: string | null }) {
     <div
       key={name}
       aria-live="polite"
-      className="pointer-events-none absolute left-1/2 top-24 -translate-x-1/2 animate-[zone-banner_2.8s_ease-out_forwards] text-center motion-reduce:animate-none"
+      className="pointer-events-none absolute left-1/2 top-[30%] -translate-x-1/2 animate-[zone-banner_2.8s_ease-out_forwards] text-center motion-reduce:animate-none"
     >
       <p className="rounded-full border border-border bg-card/90 px-5 py-1.5 text-sm font-semibold text-foreground shadow-md">{name}</p>
     </div>
@@ -83,7 +83,7 @@ function PresencePanel({ info, copy }: { info: PresenceInfo; copy: PianoWorldCop
   );
 }
 
-/** Bottom-left: who's around, and whether sound is on. */
+/** Bottom-left: who's around, and whether sound is on (lifted above the on-screen controls on touch). */
 export function StatusStack({
   info,
   audio,
@@ -95,7 +95,7 @@ export function StatusStack({
 }) {
   const audioLabel = audio === "on" ? copy.soundOn : audio === "loading" ? copy.soundLoading : copy.soundOff;
   return (
-    <div className="pointer-events-none absolute bottom-4 left-4 flex flex-col items-start gap-2 md:bottom-5 md:left-6">
+    <div className="pointer-events-none absolute bottom-4 left-4 flex flex-col items-start gap-2 md:bottom-5 md:left-6 pointer-coarse:bottom-32">
       <PresencePanel info={info} copy={copy} />
       <div className={cn(CHIP, "flex items-center gap-2 px-3 py-1 text-xs text-muted-foreground shadow-none")}>
         <span className={cn("size-1.5 rounded-full", audio === "on" ? "bg-success" : "bg-foreground/25")} />

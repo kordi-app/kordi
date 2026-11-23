@@ -36,14 +36,14 @@ function withVolume<T extends { volume: { value: number } }>(instrument: T, db: 
 function makeSynth(options: Record<string, unknown>): Tone.PolySynth {
   const s = new Tone.PolySynth(Tone.Synth);
   s.set(options);
-  s.maxPolyphony = 16;
+  s.maxPolyphony = 40; // two-hand chords with a long release need room
   return s.toDestination();
 }
 
 function makeFMSynth(options: Record<string, unknown>): Tone.PolySynth {
   const s = new Tone.PolySynth(Tone.FMSynth);
   s.set(options);
-  s.maxPolyphony = 16;
+  s.maxPolyphony = 40; // two-hand chords with a long release need room
   return s.toDestination();
 }
 
@@ -91,7 +91,7 @@ const INSTRUMENT_STRATEGIES: Record<InstrumentId, InstrumentFactory> = {
       oscillator: { type: "sine4" },
       envelope: { attack: 0.01, decay: 0.1, sustain: 0.9, release: 0.5 },
     });
-    s.maxPolyphony = 16;
+    s.maxPolyphony = 40; // two-hand chords with a long release need room
     const hall = new Tone.Reverb({ decay: 2.6, preDelay: 0.02, wet: 0.3 });
     s.chain(hall, Tone.getDestination());
     // the reverb lives and dies with the instrument
@@ -112,7 +112,7 @@ const INSTRUMENT_STRATEGIES: Record<InstrumentId, InstrumentFactory> = {
       filter: { type: "lowpass", Q: 1.5, rolloff: -24 },
       filterEnvelope: { attack: 0.005, decay: 0.3, sustain: 0.35, release: 0.6, baseFrequency: 400, octaves: 3.2 },
     });
-    s.maxPolyphony = 16;
+    s.maxPolyphony = 40; // two-hand chords with a long release need room
     return withVolume(s.toDestination(), -11);
   },
 };

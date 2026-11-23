@@ -5,7 +5,7 @@ import type { ActiveNote } from "@/entities/note";
 import type { DrillSettings } from "@/entities/chord-practice";
 import { useDrillState } from "../model/use-drill-state";
 import { useMetronome } from "./use-metronome";
-import { useChordGenerator } from "./use-chord-generator";
+import { getChordTypes, useChordGenerator } from "./use-chord-generator";
 import { useChordValidator } from "./use-chord-validator";
 
 export function useDrillGame(
@@ -25,6 +25,8 @@ export function useDrillGame(
   } = useDrillState();
 
   const { generateNext } = useChordGenerator(settings);
+  // the chord types in play: a voicing that makes another of them answers that one
+  const poolTypes = getChordTypes(settings);
   const barCountRef = useRef(0);
   // Bar at which the current chord appeared — early correct answers move this
   // anchor so the next chord gets its full barsPerChord instead of inheriting
@@ -67,6 +69,7 @@ export function useDrillGame(
     activeNotes,
     targetChordName: state.currentChord?.name ?? null,
     questionKey: state.totalAttempted,
+    rivals: poolTypes,
     enabled: state.status === "playing",
     onCorrect: handleCorrect,
     onIncorrect: handleIncorrect,

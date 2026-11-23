@@ -1,4 +1,5 @@
 import * as Tone from "tone";
+import { leaseTransport, type TransportLease } from "@/shared/lib/audio";
 import { VOICINGS, blockChord, chordSymbol, compVoicing, createImproviser, harmonyAt, rootAndFifth, walkingBar, type Harmony, type Voicing } from "../model/standards";
 
 /**
@@ -6,7 +7,10 @@ import { VOICINGS, blockChord, chordSymbol, compVoicing, createImproviser, harmo
  * vibraphone that plays your line in block chords, the moment you step.
  * The jukebox switches what the band plays: swing, bossa nova or a ballad.
  *
- * One band at a time; start() is idempotent and stop() frees everything.
+ * One band at a time; start() is idempotent and stop() frees everything. The
+ * instruments are built once per start; switching style only swaps the
+ * pattern and tempo, so the vibes keep ringing and the reverb isn't rebuilt.
+ * The band borrows the shared clock through a transport lease.
  */
 export type LoungeStyle = "swing" | "bossa" | "ballad";
 export const LOUNGE_STYLES: readonly LoungeStyle[] = ["swing", "bossa", "ballad"];
@@ -76,9 +80,20 @@ const STYLES: Record<LoungeStyle, StyleDef> = {
 /** Levels, set so the band plus your line sits around the piano's loudness (K-weighted RMS). */
 const LEVELS = { cymbal: -30, hat: -32, rim: -26, bass: -14, comp: -20, vibes: -14 };
 
+interface Instruments {
+  cymbal: Tone.NoiseSynth;
+  hat: Tone.NoiseSynth;
+  rim: Tone.MembraneSynth;
+  bass: Tone.MonoSynth;
+  comp: Tone.PolySynth;
+}
+
 interface Band {
   nodes: Tone.ToneAudioNode[];
-  events: number[];
+  lease: TransportLease;
+  instruments: Instruments;
+  /** the current style's scheduled hits (swapped by the jukebox) */
+  pattern: number[];
   vibes: Tone.PolySynth;
   improviser: ReturnType<typeof createImproviser>;
 }
@@ -95,12 +110,10 @@ const barAt = (time: number) => {
 
 /** Start the band in the current style (once audio has been started by a gesture). */
 export function startLoungeBand() {
-  if (band || Tone.getContext().state !== "running") return;
-  const def = STYLES[style];
-  const transport = Tone.getTransport();
-  transport.bpm.value = def.bpm;
-  transport.swing = def.swing;
-  transport.swingSubdivision = "8n";
+  if (Tone.getContext().state !== "running") return;
+  if (band?.lease.active) return;
+  stopLoungeBand(); // a band that lost the clock: free its synths first
+  const lease = leaseTransport();
 
   // cymbal: a shimmering wash of filtered noise with a long tail
   // (MetalSynth throws when retriggered on a repeating schedule, so noise it is)
@@ -154,9 +167,23 @@ export function startLoungeBand() {
   vibes.connect(vibesTrem);
   vibes.volume.value = LEVELS.vibes;
 
-  // each part's hits repeat every bar, at their place in it
-  const every = (at: string, play: (time: number) => void) => transport.scheduleRepeat(play, "1m", at);
-  const events = [
+  const instruments: Instruments = { cymbal, hat, rim, bass, comp };
+  band = {
+    nodes: [cymbal, cymbalTone, hat, hatTone, rim, bass, comp, compTrem, vibes, vibesTrem, vibesRoom],
+    lease,
+    instruments,
+    pattern: schedulePattern(lease, instruments, STYLES[style]),
+    vibes,
+    improviser: createImproviser(),
+  };
+  lease.start();
+}
+
+/** Set the style's tempo and feel, and schedule its hits to repeat every bar. Returns their ids. */
+function schedulePattern(lease: TransportLease, { cymbal, hat, rim, bass, comp }: Instruments, def: StyleDef) {
+  lease.set({ bpm: def.bpm, swing: def.swing, swingSubdivision: "8n" });
+  const every = (at: string, play: (time: number) => void) => lease.repeat(play, "1m", at);
+  return [
     ...def.cymbal.map(([at, d, v]) => every(at, (t) => cymbal.triggerAttackRelease(d, t, v))),
     ...def.hat.map(([at, d, v]) => every(at, (t) => hat.triggerAttackRelease(d, t, v))),
     ...def.rim.map(([at, d, v]) => every(at, (t) => rim.triggerAttackRelease("G5", d, t, v))),
@@ -170,36 +197,29 @@ export function startLoungeBand() {
       every(at, (t) => comp.triggerAttackRelease(compVoicing(harmonyAt(barAt(t))).map(note), d, t, v)),
     ),
   ];
-
-  transport.start("+0.05");
-  band = {
-    nodes: [cymbal, cymbalTone, hat, hatTone, rim, bass, comp, compTrem, vibes, vibesTrem, vibesRoom],
-    events,
-    vibes,
-    improviser: createImproviser(),
-  };
 }
 
 /** Stop the band and free its synths. */
 export function stopLoungeBand() {
   if (!band) return;
-  const transport = Tone.getTransport();
-  band.events.forEach((id) => transport.clear(id));
-  transport.stop();
-  transport.position = 0;
-  transport.swing = 0;
+  band.lease.release();
   band.nodes.forEach((node) => node.dispose());
   band = null;
 }
 
-export const isLoungeBandPlaying = () => band !== null;
+/** False once another player has taken the shared clock (the band is silent then). */
+export const isLoungeBandPlaying = () => band?.lease.active ?? false;
 
-/** The jukebox: switch to the next style (restarting the band in it, if it's playing). */
+/**
+ * The jukebox: switch to the next style. A playing band swaps only its pattern
+ * and tempo — same instruments, same room, the clock keeps running (so the
+ * changes carry on where they were and a ringing phrase isn't cut off).
+ */
 export function nextLoungeStyle(): LoungeStyle {
   style = LOUNGE_STYLES[(LOUNGE_STYLES.indexOf(style) + 1) % LOUNGE_STYLES.length];
-  if (band) {
-    stopLoungeBand();
-    startLoungeBand();
+  if (band?.lease.active) {
+    band.lease.clear(band.pattern);
+    band.pattern = schedulePattern(band.lease, band.instruments, STYLES[style]);
   }
   return style;
 }

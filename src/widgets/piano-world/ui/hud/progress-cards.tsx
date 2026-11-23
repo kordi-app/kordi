@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { ChevronsUp } from "lucide-react";
 import { rankingQueries } from "@/entities/ranking";
 import { midiToNoteName } from "@/shared/lib/music";
 import { COURSES } from "../../model/course";
@@ -10,7 +11,25 @@ import type { PianoWorldCopy } from "../../model/copy";
 import type { Melody } from "../../model/melodies";
 import type { MelodyProgress } from "../../lib/use-melody-game";
 
-/** Shared shape: title + value on top, a progress bar, a hint line. */
+/** Fill "{jump}" with the jump control: the Space key, or on touch screens the jump button's icon. */
+function withJumpKey(template: string): ReactNode {
+  const [before, after] = template.split("{jump}");
+  if (after === undefined) return template;
+  return (
+    <>
+      {before}
+      <span className="pointer-coarse:hidden">Space</span>
+      <ChevronsUp aria-label="jump" className="hidden size-3.5 align-[-0.2em] pointer-coarse:inline" />
+      {after}
+    </>
+  );
+}
+
+/**
+ * Shared shape: title + value on top, a progress bar, a hint line. Centered at
+ * the top on wide screens; on narrower ones it drops below the corner chips
+ * (place name, note) so it never covers them.
+ */
 function ProgressCard({
   title,
   value,
@@ -27,7 +46,7 @@ function ProgressCard({
   footer?: ReactNode;
 }) {
   return (
-    <div className="pointer-events-none absolute left-1/2 top-5 w-[min(20rem,calc(100%-2rem))] -translate-x-1/2 rounded-xl border border-border bg-card/90 px-4 py-3 shadow-sm md:top-6">
+    <div className="pointer-events-none absolute left-4 top-[5.5rem] w-[min(20rem,calc(100%-2rem))] rounded-xl border border-border bg-card/90 px-4 py-3 shadow-sm md:left-6 lg:left-1/2 lg:top-6 lg:-translate-x-1/2">
       <div className="flex items-baseline justify-between gap-3">
         <p className="truncate text-sm font-semibold text-foreground">{title}</p>
         <div className="shrink-0">{value}</div>
@@ -67,7 +86,7 @@ export function MelodyCard({
       barClass="bg-warning"
       hint={
         next !== null
-          ? `${copy.melodyNext} ${midiToNoteName(next)} · ${copy.melodyHint}`
+          ? withJumpKey(`${copy.melodyNext} ${midiToNoteName(next)} · ${copy.melodyHint}`)
           : copy.melodyNextSong
       }
     />
@@ -128,7 +147,7 @@ export function CourseCard({ run, isGuest, copy }: { run: CourseRun; isGuest: bo
       value={<span className="text-lg font-semibold tabular-nums text-foreground">{formatTime(elapsed)}</span>}
       ratio={run.reached / COURSES[run.course].goalIndex}
       barClass={night ? "bg-palette-yellow-300" : "bg-palette-purple-500"}
-      hint={run.best !== null ? `${copy.courseBest} ${formatTime(run.best)}` : night ? copy.nightHint : copy.courseHint}
+      hint={run.best !== null ? `${copy.courseBest} ${formatTime(run.best)}` : night ? copy.nightHint : withJumpKey(copy.courseHint)}
       footer={<CourseRanking run={run} isGuest={isGuest} copy={copy} />}
     />
   );
