@@ -1,29 +1,15 @@
-export type QuizDifficulty = "EASY" | "MEDIUM" | "HARD";
+import type { ApiSchema } from "@/shared/api";
 
-export interface QuizChordItem {
-  id: number;
-  chordKey: string;
-  chordType: string;
-  name: string;
-  notes: string;
-  difficulty: QuizDifficulty;
-}
+export type QuizDifficulty = ApiSchema<"Difficulty">;
 
-export interface SaveScoreRequest {
-  difficulty: QuizDifficulty;
-  totalScore: number;
-  correctCount: number;
-  totalCount: number;
-}
+/** Server ChordType enum (MAJOR, MINOR_SEVENTH, ...), not a chord symbol suffix. */
+export type QuizChordType = ApiSchema<"ChordType">;
 
-export interface ScoreRecord {
-  id: number;
-  difficulty: QuizDifficulty;
-  totalScore: number;
-  correctCount: number;
-  totalCount: number;
-  createdAt: string;
-}
+export type QuizChordItem = ApiSchema<"QuizChordResponse">;
+
+export type SaveScoreRequest = ApiSchema<"ScoreRequest">;
+
+export type ScoreRecord = ApiSchema<"ScoreResponse">;
 
 export type QuizPhase = "select" | "playing" | "result";
 

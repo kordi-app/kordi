@@ -1,9 +1,9 @@
-import { bffClient } from "@/shared/api";
+import { bffClient, type ApiSchema } from "@/shared/api";
 import type { Friendship } from "@/entities/friendship";
 
 export function sendFriendRequest(receiverId: number): Promise<Friendship> {
   return bffClient
-    .post("friendships", { json: { receiverId } })
+    .post("friendships", { json: { receiverId } satisfies ApiSchema<"FriendshipRequest"> })
     .json<Friendship>();
 }
 

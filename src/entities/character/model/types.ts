@@ -1,3 +1,5 @@
+import type { ApiSchema, AssertTrue, FitsContract } from "@/shared/api";
+
 export type BodyColor = "cream" | "sky" | "pink" | "mint" | "lemon" | "lilac" | "cocoa";
 export type HatId = "crown" | "star-crown" | "ribbon" | "beret" | "headphones" | "flower";
 export type FaceId = "default" | "smile" | "sparkle" | "sleepy";
@@ -17,6 +19,11 @@ export interface MyCharacter {
   /** reward items unlocked by finishing jump courses */
   unlocked: HatId[];
 }
+
+// The server sends plain strings; the client narrows them to catalog ids. These
+// fail to compile if the server DTOs gain, lose or rename a field.
+type _AppearanceContract = AssertTrue<FitsContract<Appearance, ApiSchema<"AppearanceDto">>>;
+type _MyCharacterContract = AssertTrue<FitsContract<MyCharacter, ApiSchema<"CharacterResponse">>>;
 
 /** Gestures Kordi can perform (the world's emote ids). */
 export type KordiEmote = "wave" | "clap" | "dance" | "sit";

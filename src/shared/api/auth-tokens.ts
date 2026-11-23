@@ -2,6 +2,7 @@ import ky from "ky";
 import type { NextResponse } from "next/server";
 import { API_BASE_URL } from "@/shared/config/api";
 import { AUTH_COOKIES, COOKIE_OPTIONS, LOGIN_NONCE_TTL, TOKEN_TTL } from "@/shared/config/auth";
+import type { ApiSchema } from "./contract";
 import { unwrap, type ApiEnvelope } from "./envelope";
 
 /**
@@ -10,10 +11,7 @@ import { unwrap, type ApiEnvelope } from "./envelope";
  * `reissueTokens()` in auth-tokens.server.ts, which reads the cookie itself.
  */
 
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-}
+export type AuthTokens = ApiSchema<"TokenResponse">;
 
 /** Exchanges a refresh token for a fresh pair. Null when reissue fails. */
 export async function reissueWithRefreshToken(

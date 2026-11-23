@@ -2,6 +2,7 @@
 // import from "@/entities/chord-quiz/server" instead.
 export type {
   QuizDifficulty,
+  QuizChordType,
   QuizChordItem,
   SaveScoreRequest,
   ScoreRecord,

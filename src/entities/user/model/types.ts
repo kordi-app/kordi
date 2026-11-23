@@ -1,11 +1,7 @@
-/** The signed-in user's own profile (includes private fields). */
-export interface User {
-  id: number;
-  email: string;
-  nickname: string;
-  profileImageUrl: string | null;
-  oAuthProvider: "GOOGLE";
-}
+import type { ApiSchema } from "@/shared/api";
+
+/** The signed-in user's own profile (includes private fields). GET /api/users/me */
+export type User = ApiSchema<"UserResponse">;
 
 /** Another user's public profile, as returned by user search. */
-export type PublicUser = Pick<User, "id" | "nickname" | "profileImageUrl">;
+export type PublicUser = ApiSchema<"UserSearchResponse">;

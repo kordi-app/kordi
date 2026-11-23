@@ -1,19 +1,13 @@
-export interface RankingEntry {
-  nickname: string;
-  profileImageUrl: string | null;
-  totalScore: number;
-  correctCount: number;
-  totalCount: number;
-}
+import type { ApiSchema } from "@/shared/api";
 
-export type RankingDifficulty = "EASY" | "MEDIUM" | "HARD";
+export type RankingEntry = ApiSchema<"RankingResponse">;
 
-/** Jump courses in the home world (their region names). */
+export type RankingDifficulty = ApiSchema<"Difficulty">;
+
+/**
+ * Jump courses in the home world (their region names). The server takes a plain
+ * string here (validated against its Course enum), so the spec can't type it.
+ */
 export type RankedCourse = "clouds" | "night";
 
-export interface CourseRankingEntry {
-  rank: number;
-  nickname: string;
-  profileImageUrl: string | null;
-  timeMs: number;
-}
+export type CourseRankingEntry = ApiSchema<"CourseRankingResponse">;

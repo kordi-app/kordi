@@ -1,10 +1,5 @@
-export type FriendshipStatus = "PENDING" | "ACCEPTED" | "REJECTED" | "CANCELLED";
+import type { ApiSchema } from "@/shared/api";
 
-export interface Friendship {
-  id: number;
-  senderId: number;
-  senderNickname: string;
-  receiverId: number;
-  receiverNickname: string;
-  status: FriendshipStatus;
-}
+export type FriendshipStatus = ApiSchema<"FriendshipStatus">;
+
+export type Friendship = ApiSchema<"FriendshipResponse">;

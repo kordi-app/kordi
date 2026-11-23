@@ -1,3 +1,4 @@
+import type { ApiSchema } from "@/shared/api";
 import type { AdventureScene } from "./rules";
 
 export type AdventurePhase = "ready" | "loading" | "intro" | "playing" | "victory" | "dying" | "over";
@@ -27,17 +28,7 @@ export interface AdventureClock {
   lastAnswerUsed: number;
 }
 
-export interface AdventureRankingEntry {
-  rank: number;
-  nickname: string;
-  profileImageUrl: string | null;
-  defeated: number;
-}
+export type AdventureRankingEntry = ApiSchema<"AdventureRankingResponse">;
 
 /** POST /api/adventure/records response */
-export interface AdventureRecordResult {
-  defeated: number;
-  bestDefeated: number;
-  rank: number;
-  saved: boolean;
-}
+export type AdventureRecordResult = ApiSchema<"AdventureResult">;
