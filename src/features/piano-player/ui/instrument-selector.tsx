@@ -26,9 +26,8 @@ export function InstrumentSelector() {
         await loadInstrument(id);
         setActiveId(id);
       } catch {
+        // a failed load keeps the previous instrument playing; nothing to restore
         toast.error(t("loadFailed"));
-        // the failed load already dropped the previous sound: bring it back
-        await loadInstrument(activeId).catch(() => {});
       } finally {
         setLoading(false);
       }
