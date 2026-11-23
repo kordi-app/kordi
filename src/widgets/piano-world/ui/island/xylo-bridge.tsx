@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { BRIDGE_DEPTH, XYLO_BARS, XYLO_BAR_WIDTH } from "../../model/island";
+import { BRIDGE_DEPTH, XYLO_BARS, XYLO_BAR_WIDTH } from "../../engine/island";
 import { GOLD, WOOD, mergeParts, sinceHit, useBuilt } from "./shared";
 
 const BAR_THICKNESS = 0.14;

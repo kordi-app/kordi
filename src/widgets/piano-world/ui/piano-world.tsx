@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import type { PianoWorldCopy } from "../model/copy";
+import type { PianoWorldCopy } from "./copy";
 
 // three.js is ~600 KB and needs WebGL — load it on the client only, after the page shell
 const PianoWorldScene = dynamic(() => import("./piano-world-scene"), {

@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { DRUMS } from "../../model/island";
+import { DRUMS } from "../../engine/island";
 import { GOLD, sinceHit, useBuilt } from "./shared";
 
 /** The skin sits just above the shell's cap so the two never z-fight */

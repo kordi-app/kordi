@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ChevronsUp } from "lucide-react";
-import type { Direction } from "../../model/physics";
+import type { Direction } from "../../engine/physics";
 
 const PAD_BUTTON =
   "flex size-12 touch-none select-none items-center justify-center rounded-xl border border-border bg-card/90 text-foreground shadow-sm active:bg-muted";

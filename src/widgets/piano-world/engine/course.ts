@@ -15,7 +15,17 @@
  * - night ("Night Keys"): steps only exist while a sweeping searchlight is on them
  */
 
-export type CourseId = "clouds" | "night";
+import {
+  COURSE_BOUNDS,
+  COURSE_CLIMBS,
+  COURSE_FLOOR_HEIGHT,
+  COURSE_START,
+  FIRST_STEP_Y,
+  type CourseId,
+} from "./course-contract";
+
+// The server times runs on these courses: the numbers it shares live in course-contract.ts.
+export type { CourseId } from "./course-contract";
 
 export interface Platform {
   x: number;
@@ -107,7 +117,7 @@ function buildPlatforms({ steps, rise, baseNote, whiteWidth, behaviors = {} }: L
     const kind: Platform["kind"] = isTurn ? "rest" : i % 4 === 3 ? "black" : "white";
     platforms.push({
       x,
-      y: 0.8 + i * rise,
+      y: FIRST_STEP_Y + i * rise,
       z: isTurn ? (FRONT_Z + BACK_Z) / 2 : forward ? FRONT_Z : BACK_Z,
       width: kind === "rest" ? 2.2 : kind === "black" ? 0.8 : whiteWidth,
       depth: kind === "rest" ? -BACK_Z + 1.6 : kind === "black" ? 1.2 : 1.6,
@@ -140,9 +150,13 @@ function defineCourse(id: CourseId, layout: LayoutOptions, beams?: readonly Beam
     id,
     platforms,
     goalIndex: platforms.length - 1,
-    start: { x: -6, z: 2.6 },
+    start: { x: COURSE_START.x, z: COURSE_START.z },
     // reach the back of the summit, where the portal stands
-    bounds: { x: 12, zMin: Math.min(-4.5, goal.z - goal.depth / 2 - 0.4), zMax: 4 },
+    bounds: {
+      x: COURSE_BOUNDS.x,
+      zMin: Math.min(COURSE_BOUNDS.zMin, goal.z - goal.depth / 2 - 0.4),
+      zMax: COURSE_BOUNDS.zMax,
+    },
     beams,
   };
 }
@@ -158,14 +172,13 @@ export function goalSpots(course: CourseDef) {
 
 export const COURSES: Record<CourseId, CourseDef> = {
   clouds: defineCourse("clouds", {
-    steps: 26,
-    rise: 0.7,
+    ...COURSE_CLIMBS.clouds,
     baseNote: 48, // C3 upward
     whiteWidth: 1.3,
     behaviors: { 5: "slide", 13: "slide", 21: "slide", 10: "crumble", 18: "crumble", 12: "bounce" },
   }),
   // two lights at different speeds, so a lit path comes round within a few seconds
-  night: defineCourse("night", { steps: 22, rise: 0.75, baseNote: 57, whiteWidth: 1.45 }, [
+  night: defineCourse("night", { ...COURSE_CLIMBS.night, baseNote: 57, whiteWidth: 1.45 }, [
     // slow enough to ride: from a landing, roughly 2 in 5 departures make it to the next one
     { amplitude: 9, period: 11, phase: 0, width: 5.5 },
     { amplitude: 9, period: 15, phase: Math.PI, width: 4.5 },
@@ -301,7 +314,7 @@ export function courseGround(
   z: number,
   y: number,
 ): { height: number; index: number | null } {
-  let best = { height: 0, index: null as number | null };
+  let best = { height: COURSE_FLOOR_HEIGHT, index: null as number | null };
   course.platforms.forEach((p, index) => {
     if (!isSolid(course, index)) return;
     if (overlaps(course, index, x, z, FOOT_RADIUS) && p.y <= y + STEP_UP && p.y > best.height) {

@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CHORD_CARD_COUNT, chordCard, type ChordCard } from "../model/chord-cards";
-import type { PianoWorldCopy } from "../model/copy";
-import type { InteractableId } from "../model/interactables";
-import type { WarpStoneId } from "../model/island";
-import { MUSIC_BOX, playSequence } from "../model/sequencer";
-import { isLoungeBandPlaying, nextLoungeStyle } from "./lounge-band";
+import { CHORD_CARD_COUNT, chordCard, type ChordCard } from "../../engine/chord-cards";
+import type { PianoWorldCopy } from "../copy";
+import type { InteractableId } from "../../engine/interactables";
+import type { WarpStoneId } from "../../engine/island";
+import { MUSIC_BOX, playSequence } from "../../audio/sequencer";
+import { isLoungeBandPlaying, nextLoungeStyle } from "../../audio/lounge-band";
 
 /** Overlay panels opened by interactables */
 export type Panel =

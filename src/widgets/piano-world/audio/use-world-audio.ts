@@ -19,8 +19,8 @@ import { houseStab, isHousePlaying, startHouse, stopHouse } from "./house-groove
 import { useCallbackRef } from "@/shared/lib/react/use-callback-ref";
 import { midiToNoteName } from "@/shared/lib/music";
 import { isLoungeBandPlaying, playLoungeStep, startLoungeBand, stopLoungeBand } from "./lounge-band";
-import { debugSeam } from "./debug-seam";
-import type { RegionDef } from "../model/regions";
+import { debugSeam } from "../lib/debug-seam";
+import type { RegionDef } from "../engine/regions";
 
 export type AudioState = "off" | "loading" | "on";
 

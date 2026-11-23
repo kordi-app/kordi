@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/shared/ui/button";
-import type { ChordCard } from "../model/chord-cards";
-import type { PianoWorldCopy } from "../model/copy";
-import { WARP_STONES, type WarpStoneId } from "../model/island";
+import type { ChordCard } from "../engine/chord-cards";
+import type { PianoWorldCopy } from "./copy";
+import { WARP_STONES, type WarpStoneId } from "../engine/island";
 
 function PanelShell({
   title,

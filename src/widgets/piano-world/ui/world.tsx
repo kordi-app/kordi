@@ -4,18 +4,18 @@ import { useMemo, useRef, useState, type RefObject } from "react";
 import type { VoiceId } from "@/shared/lib/audio";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import { BOUNDS, CASE_H, SPAWN } from "../model/layout";
-import { courseRuntime, slideOffset, tickCourse, touchCrumble } from "../model/course";
-import { bodyLanguage, createPlayerSim, jumpAndFall, placePlayer, walk, type WalkEnv } from "../model/player";
-import { interactablesIn, type EmoteId, type InteractableId } from "../model/interactables";
-import { decorColliders } from "../model/decor";
-import { skyAt } from "../model/day-night";
-import { islandHits, type WarpStoneId } from "../model/island";
-import { createAmbience, resetAmbience, stepAmbience, type AmbienceEvents } from "../lib/island-ambience";
-import { aimSunLight, applySky, createSunAim } from "../lib/sun-light";
-import { quality } from "../lib/quality";
-import { ISLAND_TERRAIN } from "../model/nature";
-import { BALL_RADIUS, ballSpawns, newBall, stepBall, type Ball } from "../model/ball";
+import { BOUNDS, CASE_H, SPAWN } from "../engine/layout";
+import { courseRuntime, slideOffset, tickCourse, touchCrumble } from "../engine/course";
+import { bodyLanguage, createPlayerSim, jumpAndFall, placePlayer, walk, type WalkEnv } from "../engine/player";
+import { interactablesIn, type EmoteId, type InteractableId } from "../engine/interactables";
+import { decorColliders } from "../engine/decor";
+import { skyAt } from "../engine/day-night";
+import { islandHits, type WarpStoneId } from "../engine/island";
+import { createAmbience, resetAmbience, stepAmbience, type AmbienceEvents } from "../audio/island-ambience";
+import { aimSunLight, applySky, createSunAim } from "./sun-light";
+import { quality } from "./quality";
+import { ISLAND_TERRAIN } from "../engine/nature";
+import { BALL_RADIUS, ballSpawns, newBall, stepBall, type Ball } from "../engine/ball";
 import { NoteBall } from "./note-ball";
 import {
   HARD_LANDING,
@@ -26,10 +26,10 @@ import {
   type Arrival,
   type CircleCollider,
   type InputState,
-} from "../model/physics";
-import { PORTAL_RADIUS, type RegionDef, type RegionId } from "../model/regions";
-import type { RemotePlayer } from "../lib/use-world-presence";
-import type { InteractionScene } from "../lib/use-interactions";
+} from "../engine/physics";
+import { PORTAL_RADIUS, type RegionDef, type RegionId } from "../engine/regions";
+import type { RemotePlayer } from "../net/protocol";
+import type { InteractionScene } from "./hooks/use-interactions";
 import { CourseScene } from "./course-scene";
 import { EmoteBubble } from "./emote-bubble";
 import { IslandScene } from "./island-scene";

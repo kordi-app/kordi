@@ -1,9 +1,9 @@
-import type { LoungeStyle } from "../lib/lounge-band";
-import type { ChordCardKey } from "./chord-cards";
-import type { EmoteId, InteractableId } from "./interactables";
-import type { Melody } from "./melodies";
-import type { WarpStoneId } from "./island";
-import type { RegionId } from "./regions";
+import type { LoungeStyle } from "../audio/lounge-band";
+import type { ChordCardKey } from "../engine/chord-cards";
+import type { EmoteId, InteractableId } from "../engine/interactables";
+import type { Melody } from "../engine/melodies";
+import type { WarpStoneId } from "../engine/island";
+import type { RegionId } from "../engine/regions";
 
 /** All user-facing text for the piano world, resolved by the page from i18n. */
 export interface PianoWorldCopy {

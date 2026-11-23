@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import type { CourseDef, CourseId } from "../model/course";
-import type { CourseRecordMessage } from "./use-world-presence";
-import { readCourseBest, writeCourseBest, type CourseRun } from "../model/course-record";
+import type { CourseDef, CourseId } from "../../engine/course";
+import type { CourseRecordMessage } from "../../net/protocol";
+import { readCourseBest, writeCourseBest, type CourseRun } from "./course-record";
 import type { HatId } from "@/entities/character";
 
 /** Guests keep course rewards in this browser: the hat each course unlocks. */

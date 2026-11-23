@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { CASE_H, KEYS } from "../model/layout";
+import { CASE_H, KEYS } from "../engine/layout";
 
 const BEAM_HEIGHT = 2.4;
 /** seconds between the rings that pulse out from the key */

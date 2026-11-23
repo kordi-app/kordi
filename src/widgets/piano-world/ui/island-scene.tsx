@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import type * as THREE from "three";
-import { CAVE, CLIFF, STREAM, WARP_STONES, type WarpStoneId } from "../model/island";
+import { CAVE, CLIFF, STREAM, WARP_STONES, type WarpStoneId } from "../engine/island";
 import { BellTower } from "./island/bell-tower";
 import { DrumValley } from "./island/drum-valley";
 import { Ground } from "./island/ground";

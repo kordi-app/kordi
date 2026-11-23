@@ -3,8 +3,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { skyAt } from "../../model/day-night";
-import { LAMPS, hash } from "../../model/island";
+import { skyAt } from "../../engine/day-night";
+import { LAMPS, hash } from "../../engine/island";
 import { mergeParts, useBuilt } from "./shared";
 
 const lathe = (points: number[][], segments: number) => new THREE.LatheGeometry(points.map(([r, y]) => new THREE.Vector2(r, y)), segments);

@@ -12,7 +12,7 @@ import {
   WARP_STONES,
   islandHits,
   type WarpStoneId,
-} from "../model/island";
+} from "../engine/island";
 
 /** Re-strike the same pipe / crystal no sooner than this (seconds) */
 const HUM_COOLDOWN = 1.4;

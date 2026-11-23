@@ -54,6 +54,61 @@ function layerBoundary(layer) {
   };
 }
 
+// widgets/piano-world is a small game inside one widget, so it gets its own
+// one-way layering (see the folders' header comments):
+//   ui/     R3F scene, HUD and React hooks: may import engine, net, audio, lib
+//   audio/  Tone.js band, grooves, island voices: may import engine, lib
+//   net/    presence socket + typed protocol: may import engine, lib
+//   engine/ pure game rules (physics, terrain, courses, regions…): no React,
+//           no three, no sound, no network — and nothing from its siblings
+//   lib/    dev-only instrumentation: imports nothing from the widget
+// The FSD widgets patterns are carried along because ESLint replaces a rule's
+// options rather than merging them.
+const PIANO_WORLD = "src/widgets/piano-world";
+const PIANO_WORLD_DEPS = {
+  engine: ["ui", "net", "audio", "lib"],
+  net: ["ui", "audio"],
+  audio: ["ui", "net"],
+  lib: ["engine", "ui", "net", "audio"],
+};
+const RENDER_PACKAGES = ["react", "react-dom", "react-dom/**", "three", "three/**", "@react-three/**"];
+
+function pianoWorldBoundary([folder, banned]) {
+  const patterns = [
+    ...layerBoundary("widgets").rules["no-restricted-imports"][1].patterns,
+    {
+      // a sibling folder by relative path: "../ui/…", "../../net/…"
+      regex: `^(\\.\\./)+(${banned.join("|")})(/|$)`,
+      message: `piano-world: ${folder}/ must not import from ${banned.map((b) => `${b}/`).join(", ")} — layers point one way: ui → audio | net → engine.`,
+    },
+  ];
+  if (folder === "engine") {
+    patterns.push(
+      {
+        group: [...RENDER_PACKAGES, "tone", "@/shared/api", "@/shared/config/api"],
+        message:
+          "piano-world: engine/ is pure game rules — no React, three, Tone or network. Put rendering in ui/, sound in audio/, sockets in net/.",
+      },
+      {
+        // VoiceId / InstrumentId are just names; playing them is audio/'s job
+        group: ["@/shared/lib/audio"],
+        allowTypeImports: true,
+        message: "piano-world: engine/ may name sounds (import type) but not play them — that belongs in audio/.",
+      },
+    );
+  }
+  if (folder === "net" || folder === "audio") {
+    patterns.push({
+      group: RENDER_PACKAGES.filter((p) => !p.startsWith("react")),
+      message: `piano-world: ${folder}/ does not render — three and @react-three belong in ui/.`,
+    });
+  }
+  return {
+    files: [`${PIANO_WORLD}/${folder}/**`],
+    rules: { "no-restricted-imports": ["error", { patterns }] },
+  };
+}
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -78,6 +133,9 @@ const eslintConfig = defineConfig([
 
   // Unidirectional imports, one block per layer below app/.
   ...LAYERS.filter((l) => l !== "app").map(layerBoundary),
+
+  // Layers inside widgets/piano-world (after the widgets block, so they win).
+  ...Object.entries(PIANO_WORLD_DEPS).map(pianoWorldBoundary),
 
   // Override default ignores of eslint-config-next.
   globalIgnores([

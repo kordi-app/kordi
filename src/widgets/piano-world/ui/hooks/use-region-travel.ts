@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Arrival } from "../model/physics";
-import { REGIONS, arrivalPoint, isRegionId, type RegionDef, type RegionId } from "../model/regions";
+import type { Arrival } from "../../engine/physics";
+import { REGIONS, arrivalPoint, isRegionId, type RegionDef, type RegionId } from "../../engine/regions";
 
 const FADE_MS = 260;
 

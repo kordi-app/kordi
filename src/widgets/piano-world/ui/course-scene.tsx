@@ -21,9 +21,9 @@ import {
   type Beam,
   type CourseDef,
   type Platform,
-} from "../model/course";
+} from "../engine/course";
 import { CrownMesh } from "@/entities/character";
-import { useKeySprings } from "../lib/use-key-springs";
+import { useKeySprings } from "./hooks/use-key-springs";
 
 const COLORS: Record<Platform["kind"], string> = {
   white: "#fbf8f2",

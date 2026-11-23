@@ -5,20 +5,21 @@ import { Canvas } from "@react-three/fiber";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEFAULT_APPEARANCE, characterQueries, type Appearance } from "@/entities/character";
 import { cn } from "@/shared/lib/utils";
-import type { PianoWorldCopy } from "../model/copy";
-import { EMOTES } from "../model/interactables";
-import { WARP_STONES, warpArrival, type WarpStoneId } from "../model/island";
-import type { RegionId } from "../model/regions";
-import { useCourseRun } from "../lib/use-course-run";
-import { useEmote } from "../lib/use-emote";
-import { useInteractions } from "../lib/use-interactions";
-import { useMelodyGame } from "../lib/use-melody-game";
-import { useRegionTravel } from "../lib/use-region-travel";
-import { useWorldAudio } from "../lib/use-world-audio";
-import { useWorldControls } from "../lib/use-world-controls";
-import { useWorldPresence, type CourseRecordMessage } from "../lib/use-world-presence";
-import { useWarpStones } from "../lib/use-warp-stones";
-import { quality } from "../lib/quality";
+import type { PianoWorldCopy } from "./copy";
+import { EMOTES } from "../engine/interactables";
+import { WARP_STONES, warpArrival, type WarpStoneId } from "../engine/island";
+import type { RegionId } from "../engine/regions";
+import { useCourseRun } from "./hooks/use-course-run";
+import { useEmote } from "./hooks/use-emote";
+import { useInteractions } from "./hooks/use-interactions";
+import { useMelodyGame } from "./hooks/use-melody-game";
+import { useRegionTravel } from "./hooks/use-region-travel";
+import { useWorldAudio } from "../audio/use-world-audio";
+import { useWorldControls } from "./hooks/use-world-controls";
+import type { CourseRecordMessage } from "../net/protocol";
+import { useWorldPresence } from "../net/use-world-presence";
+import { useWarpStones } from "./hooks/use-warp-stones";
+import { quality } from "./quality";
 import { CourseCard, MelodyCard } from "./hud/progress-cards";
 import { EmoteBar, InteractPrompt, SpeechBubble, WarpPrompt } from "./hud/interaction-hud";
 import { NameChip, NoteDisplay, RegionLabel, StatusStack } from "./hud/status";
@@ -29,7 +30,7 @@ import { World, type WorldDisplay, type WorldEvents } from "./world";
 /**
  * Kordi's piano world: walk the keys, hop between regions through portals,
  * play with what's around and see who else is here. This component only
- * composes — state lives in the lib/ hooks, the simulation in <World>, the
+ * composes — state lives in the ui/hooks/ hooks, the simulation in <World>, the
  * overlay in hud/.
  */
 export default function PianoWorldScene({

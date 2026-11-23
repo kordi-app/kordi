@@ -3,12 +3,12 @@
 import { useRef, useState, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import type { RemotePlayer } from "../lib/use-world-presence";
-import { CASE_H, PRESS_DEPTH, keyAt, type KeyRange } from "../model/layout";
+import type { RemotePlayer } from "../net/protocol";
+import { CASE_H, PRESS_DEPTH, keyAt, type KeyRange } from "../engine/layout";
 import { DEFAULT_APPEARANCE, KordiModel, type Appearance, type KordiMotion } from "@/entities/character";
 import { useLabelTexture } from "./label-texture";
 import { EmoteBubble } from "./emote-bubble";
-import type { EmoteId } from "../model/interactables";
+import type { EmoteId } from "../engine/interactables";
 
 const SCALE = 1.6;
 /** Name tags fade between these camera distances, so a crowd far off doesn't become a wall of labels */

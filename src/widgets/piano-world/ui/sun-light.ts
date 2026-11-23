@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { Sky } from "../model/day-night";
+import type { Sky } from "../engine/day-night";
 
 const UP = new THREE.Vector3(0, 1, 0);
 
@@ -20,15 +20,15 @@ export type SunAim = ReturnType<typeof createSunAim>;
 export function aimSunLight(
   light: THREE.DirectionalLight,
   aim: SunAim,
-  focus: THREE.Vector3,
+  focus: THREE.Vector3Like,
   shadow: { extent: number; mapSize: number; distance: number },
 ) {
   const texel = (shadow.extent * 2) / shadow.mapSize;
   aim.right.crossVectors(UP, aim.dir).normalize();
   aim.up.crossVectors(aim.dir, aim.right).normalize();
-  const r = Math.round(focus.dot(aim.right) / texel) * texel;
-  const u = Math.round(focus.dot(aim.up) / texel) * texel;
-  const d = focus.dot(aim.dir);
+  const r = Math.round(aim.right.dot(focus) / texel) * texel;
+  const u = Math.round(aim.up.dot(focus) / texel) * texel;
+  const d = aim.dir.dot(focus);
   aim.target.copy(aim.right).multiplyScalar(r).addScaledVector(aim.up, u).addScaledVector(aim.dir, d);
   light.target.position.copy(aim.target);
   light.position.copy(aim.target).addScaledVector(aim.dir, shadow.distance);

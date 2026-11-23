@@ -1,6 +1,6 @@
 import * as Tone from "tone";
 import { leaseTransport, type TransportLease } from "@/shared/lib/audio";
-import { VOICINGS, blockChord, chordSymbol, compVoicing, createImproviser, harmonyAt, rootAndFifth, walkingBar, type Harmony, type Voicing } from "../model/standards";
+import { VOICINGS, blockChord, chordSymbol, compVoicing, createImproviser, harmonyAt, rootAndFifth, walkingBar, type Harmony, type Voicing } from "./standards";
 
 /**
  * The lounge's jazz trio, all synthesized, round ii–V–I in every key — and a

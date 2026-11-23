@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
-import { BUSHES, ROCKS, TREES, woodland } from "../../model/nature";
-import { ISLAND_BOUNDS, PATHS, STREAM, TOWER, hash } from "../../model/island";
+import { BUSHES, ROCKS, TREES, woodland } from "../../engine/nature";
+import { ISLAND_BOUNDS, PATHS, STREAM, TOWER, hash } from "../../engine/island";
 import { SAND, roundedRect } from "./shared";
 import { Water } from "./water";
 

@@ -3,7 +3,7 @@
 import { useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { PIPES, hash } from "../../model/island";
+import { PIPES, hash } from "../../engine/island";
 import { mergeParts, paint, sinceHit, useBuilt } from "./shared";
 
 const PIPE_COLOR = new THREE.Color("#c9b98f");

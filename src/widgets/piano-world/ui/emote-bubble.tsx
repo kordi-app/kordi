@@ -3,8 +3,8 @@
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import type * as THREE from "three";
-import type { EmoteId } from "../model/interactables";
-import { EMOTE_ICON } from "../model/interactables";
+import type { EmoteId } from "../engine/interactables";
+import { EMOTE_ICON } from "../engine/interactables";
 import { useLabelTexture } from "./label-texture";
 
 const SIZE = 0.55;

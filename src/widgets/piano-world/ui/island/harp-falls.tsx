@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { CAVE, CLIFF, CRYSTALS, HARP, HARP_STRINGS, hash } from "../../model/island";
+import { CAVE, CLIFF, CRYSTALS, HARP, HARP_STRINGS, hash } from "../../engine/island";
 import { ROCK, GOLD, mergeParts, paint, sinceHit, useBuilt } from "./shared";
 import { Water } from "./water";
 

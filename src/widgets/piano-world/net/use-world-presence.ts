@@ -3,59 +3,15 @@
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import { bffClient } from "@/shared/api";
 import { WORLD_SOCKET_URL } from "@/shared/config/api";
-import type { Appearance } from "@/entities/character";
-import type { EmoteId } from "../model/interactables";
-
-/** Wire format shared with the server (WorldPlayer / WorldMove). */
-export interface RemotePlayer {
-  id: string;
-  name: string;
-  x: number;
-  /** height above the floor; absent from servers that predate it */
-  y?: number;
-  z: number;
-  /** heading (radians) */
-  h: number;
-  /** MIDI note underfoot, null when off the keys */
-  m: number | null;
-  /** emote in progress */
-  e?: EmoteId | null;
-  /** how they've dressed their Kordi (signed-in members only; null = the default look) */
-  look?: Appearance | null;
-}
-
-type ServerMessage =
-  | {
-      t: "welcome";
-      id: string;
-      /** absent on servers that predate regions */
-      region?: string;
-      ch: number;
-      players: RemotePlayer[];
-      online: number;
-      regions?: Record<string, number>;
-    }
-  | { t: "join"; p: RemotePlayer }
-  | { t: "leave"; id: string }
-  | { t: "moves"; ps: RemotePlayer[] }
-  | { t: "look"; id: string; look: Appearance }
-  | { t: "online"; n: number; regions?: Record<string, number> }
-  | ({ t: "record" } & CourseRecordMessage);
-
-/** A jump-course finish, timed by the server from the positions we sent. */
-export interface CourseRecordMessage {
-  course: string;
-  /** this run */
-  ms: number;
-  /** stored best (null for guests) */
-  best: number | null;
-  /** where this run places all-time (for guests: where it would) */
-  rank: number;
-  /** made it onto the ranking (signed in and a new best) */
-  saved: boolean;
-  /** a reward item this finish unlocked (already put on by the server) */
-  reward?: string | null;
-}
+import type { EmoteId } from "../engine/interactables";
+import {
+  CLOSE_FULL,
+  encodeClientMessage,
+  parseServerMessage,
+  type CourseRecordMessage,
+  type MoveMessage,
+  type RemotePlayer,
+} from "./protocol";
 
 export type PresenceStatus = "connecting" | "online" | "full" | "offline" | "disabled";
 
@@ -70,8 +26,6 @@ export interface PresenceInfo {
   regionCounts: Record<string, number>;
 }
 
-/** Server closes with 1013 ("try again later") when the world is at capacity. */
-const CLOSE_FULL = 1013;
 const SEND_INTERVAL_MS = 100;
 const MAX_RETRY_MS = 30_000;
 
@@ -134,12 +88,8 @@ export function useWorldPresence(
       socket.onmessage = (event) => {
         // a socket on its way out (region hop, name change) must not touch the new one's state
         if (disposed) return;
-        let message: ServerMessage;
-        try {
-          message = JSON.parse(event.data as string) as ServerMessage;
-        } catch {
-          return;
-        }
+        const message = parseServerMessage(event.data as string);
+        if (!message) return;
         switch (message.t) {
           case "welcome":
             // A server without region support would mix every region into one
@@ -171,7 +121,7 @@ export function useWorldPresence(
                 .json<{ ticket: string }>()
                 .then(({ ticket }) => {
                   if (!disposed && socket.readyState === WebSocket.OPEN) {
-                    socket.send(JSON.stringify({ t: "auth", ticket }));
+                    socket.send(encodeClientMessage({ t: "auth", ticket }));
                   }
                 })
                 .catch(() => {
@@ -250,8 +200,8 @@ export function useWorldPresence(
     if (!socket || socket.readyState !== WebSocket.OPEN || !myId.current) return;
     const now = performance.now();
     if (now - lastSent.current.at < SEND_INTERVAL_MS) return; // cheap check first: this runs every frame
-    const payload = { x: +x.toFixed(2), y: +y.toFixed(2), z: +z.toFixed(2), h: +h.toFixed(2), m, e };
-    const key = JSON.stringify(payload);
+    const payload: MoveMessage = { x: +x.toFixed(2), y: +y.toFixed(2), z: +z.toFixed(2), h: +h.toFixed(2), m, e };
+    const key = encodeClientMessage(payload);
     if (key === lastSent.current.key || now - lastSent.current.at < SEND_INTERVAL_MS) return;
     lastSent.current = { at: now, key };
     socket.send(key);

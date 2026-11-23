@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "@/shared/lib/utils";
-import type { PianoWorldCopy } from "../../model/copy";
-import { EMOTES, EMOTE_ICON, type EmoteId, type InteractableId } from "../../model/interactables";
+import type { PianoWorldCopy } from "../copy";
+import { EMOTES, EMOTE_ICON, type EmoteId, type InteractableId } from "../../engine/interactables";
 
 /** Right edge: 1–4 emotes. */
 export function EmoteBar({

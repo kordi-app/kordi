@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MELODIES } from "../model/melodies";
+import { MELODIES } from "../../engine/melodies";
 
 const NEXT_SONG_DELAY_MS = 2800;
 

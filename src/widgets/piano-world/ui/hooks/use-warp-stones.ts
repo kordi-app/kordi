@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { WARP_STONES, type WarpStoneId } from "../model/island";
+import { WARP_STONES, type WarpStoneId } from "../../engine/island";
 
 const STORAGE_KEY = "kordi.world.warp-stones.v1";
 /** The plaza's stone is awake from the start, so there's always somewhere to warp back to. */

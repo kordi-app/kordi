@@ -1,10 +1,10 @@
 "use client";
 
 import { cn } from "@/shared/lib/utils";
-import type { PianoWorldCopy } from "../../model/copy";
-import type { RegionDef } from "../../model/regions";
-import type { PresenceInfo } from "../../lib/use-world-presence";
-import type { AudioState } from "../../lib/use-world-audio";
+import type { PianoWorldCopy } from "../copy";
+import type { RegionDef } from "../../engine/regions";
+import type { PresenceInfo } from "../../net/use-world-presence";
+import type { AudioState } from "../../audio/use-world-audio";
 
 const CHIP = "rounded-full border border-border bg-card/90 shadow-sm";
 const MAX_LISTED = 8;

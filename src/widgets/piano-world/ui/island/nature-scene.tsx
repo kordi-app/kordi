@@ -4,9 +4,9 @@ import { memo, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { quality } from "../../lib/quality";
-import { hash } from "../../model/island";
-import { BUSHES, FLOWERS as ALL_FLOWERS, GRASS as ALL_GRASS, ROCKS, TREES, woodland, type Tree } from "../../model/nature";
+import { quality } from "../quality";
+import { hash } from "../../engine/island";
+import { BUSHES, FLOWERS as ALL_FLOWERS, GRASS as ALL_GRASS, ROCKS, TREES, woodland, type Tree } from "../../engine/nature";
 
 /**
  * Woods, bushes, rocks, grass and flowers: one instanced mesh per kind (a

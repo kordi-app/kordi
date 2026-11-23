@@ -2,7 +2,7 @@
 
 import { forwardRef, useEffect, useMemo } from "react";
 import * as THREE from "three";
-import { BALL_RADIUS } from "../model/ball";
+import { BALL_RADIUS } from "../engine/ball";
 
 /**
  * A cream ball wrapped in a strip of staff paper: an accent band with thin

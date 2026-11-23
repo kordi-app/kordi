@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { localDayFraction } from "../../model/day-night";
+import { localDayFraction } from "../../engine/day-night";
 import {
   BELFRY,
   BELL,
@@ -16,7 +16,7 @@ import {
   STAIR_THICKNESS,
   TOWER,
   hash,
-} from "../../model/island";
+} from "../../engine/island";
 import { WOOD, GOLD, mergeParts, paint, sinceHit, useBuilt } from "./shared";
 
 /** Cut stone blocks with mortar lines, drawn once and tiled over the tower. */

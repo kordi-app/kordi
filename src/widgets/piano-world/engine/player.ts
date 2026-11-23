@@ -1,4 +1,3 @@
-import * as THREE from "three";
 import type { KordiMotion } from "@/entities/character";
 import {
   BOUNCE_BOOST,
@@ -29,6 +28,21 @@ import {
 import { terrainBlocked, terrainCeiling, terrainDepenetrate, type Solid, type Terrain } from "./terrain";
 
 /**
+ * A mutable 3-vector. A three.js Vector3 satisfies it, so the scene can hand in
+ * the very vector its camera and model follow while this module stays free of three.
+ */
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+  set(x: number, y: number, z: number): unknown;
+}
+
+// Same formulas as three's MathUtils.clamp / lerp, so results are bit-identical.
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+const lerp = (x: number, y: number, t: number) => (1 - t) * x + t * y;
+
+/**
  * Your Kordi's movement, one frame at a time: walking with momentum, solid
  * steps and terrain, props and other players, body language, and jumping /
  * falling / landing. Plain functions over a mutable state object — the
@@ -38,7 +52,7 @@ import { terrainBlocked, terrainCeiling, terrainDepenetrate, type Solid, type Te
 
 export interface PlayerSim {
   /** live position, shared with renderers that follow the player */
-  pos: THREE.Vector3;
+  pos: Vec3;
   heading: number;
   vx: number;
   vz: number;
@@ -61,7 +75,7 @@ export interface PlayerSim {
   restY: number;
 }
 
-export const createPlayerSim = (pos: THREE.Vector3): PlayerSim => ({
+export const createPlayerSim = (pos: Vec3): PlayerSim => ({
   pos,
   heading: 0,
   vx: 0,
@@ -124,8 +138,8 @@ export function walk(s: PlayerSim, keys: InputState, dt: number, env: WalkEnv, m
   const { course, island, bounds } = env;
   const speed = Math.hypot(s.vx, s.vz);
   if (speed > 1e-3) {
-    const nextX = THREE.MathUtils.clamp(s.pos.x + s.vx * dt, -bounds.x, bounds.x);
-    const nextZ = THREE.MathUtils.clamp(s.pos.z + s.vz * dt, bounds.zMin, bounds.zMax);
+    const nextX = clamp(s.pos.x + s.vx * dt, -bounds.x, bounds.x);
+    const nextZ = clamp(s.pos.z + s.vz * dt, bounds.zMin, bounds.zMax);
     // solid steps / terrain: resolve each axis separately so you slide along a side
     const blocked = course
       ? (x: number, z: number) => courseBlocked(course, x, z, s.pos.y)
@@ -145,8 +159,8 @@ export function walk(s: PlayerSim, keys: InputState, dt: number, env: WalkEnv, m
   if (course) {
     // steps move and appear on their own: if one ended up inside Kordi, step out of it
     const out = courseDepenetrate(course, s.pos.x, s.pos.z, s.pos.y);
-    s.pos.x = THREE.MathUtils.clamp(out.x, -bounds.x, bounds.x);
-    s.pos.z = THREE.MathUtils.clamp(out.z, bounds.zMin, bounds.zMax);
+    s.pos.x = clamp(out.x, -bounds.x, bounds.x);
+    s.pos.z = clamp(out.z, bounds.zMin, bounds.zMax);
   } else {
     pushAround(s, dt, env, m);
   }
@@ -164,8 +178,8 @@ function pushAround(s: PlayerSim, dt: number, env: WalkEnv, m: KordiMotion) {
   }
   const shoved = resolveCircles(pushed.x, pushed.z, BODY_RADIUS, nearbyPlayers);
   const soft = 1 - Math.exp(-dt * 10); // soft, not a wall
-  s.pos.x = THREE.MathUtils.lerp(pushed.x, shoved.x, soft);
-  s.pos.z = THREE.MathUtils.lerp(pushed.z, shoved.z, soft);
+  s.pos.x = lerp(pushed.x, shoved.x, soft);
+  s.pos.z = lerp(pushed.z, shoved.z, soft);
   // Bump: running into someone bounces you back with a little hop. Every
   // client does this for its own player, so both sides of a collision
   // bounce — no server physics needed.
@@ -206,9 +220,9 @@ export function bodyLanguage(s: PlayerSim, m: KordiMotion, dt: number, speed: nu
   s.lastForward = forwardSpeed;
   const turnRate = lerpAngle(0, s.heading - previousHeading, 1) / Math.max(dt, 1e-3);
   const ease = 1 - Math.exp(-dt * 8);
-  m.lean = THREE.MathUtils.lerp(m.lean, THREE.MathUtils.clamp(forwardAccel / 20, -1, 1), ease);
-  m.bank = THREE.MathUtils.lerp(m.bank, THREE.MathUtils.clamp((turnRate * speed) / 25, -1, 1), ease);
-  m.amount = THREE.MathUtils.lerp(m.amount, Math.min(speed / SPEED, 1), 1 - Math.exp(-dt * 10));
+  m.lean = lerp(m.lean, clamp(forwardAccel / 20, -1, 1), ease);
+  m.bank = lerp(m.bank, clamp((turnRate * speed) / 25, -1, 1), ease);
+  m.amount = lerp(m.amount, Math.min(speed / SPEED, 1), 1 - Math.exp(-dt * 10));
   m.phase += dt * 11 * m.amount;
 }
 
@@ -292,7 +306,7 @@ export function jumpAndFall(
     s.airborne = true; // walked off a ledge (coyote time starts now)
     s.vy = 0;
   } else {
-    s.pos.y = THREE.MathUtils.lerp(s.pos.y, ground.height, 1 - Math.exp(-dt * 18));
+    s.pos.y = lerp(s.pos.y, ground.height, 1 - Math.exp(-dt * 18));
     s.restY = ground.height;
   }
   return landing;

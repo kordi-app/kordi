@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { islandHits } from "../../model/island";
+import { islandHits } from "../../engine/island";
 
 export const SAND = "#efe4c8";
 export const ROCK = "#a89f92";

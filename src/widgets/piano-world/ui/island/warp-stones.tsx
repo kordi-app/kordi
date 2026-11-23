@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { type WarpStone } from "../../model/island";
+import { type WarpStone } from "../../engine/island";
 import { mergeParts, useBuilt } from "./shared";
 
 const AWAKE = new THREE.Color("#7fd8ff");

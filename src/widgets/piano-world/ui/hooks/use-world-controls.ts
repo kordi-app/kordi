@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
-import { KEY_TO_DIRECTION, idleInput, type Direction, type InputState } from "../model/physics";
+import { KEY_TO_DIRECTION, idleInput, type Direction, type InputState } from "../../engine/physics";
 
 const EMOTE_KEYS = ["Digit1", "Digit2", "Digit3", "Digit4"];
 

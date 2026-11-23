@@ -4,9 +4,9 @@ import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, type Re
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
-import { CASE_H, PRESS_DEPTH, WHITE_L, keySpan, keysIn, type KeyDef, type KeyRange } from "../model/layout";
+import { CASE_H, PRESS_DEPTH, WHITE_L, keySpan, keysIn, type KeyDef, type KeyRange } from "../engine/layout";
 
-import type { RegionTheme } from "../model/regions";
+import type { RegionTheme } from "../engine/regions";
 
 /** the back edge of the keyboard case (the white keys end 0.6 in front of it) */
 const BACK = -0.15 - (WHITE_L + 0.9) / 2;

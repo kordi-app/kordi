@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { EMOTE_SECONDS, type EmoteId } from "../model/interactables";
+import { EMOTE_SECONDS, type EmoteId } from "../../engine/interactables";
 
 /** Your current emote; timed ones end on their own, sitting lasts until you move. */
 export function useEmote() {

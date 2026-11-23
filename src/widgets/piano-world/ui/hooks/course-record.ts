@@ -1,4 +1,4 @@
-import type { CourseId } from "./course";
+import type { CourseId } from "../../engine/course";
 
 /** State of the current climb on a jump course. */
 export interface CourseRun {

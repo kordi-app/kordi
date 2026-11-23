@@ -3,12 +3,12 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { REGIONS, type RegionId } from "../model/regions";
-import { BOUNDS, CASE_H, WHITE_H, WHITE_L, keysIn } from "../model/layout";
-import { decorFor, type DecorItem } from "../model/decor";
+import { REGIONS, type RegionId } from "../engine/regions";
+import { BOUNDS, CASE_H, WHITE_H, WHITE_L, keysIn } from "../engine/layout";
+import { decorFor, type DecorItem } from "../engine/decor";
 
 /**
- * Set dressing: each region's own pieces (from model/decor.ts, which also
+ * Set dressing: each region's own pieces (from engine/decor.ts, which also
  * makes them solid). Cheap geometry, few real lights.
  */
 export function RegionDecor({

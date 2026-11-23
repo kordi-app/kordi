@@ -2,7 +2,7 @@
  * The lounge's music theory: ii–V–I, the progression at the heart of jazz,
  * round all twelve keys, and an improviser for the line you play over it.
  * Nothing borrowed from any song — the band's parts and your line are
- * generated as you go. Pure functions (the band in lib/lounge-band.ts plays them).
+ * generated as you go. Pure functions (the band in audio/lounge-band.ts plays them).
  */
 
 export type Degree = "ii" | "V" | "I";

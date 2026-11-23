@@ -5,11 +5,11 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronsUp } from "lucide-react";
 import { rankingQueries } from "@/entities/ranking";
 import { midiToNoteName } from "@/shared/lib/music";
-import { COURSES } from "../../model/course";
-import { formatTime, type CourseRun } from "../../model/course-record";
-import type { PianoWorldCopy } from "../../model/copy";
-import type { Melody } from "../../model/melodies";
-import type { MelodyProgress } from "../../lib/use-melody-game";
+import { COURSES } from "../../engine/course";
+import { formatTime, type CourseRun } from "../hooks/course-record";
+import type { PianoWorldCopy } from "../copy";
+import type { Melody } from "../../engine/melodies";
+import type { MelodyProgress } from "../hooks/use-melody-game";
 
 /** Fill "{jump}" with the jump control: the Space key, or on touch screens the jump button's icon. */
 function withJumpKey(template: string): ReactNode {

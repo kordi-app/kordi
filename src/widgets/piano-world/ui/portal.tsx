@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import type { PortalDef } from "../model/regions";
+import type { PortalDef } from "../engine/regions";
 
 /** The gate: an upright oval, taller than Kordi, standing just off the floor. */
 const GATE_WIDTH = 1.5;
