@@ -1,7 +1,7 @@
 import ky from "ky";
 import type { NextResponse } from "next/server";
 import { API_BASE_URL } from "@/shared/config/api";
-import { AUTH_COOKIES, COOKIE_OPTIONS, TOKEN_TTL } from "@/shared/config/auth";
+import { AUTH_COOKIES, COOKIE_OPTIONS, LOGIN_NONCE_TTL, TOKEN_TTL } from "@/shared/config/auth";
 import { unwrap, type ApiEnvelope } from "./envelope";
 
 /**
@@ -45,4 +45,26 @@ export function setAuthCookies(response: NextResponse, tokens: AuthTokens) {
 export function clearAuthCookies(response: NextResponse) {
   response.cookies.delete(AUTH_COOKIES.ACCESS_TOKEN);
   response.cookies.delete(AUTH_COOKIES.REFRESH_TOKEN);
+}
+
+/**
+ * Login CSRF guard. Sign-in starts with a random nonce in an httpOnly cookie;
+ * the API binds the one-time login code to it, and the callback must send the
+ * same nonce to exchange the code — so a code minted in another browser (a
+ * login link someone else opened) can't sign this one in.
+ */
+export function createLoginNonce(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return Buffer.from(bytes).toString("base64url");
+}
+
+export function setLoginNonceCookie(response: NextResponse, nonce: string) {
+  response.cookies.set(AUTH_COOKIES.LOGIN_NONCE, nonce, {
+    ...COOKIE_OPTIONS,
+    maxAge: LOGIN_NONCE_TTL,
+  });
+}
+
+export function clearLoginNonceCookie(response: NextResponse) {
+  response.cookies.delete(AUTH_COOKIES.LOGIN_NONCE);
 }

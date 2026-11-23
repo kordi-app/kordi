@@ -4,7 +4,11 @@ import { API_BASE_URL } from "@/shared/config/api";
 import { AUTH_COOKIES } from "@/shared/config/auth";
 import { ROUTES } from "@/shared/config/routes";
 import { unwrap, type ApiEnvelope } from "@/shared/api";
-import { setAuthCookies, type AuthTokens } from "@/shared/api/auth-tokens.server";
+import {
+  clearLoginNonceCookie,
+  setAuthCookies,
+  type AuthTokens,
+} from "@/shared/api/auth-tokens.server";
 
 /** Trade the one-time login code for tokens, server to server. */
 async function exchange(code: string, nonce: string): Promise<AuthTokens | null> {
@@ -36,7 +40,7 @@ export async function GET(request: NextRequest) {
   const response = NextResponse.redirect(
     new URL(tokens ? ROUTES.HOME : ROUTES.LOGIN, request.url),
   );
-  response.cookies.delete(AUTH_COOKIES.LOGIN_NONCE);
+  clearLoginNonceCookie(response);
   if (tokens) setAuthCookies(response, tokens);
   return response;
 }
