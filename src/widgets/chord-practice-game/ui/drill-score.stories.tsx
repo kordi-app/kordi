@@ -11,6 +11,7 @@ const baseState: DrillState = {
   bestStreak: 0,
   totalAttempted: 0,
   totalCorrect: 0,
+  wrongTries: 0,
   lastResult: null,
 };
 

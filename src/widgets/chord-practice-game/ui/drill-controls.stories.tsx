@@ -9,12 +9,10 @@ const meta = {
   args: {
     ns: "chordPractice",
     status: "idle",
-    bpm: 100,
     onStart: fn(),
     onStop: fn(),
     onPause: fn(),
     onResume: fn(),
-    onSettingsOpen: fn(),
   },
   argTypes: {
     status: { control: "inline-radio", options: ["idle", "countdown", "playing", "paused"] },

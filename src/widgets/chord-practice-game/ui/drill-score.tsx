@@ -9,10 +9,8 @@ interface DrillScoreProps {
 
 export function DrillScore({ state }: DrillScoreProps) {
   const t = useTranslations("chordPractice");
-  const accuracy =
-    state.totalAttempted > 0
-      ? Math.round((state.totalCorrect / state.totalAttempted) * 100)
-      : 0;
+  const tries = state.totalAttempted + state.wrongTries;
+  const accuracy = tries > 0 ? Math.round((state.totalCorrect / tries) * 100) : 0;
 
   return (
     <div className="flex items-center gap-6 rounded-lg border border-border bg-card px-6 py-3">

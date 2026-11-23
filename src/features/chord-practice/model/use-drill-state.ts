@@ -3,7 +3,7 @@
 import { useReducer, useCallback } from "react";
 import type { DrillState, DrillChord } from "@/entities/chord-practice";
 
-const INITIAL_STATE: DrillState = {
+export const INITIAL_STATE: DrillState = {
   status: "idle",
   currentChord: null,
   nextChord: null,
@@ -12,10 +12,11 @@ const INITIAL_STATE: DrillState = {
   bestStreak: 0,
   totalAttempted: 0,
   totalCorrect: 0,
+  wrongTries: 0,
   lastResult: null,
 };
 
-type DrillAction =
+export type DrillAction =
   | { type: "START"; current: DrillChord; next: DrillChord }
   | { type: "STOP" }
   | { type: "PAUSE" }
@@ -25,7 +26,8 @@ type DrillAction =
   | { type: "MARK_TIMEOUT"; next: DrillChord }
   | { type: "RESET" };
 
-function reducer(state: DrillState, action: DrillAction): DrillState {
+/** exported for tests */
+export function drillReducer(state: DrillState, action: DrillAction): DrillState {
   switch (action.type) {
     case "START":
       return {
@@ -58,7 +60,7 @@ function reducer(state: DrillState, action: DrillAction): DrillState {
       return {
         ...state,
         streak: 0,
-        totalAttempted: state.totalAttempted + 1,
+        wrongTries: state.wrongTries + 1,
         lastResult: "incorrect",
       };
     case "MARK_TIMEOUT":
@@ -78,7 +80,7 @@ function reducer(state: DrillState, action: DrillAction): DrillState {
 }
 
 export function useDrillState() {
-  const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
+  const [state, dispatch] = useReducer(drillReducer, INITIAL_STATE);
 
   const start = useCallback(
     (current: DrillChord, next: DrillChord) =>

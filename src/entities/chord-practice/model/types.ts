@@ -35,6 +35,8 @@ export interface DrillState {
   bestStreak: number;
   totalAttempted: number;
   totalCorrect: number;
+  /** wrong chords played; separate from totalAttempted, which also keys the current question */
+  wrongTries: number;
   lastResult: DrillResult;
 }
 

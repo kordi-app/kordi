@@ -1,18 +1,15 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Settings } from "lucide-react";
 import type { DrillStatus } from "@/entities/chord-practice";
 
 interface DrillControlsProps {
   ns: string;
   status: DrillStatus;
-  bpm: number;
   onStart: () => void;
   onStop: () => void;
   onPause: () => void;
   onResume: () => void;
-  onSettingsOpen: () => void;
 }
 
 const PRIMARY =
@@ -27,7 +24,6 @@ export function DrillControls({
   onStop,
   onPause,
   onResume,
-  onSettingsOpen,
 }: DrillControlsProps) {
   const t = useTranslations(ns);
 
@@ -57,16 +53,6 @@ export function DrillControls({
             {t("stop")}
           </button>
         </>
-      )}
-
-      {status === "idle" && (
-        <button
-          onClick={onSettingsOpen}
-          className="rounded-lg border border-border bg-card p-2 text-foreground transition-all hover:bg-muted"
-          aria-label="Settings"
-        >
-          <Settings className="size-4" />
-        </button>
       )}
     </div>
   );

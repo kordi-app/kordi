@@ -21,6 +21,7 @@ export function useDrillGame(
     pause: pauseDrill,
     resume: resumeDrill,
     markCorrect,
+    markIncorrect,
     markTimeout,
   } = useDrillState();
 
@@ -61,9 +62,10 @@ export function useDrillGame(
     markCorrect({ ...next });
   }, [generateNext, state.nextChord, markCorrect]);
 
+  // a wrong chord breaks the streak and counts against accuracy, but stays on the same question
   const handleIncorrect = useCallback(() => {
-    // Feedback only, don't advance
-  }, []);
+    markIncorrect();
+  }, [markIncorrect]);
 
   const { feedbackState } = useChordValidator({
     activeNotes,

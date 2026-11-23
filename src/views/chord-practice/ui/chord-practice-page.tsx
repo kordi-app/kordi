@@ -29,7 +29,6 @@ const practiceChordLabel = (name: string | undefined) => (name ? displaySuffix(n
 export function ChordPracticePage() {
   const t = useTranslations("chordPractice");
   const [settings, setSettings] = useState<DrillSettings>(DEFAULT_DRILL_SETTINGS);
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const {
     activeNotes,
@@ -97,12 +96,10 @@ export function ChordPracticePage() {
           <DrillControls
             ns="chordPractice"
             status={state.status}
-            bpm={settings.bpm}
             onStart={startWithSound}
             onStop={stop}
             onPause={pause}
             onResume={resume}
-            onSettingsOpen={() => setSettingsOpen(true)}
           />
         </div>
 
@@ -132,16 +129,6 @@ export function ChordPracticePage() {
         </div>
         </div>
       </div>
-
-      {!isIdle && (
-        <DrillSettingsPanel
-          ns="chordPractice"
-          settings={settings}
-          onChange={setSettings}
-          onClose={() => setSettingsOpen(false)}
-          isOpen={settingsOpen}
-        />
-      )}
     </div>
   );
 }
