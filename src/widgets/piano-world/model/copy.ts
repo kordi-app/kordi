@@ -36,6 +36,7 @@ export interface PianoWorldCopy {
   // melody game
   melodies: Record<Melody["key"], string>;
   melodyNext: string;
+  /** "{jump}" marks the jump control (Space, or the on-screen button on touch) */
   melodyHint: string;
   melodyDone: string;
   melodyNextSong: string;

@@ -38,8 +38,9 @@ export function ChordAdventurePage() {
         <div className="relative mx-auto w-full max-w-[min(56rem,max(26rem,calc((100svh-24rem)*2)))]">
           <AdventureStage view={view} clock={clock} />
 
+          {/* over the screen where it fits; on phones the screen is too short for it, so it sits below */}
           {showMenu ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-palette-gray-1000/35 p-4">
+            <div className="mt-3 flex justify-center sm:absolute sm:inset-0 sm:mt-0 sm:items-center sm:bg-palette-gray-1000/35 sm:p-4">
               <div role="status" aria-live="polite" className="w-full max-w-sm rounded-container bg-bg-layer-floating p-5 shadow-raised">
                 {view.phase === "ready" ? (
                   <>

@@ -150,11 +150,11 @@
         "maryLamb": "Mary Had a Little Lamb"
       },
       "melodyNext": "Next",
-      "melodyHint": "repeat notes: jump (Space) and land again",
+      "melodyHint": "repeat notes: jump ({jump}) and land again",
       "melodyDone": "Done!",
       "melodyNextSong": "Next tune coming up…",
       "courseTitle": "Climb to the top",
-      "courseHint": "Space to jump · fall and you start over",
+      "courseHint": "{jump} to jump · fall and you start over",
       "nightTitle": "Only lit keys hold you up",
       "nightHint": "Cross while the light is on them · fall and you start over",
       "courseRankingTitle": "All-time ranking",

@@ -42,7 +42,7 @@ export function SpeechBubble({ text }: { text: string | null }) {
   return (
     <div
       role="status"
-      className="pointer-events-none absolute bottom-24 left-1/2 max-w-[min(28rem,calc(100%-2rem))] -translate-x-1/2 rounded-2xl border border-border bg-card/95 px-4 py-2.5 text-center text-sm text-foreground shadow-md"
+      className="pointer-events-none absolute bottom-24 pointer-coarse:bottom-[15.5rem] left-1/2 max-w-[min(28rem,calc(100%-2rem))] -translate-x-1/2 rounded-2xl border border-border bg-card/95 px-4 py-2.5 text-center text-sm text-foreground shadow-md"
     >
       {text}
     </div>
@@ -65,7 +65,7 @@ export function InteractPrompt({
     <button
       type="button"
       onClick={() => onInteract(nearby)}
-      className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card/95 px-4 py-2 text-sm font-medium text-foreground shadow-md hover:bg-muted"
+      className="absolute bottom-6 pointer-coarse:bottom-48 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card/95 px-4 py-2 text-sm font-medium text-foreground shadow-md hover:bg-muted"
     >
       <kbd className="rounded border border-border bg-background px-1.5 text-xs text-muted-foreground pointer-coarse:hidden">
         E
@@ -81,7 +81,7 @@ export function WarpPrompt({ onUse, copy }: { onUse: () => void; copy: PianoWorl
     <button
       type="button"
       onClick={onUse}
-      className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card/95 px-4 py-2 text-sm font-medium text-foreground shadow-md hover:bg-muted"
+      className="absolute bottom-6 pointer-coarse:bottom-48 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card/95 px-4 py-2 text-sm font-medium text-foreground shadow-md hover:bg-muted"
     >
       <kbd className="rounded border border-border bg-background px-1.5 text-xs text-muted-foreground pointer-coarse:hidden">
         E
