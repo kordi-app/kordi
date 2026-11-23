@@ -1,4 +1,5 @@
 import {
+  Globe,
   KeyboardMusic,
   Piano,
   Shirt,
@@ -38,6 +39,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     labelKey: "sidebar.groups.community",
     items: [
+      { href: ROUTES.HOME, icon: Globe, labelKey: "sidebar.nav.world" },
       { href: ROUTES.RANKING, icon: Trophy, labelKey: "sidebar.nav.ranking" },
       { href: ROUTES.FRIENDS, icon: Users, labelKey: "sidebar.nav.friends" },
       { href: ROUTES.CHARACTER, icon: Shirt, labelKey: "sidebar.nav.character" },
