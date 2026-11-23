@@ -463,6 +463,9 @@ export interface components {
             rank: number;
             saved: boolean;
         };
+        AdventureRunResponse: {
+            runId: string;
+        };
         /** @description 실패 응답 envelope (GlobalExceptionHandler) */
         ApiErrorResponse: {
             code: components["schemas"]["ErrorCode"];
@@ -471,6 +474,9 @@ export interface components {
         };
         ApiResponseAdventureResult: {
             data: components["schemas"]["AdventureResult"];
+        };
+        ApiResponseAdventureRunResponse: {
+            data: components["schemas"]["AdventureRunResponse"];
         };
         ApiResponseBoolean: {
             data: boolean;
@@ -499,11 +505,6 @@ export interface components {
         ApiResponseListScoreResponse: {
             data: components["schemas"]["ScoreResponse"][];
         };
-        ApiResponseMapStringString: {
-            data: {
-                [key: string]: string;
-            };
-        };
         ApiResponseQuizResultResponse: {
             data: components["schemas"]["QuizResultResponse"];
         };
@@ -523,6 +524,9 @@ export interface components {
             data: components["schemas"]["UserSearchResponse"];
         };
         ApiResponseVoid: Record<string, never>;
+        ApiResponseWorldTicketResponse: {
+            data: components["schemas"]["WorldTicketResponse"];
+        };
         AppearanceDto: {
             accessory: string | null;
             body: string;
@@ -568,6 +572,10 @@ export interface components {
         };
         /** @enum {string} */
         FriendshipStatus: "PENDING" | "ACCEPTED" | "REJECTED" | "CANCELLED";
+        LoginCodeExchangeRequest: {
+            code: string | null;
+            nonce: string | null;
+        };
         /** @enum {string} */
         OAuthProvider: "GOOGLE" | "NAVER" | "KAKAO";
         QuizAnswerRequest: {
@@ -672,6 +680,9 @@ export interface components {
         UserUpdateRequest: {
             nickname: string;
         };
+        WorldTicketResponse: {
+            ticket: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -758,7 +769,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponseMapStringString"];
+                    "application/json": components["schemas"]["ApiResponseAdventureRunResponse"];
                 };
             };
             /** @description Error (CoreExceptionCode) */
@@ -779,11 +790,9 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
-                "application/json": {
-                    [key: string]: string;
-                };
+                "application/json": components["schemas"]["LoginCodeExchangeRequest"];
             };
         };
         responses: {
@@ -1568,7 +1577,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponseMapStringString"];
+                    "application/json": components["schemas"]["ApiResponseWorldTicketResponse"];
                 };
             };
             /** @description Error (CoreExceptionCode) */

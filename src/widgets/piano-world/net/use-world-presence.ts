@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
-import { bffClient } from "@/shared/api";
+import { bffClient, type ApiSchema } from "@/shared/api";
 import { WORLD_SOCKET_URL } from "@/shared/config/api";
 import type { EmoteId } from "../engine/interactables";
 import {
@@ -118,7 +118,7 @@ export function useWorldPresence(
               // the auth cookie is httpOnly: trade it (via the BFF) for a ticket the socket can carry
               bffClient
                 .post("world/ticket")
-                .json<{ ticket: string }>()
+                .json<ApiSchema<"WorldTicketResponse">>()
                 .then(({ ticket }) => {
                   if (!disposed && socket.readyState === WebSocket.OPEN) {
                     socket.send(encodeClientMessage({ t: "auth", ticket }));

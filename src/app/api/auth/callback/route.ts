@@ -3,7 +3,7 @@ import ky from "ky";
 import { API_BASE_URL } from "@/shared/config/api";
 import { AUTH_COOKIES } from "@/shared/config/auth";
 import { ROUTES } from "@/shared/config/routes";
-import { unwrap, type ApiEnvelope } from "@/shared/api";
+import { unwrap, type ApiEnvelope, type ApiSchema } from "@/shared/api";
 import {
   clearLoginNonceCookie,
   setAuthCookies,
@@ -14,7 +14,7 @@ import {
 async function exchange(code: string, nonce: string): Promise<AuthTokens | null> {
   try {
     return await ky
-      .post(`${API_BASE_URL}/api/auth/exchange`, { json: { code, nonce } })
+      .post(`${API_BASE_URL}/api/auth/exchange`, { json: { code, nonce } satisfies ApiSchema<"LoginCodeExchangeRequest"> })
       .json<ApiEnvelope<AuthTokens>>()
       .then(unwrap);
   } catch {
