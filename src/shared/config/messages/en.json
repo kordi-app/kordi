@@ -27,7 +27,8 @@
       "friends": "Friends",
       "profile": "My Profile",
       "character": "My Kordi",
-      "adventure": "Chord Adventure"
+      "adventure": "Chord Adventure",
+      "score": "Score practice"
     }
   },
   "me": {
@@ -409,5 +410,38 @@
     },
     "chordsFailed": "Couldn't load chords. Try again in a moment",
     "saveFailed": "Couldn't save this run"
+  },
+  "scorePractice": {
+    "title": "Score practice",
+    "add": "Add score",
+    "remove": "Delete this score",
+    "noMidiDevice": "No MIDI device",
+    "modeLabel": "Mode",
+    "mode": {
+      "listen": "Listen",
+      "wait": "Wait",
+      "tempo": "Tempo"
+    },
+    "handsLabel": "Hands",
+    "hands": {
+      "right": "Right",
+      "left": "Left",
+      "both": "Both"
+    },
+    "speedLabel": "Speed",
+    "soundOn": "Turn sound on",
+    "loadingSound": "Loading piano…",
+    "play": "Start",
+    "resume": "Resume",
+    "pause": "Pause",
+    "restart": "Back to start",
+    "waiting": "Waiting — play the highlighted keys",
+    "statsWait": "Notes played {hits} · wrong keys {wrong}",
+    "statsTempo": "On time {hits} · missed {misses} · wrong keys {wrong}",
+    "finished": "You played it through!",
+    "finishedTempo": "Done! {hits} of {total} notes on time · wrong keys {wrong}",
+    "loadFailed": "Couldn't load the score",
+    "notAScore": "Only MusicXML (.musicxml, .xml) or .mxl files can be added",
+    "localNote": "Scores you add are kept in this browser only — they aren't uploaded anywhere."
   }
 }

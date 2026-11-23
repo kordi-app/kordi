@@ -9,6 +9,7 @@ export {
   loadInstrument,
   playNoteOn,
   playNoteOff,
+  playNoteAt,
   getCurrentInstrumentId,
   disposeSampler,
   INSTRUMENTS,
