@@ -19,6 +19,8 @@ interface ScoreSheetProps {
   cursorIndex: number;
   /** read every frame while playing: the playhead glides between steps */
   getPosition?: () => SheetPosition | null;
+  /** a click on the sheet: the step nearest to it */
+  onSeek?: (index: number) => void;
   onLoad: (timeline: ScoreTimeline) => void;
   onError: () => void;
   /** sizing of the sheet's own scroll box (the playhead is kept in view inside it) */
@@ -27,6 +29,8 @@ interface ScoreSheetProps {
 
 /** A cursor step on the page: its x (centre), line top and height, and where its line ends. */
 interface StepBox {
+  /** when it sounds, in whole notes (to place steps OSMD draws out of order) */
+  time: number;
   x: number;
   top: number;
   height: number;
@@ -44,7 +48,7 @@ const zoomFor = (width: number) => (width < 640 ? 0.6 : width < 1024 ? 0.8 : 1);
  * once, then draw our own line that glides between them every frame.
  * OSMD is loaded on demand — it is large and browser-only.
  */
-export function ScoreSheet({ source, cursorIndex, getPosition, onLoad, onError, className }: ScoreSheetProps) {
+export function ScoreSheet({ source, cursorIndex, getPosition, onSeek, onLoad, onError, className }: ScoreSheetProps) {
   const box = useRef<HTMLDivElement>(null);
   const container = useRef<HTMLDivElement>(null);
   const playhead = useRef<HTMLDivElement>(null);
@@ -144,7 +148,15 @@ export function ScoreSheet({ source, cursorIndex, getPosition, onLoad, onError, 
 
   return (
     <div ref={box} className={cn("relative overflow-y-auto", className)}>
-      <div className="relative">
+      <div
+        className={cn("relative", onSeek && "cursor-pointer")}
+        onClick={(e) => {
+          if (!onSeek) return;
+          const rect = e.currentTarget.getBoundingClientRect();
+          const index = stepAt(steps.current, e.clientX - rect.left, e.clientY - rect.top);
+          if (index !== null) onSeek(index);
+        }}
+      >
         <div ref={container} />
         <div
           ref={playhead}
@@ -187,12 +199,58 @@ function draw(osmd: OpenSheetMusicDisplay, el: HTMLElement): StepBox[] {
     const width = parseFloat(marker.style.width) || marker.width;
     const middle = top + height / 2;
     const system = systems.find((s) => middle >= s.top - 10 && middle <= s.bottom + 10);
-    boxes.push({ x: left + width / 2, top, height, lineEnd: system?.right ?? el.clientWidth - 16 });
+    boxes.push({
+      time: cursor.Iterator.currentTimeStamp.RealValue,
+      x: left + width / 2,
+      top,
+      height,
+      lineEnd: system?.right ?? el.clientWidth - 16,
+    });
     cursor.next();
   }
   cursor.reset();
   cursor.hide();
-  return boxes;
+  return keepMovingForward(boxes);
+}
+
+/**
+ * OSMD occasionally places a step's cursor left of the one before it (a voice
+ * that only continues there). Along a line the playhead must only move right,
+ * so such a step is placed by its time between its in-order neighbours.
+ */
+function keepMovingForward(boxes: StepBox[]): StepBox[] {
+  const out = boxes.map((b) => ({ ...b }));
+  for (let i = 1; i < out.length; i++) {
+    const prev = out[i - 1];
+    if (out[i].top !== prev.top || out[i].x >= prev.x) continue;
+    // the next step on this line that is right of prev (or the line's end)
+    let j = i + 1;
+    while (j < out.length && out[j].top === prev.top && out[j].x <= prev.x) j++;
+    const next = j < out.length && out[j].top === prev.top ? out[j] : { x: prev.lineEnd, time: prev.time + 1 };
+    for (let k = i; k < j; k++) {
+      const span = next.time - prev.time;
+      const t = span > 0 ? (out[k].time - prev.time) / span : 0;
+      out[k].x = prev.x + (next.x - prev.x) * Math.min(Math.max(t, 0), 1);
+    }
+    i = j - 1;
+  }
+  return out;
+}
+
+/**
+ * The step under a click: on the line that was clicked (or the nearest one),
+ * the note closest to the click.
+ */
+function stepAt(steps: StepBox[], x: number, y: number): number | null {
+  if (steps.length === 0) return null;
+  const distance = (s: StepBox) => (y < s.top ? s.top - y : y > s.top + s.height ? y - s.top - s.height : 0);
+  const lineTop = steps.reduce((best, s) => (distance(s) < distance(best) ? s : best)).top;
+  let pick: number | null = null;
+  steps.forEach((s, i) => {
+    if (s.top !== lineTop) return;
+    if (pick === null || Math.abs(s.x - x) < Math.abs(steps[pick].x - x)) pick = i;
+  });
+  return pick;
 }
 
 /** Scroll the sheet's box so the playhead's line is visible (with a little of the line above). */

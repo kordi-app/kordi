@@ -212,6 +212,7 @@ export function ScorePracticePage() {
           source={source}
           cursorIndex={view.cursor}
           getPosition={practice.getPosition}
+          onSeek={practice.seek}
           onLoad={onLoad}
           onError={onError}
           className="max-h-[max(16rem,calc(100svh-30rem))] min-h-40 rounded-card border border-border bg-palette-gray-00 shadow-raised"

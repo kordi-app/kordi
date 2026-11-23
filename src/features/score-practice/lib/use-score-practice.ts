@@ -108,11 +108,23 @@ export function useScorePractice(timeline: ScoreTimeline | null, activeNotes: Ac
     held.current = current;
   }, [activeNotes]);
 
+  /** Jump to a cursor step (a click on the sheet). */
+  const seek = useCallback(
+    (index: number) => {
+      const e = engine.current;
+      if (!e) return;
+      const now = Tone.now();
+      e.seek(index, now);
+      publish(e.isRunning ? e.tick(now) : { ...viewRef.current, status: "idle", cursor: index, expected: [] });
+    },
+    [publish],
+  );
+
   /** The playhead's exact place, read every frame by the sheet (null when stopped). */
   const getPosition = useCallback((): PracticePosition | null => {
     const e = engine.current;
     return e?.isRunning ? e.position(Tone.now()) : null;
   }, []);
 
-  return { mode, setMode, hands, setHands, speed, setSpeed, view, play, pause, restart, getPosition };
+  return { mode, setMode, hands, setHands, speed, setSpeed, view, play, pause, restart, seek, getPosition };
 }

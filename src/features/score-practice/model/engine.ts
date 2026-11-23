@@ -68,6 +68,8 @@ export class PracticeEngine {
   private anchorBeat = 0;
   private anchorTime = 0;
   private cursor = 0;
+  /** where this run started (the playhead waits there through the lead-in) */
+  private startedAt = 0;
   /** next group whose notes the engine still has to play */
   private scheduled = 0;
   /** wait mode: the group the music is waiting on (-1: none left) */
@@ -105,6 +107,7 @@ export class PracticeEngine {
     this.running = true;
     this.finished = false;
     this.cursor = from;
+    this.startedAt = from;
     this.scheduled = from;
     this.judged = from;
     this.hit.clear();
@@ -115,6 +118,17 @@ export class PracticeEngine {
 
   stop() {
     this.running = false;
+  }
+
+  /** Jump to a cursor step: playing carries on from there, stopped just moves the start point. */
+  seek(group: number, now: number) {
+    const to = Math.min(Math.max(group, 0), Math.max(this.groups.length - 1, 0));
+    if (this.running) {
+      this.start(to, now);
+      return;
+    }
+    this.finished = false;
+    this.cursor = to;
   }
 
   /** Back to the top, stopped. */
@@ -165,6 +179,8 @@ export class PracticeEngine {
     if (groups.length === 0) return { index: 0, fraction: 0 };
     let beat = this.running ? this.beatAt(now) : groups[this.cursor].beat;
     if (this.running && this.settings.mode === "wait" && this.block >= 0) beat = Math.min(beat, groups[this.block].beat);
+    // lead-in: hold at the starting note rather than gliding in from the one before
+    if (this.running && beat < groups[this.startedAt].beat) return { index: this.startedAt, fraction: 0 };
     let g = this.cursor;
     while (g + 1 < groups.length && groups[g + 1].beat <= beat + EPSILON) g += 1;
     while (g > 0 && groups[g].beat > beat + EPSILON) g -= 1;
