@@ -47,9 +47,15 @@ const smooth = (edge0: number, edge1: number, v: number) => {
   return t * t * (3 - 2 * t);
 };
 
-const DAY = { background: "#fcfbf8", sun: "#ffffff", sky: "#ffffff", ground: "#e8dfd0", reflection: "#9fd0ee" };
+/*
+ * Day: a faintly warm sun over a faintly cool sky fill, with a little green
+ * bounce from the grass, so shaded sides read cool and lit sides warm.
+ * Dawn is rosier and cooler than the amber dusk; night is moonlit blue.
+ */
+const DAY = { background: "#fcfbf8", sun: "#fff7ec", sky: "#f2f6ff", ground: "#e2e1cc", reflection: "#9fd0ee" };
+const DAWN = { background: "#fbe1d9", sun: "#ffc4a6", sky: "#f2d4de", ground: "#cbb0a6", reflection: "#e7b4c0" };
 const DUSK = { background: "#ffd9b8", sun: "#ffb27a", sky: "#ffd0a8", ground: "#c9a890", reflection: "#f2b48a" };
-const NIGHT = { background: "#0d1330", sun: "#9fb0ff", sky: "#3a4a8a", ground: "#141a30", reflection: "#1c2a55" };
+const NIGHT = { background: "#0d1330", sun: "#a7b6ff", sky: "#3a4a8a", ground: "#18203a", reflection: "#1c2a55" };
 
 /** The shadow light counts as the sun above this elevation (see skyAt: elevation = sin(2π·phase) + 0.25). */
 const DAY_ELEVATION = 0.05;
@@ -89,17 +95,23 @@ export function skyAt(nowMs: number): Sky {
   // dusk/dawn: strongest when the sun is near the horizon
   const dusk = Math.max(0, 1 - Math.abs(elevation - 0.05) / 0.35);
 
-  const tint = (key: keyof typeof DAY) => mix(mix(DAY[key], DUSK[key], dusk * (1 - night)), NIGHT[key], night);
+  // mornings (sun rising) take the dawn palette, evenings the dusk one; blended across noon and midnight
+  const morning = smooth(-0.2, 0.2, Math.cos(phase * Math.PI * 2));
+  const golden = dusk * (1 - night);
+
+  const tint = (key: keyof typeof DAY) =>
+    mix(mix(DAY[key], mix(DUSK[key], DAWN[key], morning), golden), NIGHT[key], night);
   return {
     night,
     elevation,
     azimuth: phase * Math.PI * 2,
     background: tint("background"),
     sunColor: tint("sun"),
-    sunIntensity: 2.2 - night * 1.55,
+    // the low sun is a little softer; the sky fill eases off with it
+    sunIntensity: 2.2 - night * 1.55 - golden * 0.2,
     hemiSky: tint("sky"),
     hemiGround: tint("ground"),
-    ambient: 1.9 - night * 1.0,
+    ambient: 1.9 - night * 1.0 - golden * 0.1,
     reflection: tint("reflection"),
     lightDir: lightDirection(phase, elevation),
   };

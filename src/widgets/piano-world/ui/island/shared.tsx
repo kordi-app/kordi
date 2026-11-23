@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { islandHits } from "../../model/island";
 
 export const SAND = "#efe4c8";
@@ -44,4 +45,39 @@ export function Zone({ x, z, player, children }: { x: number; z: number; player:
     if (group.current) group.current.visible = Math.hypot(player.x - x, player.z - z) < DRAW_DISTANCE;
   });
   return <group ref={group}>{children}</group>;
+}
+
+/**
+ * Bakes a flat colour into a geometry (a `color` attribute), so differently
+ * coloured parts can be merged into one mesh drawn with `vertexColors`.
+ */
+export function paint(geometry: THREE.BufferGeometry, color: THREE.ColorRepresentation) {
+  const c = new THREE.Color(color);
+  const count = geometry.attributes.position.count;
+  const colors = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    colors[i * 3] = c.r;
+    colors[i * 3 + 1] = c.g;
+    colors[i * 3 + 2] = c.b;
+  }
+  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  return geometry;
+}
+
+/**
+ * Many small static parts as one geometry (one draw call). The parts are
+ * disposed; they must all share the same attributes (all painted, or none).
+ */
+export function mergeParts(parts: THREE.BufferGeometry[]) {
+  const flat = parts.every((g) => g.index) ? parts : parts.map((g) => (g.index ? g.toNonIndexed() : g));
+  const merged = mergeGeometries(flat);
+  new Set([...parts, ...flat]).forEach((g) => g.dispose());
+  return merged;
+}
+
+/** A geometry/material/texture built once for the component's life and disposed with it. */
+export function useBuilt<T extends { dispose(): void }>(build: () => T): T {
+  const [value] = useState(build);
+  useEffect(() => () => value.dispose(), [value]);
+  return value;
 }

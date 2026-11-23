@@ -133,19 +133,28 @@ export const ROCKS: readonly Prop[] = scatter(7.5, 51, (x, z, i) => {
   return { x, z, scale: 0.35 + hash(i, 53) ** 2 * 1.4, turn: hash(i, 54) * 6.28, tint: hash(i, 55) };
 });
 
-/** Grass tufts: everywhere there's ground (including the pipe forest), thinner in the woods. */
+/** Mid-scale 0–1 field (mean ≈ 0.5) that gathers grass into clumps instead of an even lawn. */
+const clump = (x: number, z: number) =>
+  0.5 + 0.3 * Math.sin(x * 0.37 + Math.cos(z * 0.29) * 1.7) * Math.cos(z * 0.41 - x * 0.11) + 0.2 * Math.sin((x - z) * 0.83);
+
+/** Grass tufts: everywhere there's ground (including the pipe forest), thinner in the woods, in loose clumps. */
 export const GRASS: readonly Prop[] = scatter(1.35, 61, (x, z, i) => {
-  if (!groundFree(x, z) || hash(i, 62) > 0.62 - woodland(x, z) * 0.2) return null;
-  return { x, z, scale: 0.6 + hash(i, 63) * 0.8, turn: hash(i, 64) * 6.28, tint: hash(i, 65) };
+  const density = (0.62 - woodland(x, z) * 0.2) * (0.45 + clump(x, z) * 1.1);
+  if (!groundFree(x, z) || hash(i, 62) > density) return null;
+  // taller tufts where the clump is thick
+  return { x, z, scale: 0.55 + hash(i, 63) * 0.6 + clump(x, z) * 0.3, turn: hash(i, 64) * 6.28, tint: hash(i, 65) };
 });
 
-/** Flowers bloom in patches in the open (where the woods thin out). */
+/** Flowers bloom in patches in the open (where the woods thin out); each patch leans to one or two colours. */
 export const FLOWERS: readonly Prop[] = scatter(1.6, 71, (x, z, i) => {
   if (!groundFree(x, z)) return null;
   const meadow = 1 - woodland(x, z);
   const patch = Math.sin(x * 0.21 + 0.4) * Math.cos(z * 0.19 + 1.7);
   if (hash(i, 72) > (patch > 0.35 ? 0.75 : 0.05) * meadow) return null;
-  return { x, z, scale: 0.7 + hash(i, 73) * 0.6, turn: hash(i, 74) * 6.28, tint: hash(i, 75) };
+  // a slow colour field per patch, with a few strays of any colour
+  const hue = (Math.sin(x * 0.09 + 2.3) * Math.cos(z * 0.07 - 0.4) + 1) / 2;
+  const tint = hash(i, 76) < 0.2 ? hash(i, 75) : (hue + (hash(i, 75) - 0.5) * 0.25 + 1) % 1;
+  return { x, z, scale: 0.7 + hash(i, 73) * 0.6, turn: hash(i, 74) * 6.28, tint };
 });
 
 export const NATURE_SOLIDS: readonly Solid[] = [

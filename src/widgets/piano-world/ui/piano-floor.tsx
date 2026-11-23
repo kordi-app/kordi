@@ -1,19 +1,58 @@
 "use client";
 
-import { memo, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { CASE_H, PRESS_DEPTH, WHITE_L, keySpan, keysIn, type KeyDef, type KeyRange } from "../model/layout";
+
+import type { RegionTheme } from "../model/regions";
 
 /** the back edge of the keyboard case (the white keys end 0.6 in front of it) */
 const BACK = -0.15 - (WHITE_L + 0.9) / 2;
-import type { RegionTheme } from "../model/regions";
+/** the front face of the keyboard case */
+const FRONT = -0.15 + (WHITE_L + 0.9) / 2;
+/** Brass for the thin trims (nameboard inlay, front lip): reads on every case colour */
+const TRIM = "#c9a45c";
+/** The end blocks: same box as before, with softened edges (one shared shape for both). */
+const CHEEK = new RoundedBoxGeometry(0.5, 0.4, WHITE_L + 0.9, 2, 0.06);
 
 /** Underdamped: a pressed key overshoots a little and wobbles back, like a real key. */
 const STIFFNESS = 420;
 const DAMPING = 15;
 /** How strongly a pressed key takes on the region's glow colour */
 const GLOW_MIX = 0.55;
+/** Resting keys vary this much in lightness, like real ivory, so a long row doesn't read as one flat strip */
+const IVORY_VARIATION = 0.035;
+
+/** Deterministic 0–1 noise per key (render must stay pure). */
+function hash(i: number) {
+  const x = Math.sin(i * 127.1 + 17.3) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+/**
+ * One key's shape, at its real size so the bevel isn't stretched: softly
+ * rounded edges, and black keys taper toward the top like a real piano's.
+ * Same bounding box as the plain block it replaces, so the top surface sits
+ * exactly where the walkable key top is.
+ */
+function makeKeyGeometry(key: KeyDef) {
+  const radius = key.black ? 0.07 : 0.045;
+  const geometry = new RoundedBoxGeometry(key.width, key.height, key.length, 2, radius);
+  if (key.black) {
+    const position = geometry.getAttribute("position") as THREE.BufferAttribute;
+    for (let i = 0; i < position.count; i++) {
+      // 0 at the bottom, 1 at the top: narrow the top a little
+      const up = position.getY(i) / key.height + 0.5;
+      const squeeze = 1 - 0.1 * up;
+      position.setX(i, position.getX(i) * squeeze);
+      position.setZ(i, position.getZ(i) * (1 - 0.03 * up));
+    }
+    geometry.computeVertexNormals();
+  }
+  return geometry;
+}
 
 /**
  * One row of keys (all white or all black) as a single instanced mesh. Each
@@ -42,25 +81,38 @@ function KeyRow({
   const scratch = useMemo(
     () => ({
       matrix: new THREE.Matrix4(),
-      rest: new THREE.Color(color),
+      rest: keys.map((key) =>
+        new THREE.Color(color).offsetHSL(0, 0, (hash(key.midi) - 0.5) * 2 * IVORY_VARIATION),
+      ),
       down: new THREE.Color(pressedColor).lerp(new THREE.Color(glow ?? pressedColor), glow ? GLOW_MIX : 0),
     }),
-    [color, pressedColor, glow],
+    [keys, color, pressedColor, glow],
+  );
+  // every key in a row shares one size: build the shape once at that size, so
+  // instances only translate (a key that differed would scale to fit)
+  const shape = keys[0];
+  const geometry = useMemo(() => makeKeyGeometry(shape), [shape]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  const place = useCallback(
+    (key: KeyDef, y: number) =>
+      scratch.matrix
+        .makeScale(key.width / shape.width, key.height / shape.height, key.length / shape.length)
+        .setPosition(key.x, CASE_H + key.height / 2 + y, key.z),
+    [scratch, shape],
   );
 
   useLayoutEffect(() => {
     const m = mesh.current;
     if (!m) return;
     keys.forEach((key, i) => {
-      scratch.matrix.makeScale(key.width, key.height, key.length).setPosition(key.x, CASE_H + key.height / 2, key.z);
-      m.setMatrixAt(i, scratch.matrix);
-      m.setColorAt(i, scratch.rest);
+      m.setMatrixAt(i, place(key, 0));
+      m.setColorAt(i, scratch.rest[i]);
       springs.current[i].painted = false;
     });
     m.instanceMatrix.needsUpdate = true;
     if (m.instanceColor) m.instanceColor.needsUpdate = true;
     m.computeBoundingSphere();
-  }, [keys, scratch]);
+  }, [keys, scratch, place]);
 
   useFrame((_, rawDelta) => {
     const m = mesh.current;
@@ -75,17 +127,14 @@ function KeyRow({
       if (isDown !== spring.down || !spring.painted) {
         spring.down = isDown;
         spring.painted = true;
-        m.setColorAt(i, isDown ? scratch.down : scratch.rest);
+        m.setColorAt(i, isDown ? scratch.down : scratch.rest[i]);
         recoloured = true;
       }
       const goal = isDown ? -PRESS_DEPTH : 0;
       if (Math.abs(spring.y - goal) < 1e-4 && Math.abs(spring.v) < 1e-4) return; // at rest
       spring.v += (-STIFFNESS * (spring.y - goal) - DAMPING * spring.v) * dt;
       spring.y += spring.v * dt;
-      scratch.matrix
-        .makeScale(key.width, key.height, key.length)
-        .setPosition(key.x, CASE_H + key.height / 2 + spring.y, key.z);
-      m.setMatrixAt(i, scratch.matrix);
+      m.setMatrixAt(i, place(key, spring.y));
       moved = true;
     });
     if (moved) m.instanceMatrix.needsUpdate = true;
@@ -93,8 +142,7 @@ function KeyRow({
   });
 
   return (
-    <instancedMesh ref={mesh} args={[undefined, undefined, keys.length]} castShadow={shadows} receiveShadow>
-      <boxGeometry args={[1, 1, 1]} />
+    <instancedMesh ref={mesh} args={[geometry, undefined, keys.length]} castShadow={shadows} receiveShadow>
       <meshStandardMaterial roughness={roughness} />
     </instancedMesh>
   );
@@ -149,9 +197,24 @@ export const PianoFloor = memo(function PianoFloor({
         <boxGeometry args={[caseWidth - 0.2, 0.05, 0.12]} />
         <meshStandardMaterial color="#8c2f39" roughness={1} />
       </mesh>
+      {/* a thin brass inlay along the fallboard's face, and a lip along the case front:
+          flush with the surfaces, so nothing you stand on moves */}
+      <mesh position={[caseX, CASE_H + 0.42, BACK + 0.302]}>
+        <boxGeometry args={[caseWidth - 0.6, 0.035, 0.004]} />
+        <meshStandardMaterial color={TRIM} metalness={0.55} roughness={0.35} />
+      </mesh>
+      <mesh position={[caseX, CASE_H - 0.03, FRONT + 0.002]}>
+        <boxGeometry args={[caseWidth, 0.03, 0.004]} />
+        <meshStandardMaterial color={TRIM} metalness={0.55} roughness={0.35} />
+      </mesh>
       {[-1, 1].map((side) => (
-        <mesh key={side} position={[caseX + side * (caseWidth / 2 + 0.25), 0.2, -0.15]} castShadow receiveShadow>
-          <boxGeometry args={[0.5, 0.4, WHITE_L + 0.9]} />
+        <mesh
+          key={side}
+          geometry={CHEEK}
+          position={[caseX + side * (caseWidth / 2 + 0.25), 0.2, -0.15]}
+          castShadow
+          receiveShadow
+        >
           <meshStandardMaterial color={theme.keyboardCase} roughness={0.35} />
         </mesh>
       ))}

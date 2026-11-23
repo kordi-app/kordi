@@ -11,6 +11,10 @@ import { EmoteBubble } from "./emote-bubble";
 import type { EmoteId } from "../model/interactables";
 
 const SCALE = 1.6;
+/** Name tags fade between these camera distances, so a crowd far off doesn't become a wall of labels */
+const TAG_NEAR = 24;
+const TAG_FAR = 40;
+const TAG_MIN_OPACITY = 0.2;
 
 /**
  * Another visitor's Kordi. Network updates arrive ~10×/s; the model eases
@@ -33,6 +37,7 @@ export function RemoteKordi({
   keys?: KeyRange;
 }) {
   const group = useRef<THREE.Group>(null);
+  const tag = useRef<THREE.SpriteMaterial>(null);
   const motion = useRef<KordiMotion>({ phase: 0, amount: 0, emote: null, land: 0, stretch: 0, lean: 0, bank: 0 });
   const initial = remotes.current.get(id);
   const pos = useRef(new THREE.Vector3(initial?.x ?? 0, 0, initial?.z ?? 0));
@@ -45,7 +50,7 @@ export function RemoteKordi({
   const [look, setLook] = useState<Appearance>(initial?.look ?? DEFAULT_APPEARANCE);
   const lookShown = useRef<Appearance | null | undefined>(initial?.look);
 
-  useFrame((_, rawDelta) => {
+  useFrame(({ camera }, rawDelta) => {
     const target = remotes.current.get(id);
     if (!target || !group.current) return;
     const dt = Math.min(rawDelta, 0.05);
@@ -74,6 +79,10 @@ export function RemoteKordi({
 
     group.current.position.copy(pos.current);
     group.current.rotation.y = heading.current;
+    if (tag.current) {
+      const far = THREE.MathUtils.smoothstep(camera.position.distanceTo(pos.current), TAG_NEAR, TAG_FAR);
+      tag.current.opacity = 1 - far * (1 - TAG_MIN_OPACITY);
+    }
     m.emote = target.e ?? null;
     if (target.e !== emoteShown.current) {
       emoteShown.current = target.e ?? null;
@@ -93,9 +102,10 @@ export function RemoteKordi({
       <KordiModel motion={motion} scale={SCALE} appearance={look} />
       {/* name tag floats above the head and always faces the camera */}
       <sprite position={[0, 2.55, 0]} scale={[0.42 * aspect, 0.42, 1]}>
-        <spriteMaterial map={texture} transparent depthWrite={false} />
+        <spriteMaterial ref={tag} map={texture} transparent depthWrite={false} />
       </sprite>
-      {emote ? <EmoteBubble emote={emote} offsetY={3.15} /> : null}
+      {/* keyed by emote so each new one pops in */}
+      {emote ? <EmoteBubble key={emote} emote={emote} offsetY={3.15} /> : null}
     </group>
   );
 }

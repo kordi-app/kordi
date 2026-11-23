@@ -1,8 +1,9 @@
 "use client";
 
-import { memo, useEffect, useMemo, useRef, type RefObject } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import {
   CASE_THICKNESS,
   CRUMBLE_DELAY,
@@ -51,31 +52,62 @@ function hash(i: number, salt: number) {
   return x - Math.floor(x);
 }
 
-/** A soft cloud: a cluster of squashed spheres. */
-function Cloud({ x, y, z, scale }: { x: number; y: number; z: number; scale: number }) {
+/** One cloud's puffs, in cloud space: [x, y, z, radius]. The low, wide ones flatten its belly. */
+const PUFFS = [
+  [0, 0, 0, 1],
+  [0.9, -0.15, 0.1, 0.75],
+  [-0.9, -0.2, -0.1, 0.7],
+  [0.35, 0.35, -0.2, 0.65],
+  [-0.3, 0.22, 0.25, 0.55],
+  [0.1, -0.38, 0, 1.15],
+] as const;
+const CLOUD_TOP = new THREE.Color("#ffffff");
+const CLOUD_BELLY = new THREE.Color("#dfe7f4");
+
+/**
+ * The cloud backdrop: every puff of every cloud in one instanced mesh (one
+ * draw call). Puffs lower in a cloud are tinted a touch blue-grey, so each
+ * cloud reads as lit from above rather than as flat white blobs.
+ */
+function Clouds({ clouds }: { clouds: readonly { x: number; y: number; z: number; scale: number }[] }) {
+  const mesh = useRef<THREE.InstancedMesh>(null);
+  const count = clouds.length * PUFFS.length;
+  useLayoutEffect(() => {
+    const m = mesh.current;
+    if (!m) return;
+    const matrix = new THREE.Matrix4();
+    const color = new THREE.Color();
+    clouds.forEach((c, ci) => {
+      PUFFS.forEach(([px, py, pz, r], pi) => {
+        const i = ci * PUFFS.length + pi;
+        matrix
+          .makeScale(r * c.scale, r * 0.62 * c.scale, r * c.scale)
+          .setPosition(c.x + px * c.scale, c.y + py * c.scale, c.z + pz * c.scale);
+        m.setMatrixAt(i, matrix);
+        m.setColorAt(i, color.copy(CLOUD_BELLY).lerp(CLOUD_TOP, THREE.MathUtils.clamp((py + 0.4) / 0.75, 0, 1)));
+      });
+    });
+    m.instanceMatrix.needsUpdate = true;
+    if (m.instanceColor) m.instanceColor.needsUpdate = true;
+    m.computeBoundingSphere();
+  }, [clouds]);
   return (
-    <group position={[x, y, z]} scale={scale}>
-      {[
-        [0, 0, 0, 1],
-        [0.9, -0.15, 0.1, 0.75],
-        [-0.9, -0.2, -0.1, 0.7],
-        [0.35, 0.35, -0.2, 0.65],
-      ].map(([cx, cy, cz, r], i) => (
-        <mesh key={i} position={[cx, cy, cz]} scale={[r, r * 0.62, r]}>
-          <sphereGeometry args={[1, 16, 12]} />
-          <meshStandardMaterial color="#ffffff" roughness={1} />
-        </mesh>
-      ))}
-    </group>
+    <instancedMesh ref={mesh} args={[undefined, undefined, count]}>
+      <sphereGeometry args={[1, 16, 12]} />
+      <meshStandardMaterial roughness={1} />
+    </instancedMesh>
   );
 }
 
 /** The goal's treasure: a chest with a crown hovering over it (just the chest once you own that crown). */
 function Treasure({ x, y, z, star, crown: showCrown }: { x: number; y: number; z: number; star: boolean; crown: boolean }) {
   const crown = useRef<THREE.Group>(null);
+  const lid = useRef<THREE.Group>(null);
   useFrame(({ clock }) => {
-    if (!crown.current) return;
     const t = clock.getElapsedTime();
+    // the lid breathes open a crack, letting the glow inside peek out
+    if (lid.current) lid.current.rotation.x = -(0.16 + Math.max(0, Math.sin(t * 1.4)) * 0.14);
+    if (!crown.current) return;
     crown.current.rotation.y = t * 1.2;
     crown.current.position.y = 1.35 + Math.sin(t * 2) * 0.12;
   });
@@ -85,10 +117,35 @@ function Treasure({ x, y, z, star, crown: showCrown }: { x: number; y: number; z
         <boxGeometry args={[0.9, 0.6, 0.6]} />
         <meshStandardMaterial color="#8a5a2b" roughness={0.6} />
       </mesh>
-      <mesh position={[0, 0.62, 0]} castShadow>
-        <boxGeometry args={[0.94, 0.08, 0.64]} />
-        <meshStandardMaterial color="#e3b341" metalness={0.4} roughness={0.3} />
+      {/* gold corner bands and a lock plate */}
+      {[-0.36, 0.36].map((bx) => (
+        <mesh key={bx} position={[bx, 0.3, 0]}>
+          <boxGeometry args={[0.07, 0.62, 0.62]} />
+          <meshStandardMaterial color="#e3b341" metalness={0.45} roughness={0.3} />
+        </mesh>
+      ))}
+      <mesh position={[0, 0.48, 0.305]}>
+        <boxGeometry args={[0.16, 0.2, 0.03]} />
+        <meshStandardMaterial color="#e3b341" metalness={0.45} roughness={0.3} />
       </mesh>
+      {/* treasure light inside, seen through the open crack */}
+      <mesh position={[0, 0.595, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[0.82, 0.52]} />
+        <meshBasicMaterial color="#ffe08a" toneMapped={false} />
+      </mesh>
+      {/* the rounded lid, hinged along the back edge */}
+      <group ref={lid} position={[0, 0.6, -0.3]}>
+        <mesh position={[0, 0, 0.3]} rotation={[0, 0, Math.PI / 2]} castShadow>
+          <cylinderGeometry args={[0.3, 0.3, 0.94, 16, 1, false, 0, Math.PI]} />
+          <meshStandardMaterial color="#8a5a2b" roughness={0.6} side={THREE.DoubleSide} />
+        </mesh>
+        {[-0.36, 0.36].map((bx) => (
+          <mesh key={bx} position={[bx, 0, 0.3]} rotation={[0, 0, Math.PI / 2]}>
+            <cylinderGeometry args={[0.315, 0.315, 0.08, 16, 1, false, 0, Math.PI]} />
+            <meshStandardMaterial color="#e3b341" metalness={0.45} roughness={0.3} side={THREE.DoubleSide} />
+          </mesh>
+        ))}
+      </group>
       {showCrown ? (
         <group ref={crown}>
           <CrownMesh kind={star ? "star" : "gold"} />
@@ -271,6 +328,19 @@ function Lantern({ x, y, z }: { x: number; y: number; z: number }) {
         <sphereGeometry args={[0.14, 16, 12]} />
         <meshBasicMaterial color={LANTERN_COLOR} toneMapped={false} />
       </mesh>
+      {/* a little cap and collar, so it reads as a lamp rather than a ball on a stick */}
+      <mesh position={[0, 1.16, 0]}>
+        <coneGeometry args={[0.17, 0.14, 6]} />
+        <meshStandardMaterial color="#2a2a3a" />
+      </mesh>
+      <mesh position={[0, 0.85, 0]}>
+        <cylinderGeometry args={[0.08, 0.06, 0.06, 8]} />
+        <meshStandardMaterial color="#2a2a3a" />
+      </mesh>
+      <mesh position={[0, 0.98, 0]}>
+        <sphereGeometry args={[0.3, 12, 8]} />
+        <meshBasicMaterial color={LANTERN_COLOR} transparent opacity={0.14} depthWrite={false} toneMapped={false} />
+      </mesh>
     </group>
   );
 }
@@ -320,6 +390,23 @@ export const CourseScene = memo(function CourseScene({
     [platforms],
   );
   useEffect(() => () => outlines.forEach((g) => g.dispose()), [outlines]);
+  // the same boxes as before, with softened edges (same bounds: the top is exactly where you land)
+  const shapes = useMemo(
+    () =>
+      platforms.map((p) => ({
+        top: new RoundedBoxGeometry(p.width, PLATFORM_THICKNESS, p.depth, 2, 0.07),
+        base: new RoundedBoxGeometry(p.width + 0.16, CASE_THICKNESS, p.depth + 0.16, 2, 0.05),
+      })),
+    [platforms],
+  );
+  useEffect(
+    () => () =>
+      shapes.forEach(({ top, base }) => {
+        top.dispose();
+        base.dispose();
+      }),
+    [shapes],
+  );
 
   const platformGroups = useRef<(THREE.Group | null)[]>([]);
   /** each step's top slab, for the pressed glow */
@@ -413,9 +500,7 @@ export const CourseScene = memo(function CourseScene({
             <planeGeometry args={[140, 80]} />
             <meshStandardMaterial color="#dbe7f6" roughness={1} />
           </mesh>
-          {clouds.map((c, i) => (
-            <Cloud key={i} {...c} />
-          ))}
+          <Clouds clouds={clouds} />
         </>
       )}
 
@@ -432,8 +517,12 @@ export const CourseScene = memo(function CourseScene({
             }}
           >
             {/* dark case under every step, so it reads against the sky like a piano key */}
-            <mesh position={[p.x, p.y - PLATFORM_THICKNESS - CASE_THICKNESS / 2, p.z]} castShadow receiveShadow>
-              <boxGeometry args={[p.width + 0.16, CASE_THICKNESS, p.depth + 0.16]} />
+            <mesh
+              geometry={shapes[i].base}
+              position={[p.x, p.y - PLATFORM_THICKNESS - CASE_THICKNESS / 2, p.z]}
+              castShadow
+              receiveShadow
+            >
               <meshStandardMaterial color={caseColor} roughness={0.5} transparent={fading} opacity={fading ? 0 : 1} />
             </mesh>
             <mesh
@@ -441,11 +530,11 @@ export const CourseScene = memo(function CourseScene({
                 springRef(i)(el);
                 tops.current[i] = el;
               }}
+              geometry={shapes[i].top}
               position={[p.x, p.y - PLATFORM_THICKNESS / 2, p.z]}
               castShadow
               receiveShadow
             >
-              <boxGeometry args={[p.width, PLATFORM_THICKNESS, p.depth]} />
               <meshStandardMaterial
                 color={p.behavior ? BEHAVIOR_COLORS[p.behavior] : COLORS[p.kind]}
                 emissive={restGlow[i].colour}

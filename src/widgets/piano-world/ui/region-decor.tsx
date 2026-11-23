@@ -35,12 +35,26 @@ function DecorPiece({ item }: { item: DecorItem }) {
     case "column":
       return (
         <group position={[item.x, 0, item.z]}>
+          {/* faceted shaft: the flat facets read as fluting under the sun */}
           <mesh position={[0, 3.2, 0]} castShadow receiveShadow>
-            <cylinderGeometry args={[0.45, 0.5, 6.4, 20]} />
-            <meshStandardMaterial color="#e9e2d2" roughness={0.8} />
+            <cylinderGeometry args={[0.45, 0.5, 6.4, 16]} />
+            <meshStandardMaterial color="#e9e2d2" roughness={0.8} flatShading />
           </mesh>
           <mesh position={[0, 0.15, 0]} receiveShadow>
             <boxGeometry args={[1.3, 0.3, 1.3]} />
+            <meshStandardMaterial color="#d6cdb9" roughness={0.9} />
+          </mesh>
+          {/* rounded moulding at the foot, and a capital with its slab on top */}
+          <mesh position={[0, 0.36, 0]} rotation={[Math.PI / 2, 0, 0]} receiveShadow>
+            <torusGeometry args={[0.5, 0.08, 8, 20]} />
+            <meshStandardMaterial color="#ddd4c1" roughness={0.85} />
+          </mesh>
+          <mesh position={[0, 6.32, 0]} castShadow>
+            <cylinderGeometry args={[0.62, 0.45, 0.28, 16]} />
+            <meshStandardMaterial color="#ddd4c1" roughness={0.85} />
+          </mesh>
+          <mesh position={[0, 6.52, 0]} castShadow>
+            <boxGeometry args={[1.3, 0.14, 1.3]} />
             <meshStandardMaterial color="#d6cdb9" roughness={0.9} />
           </mesh>
         </group>
@@ -48,13 +62,31 @@ function DecorPiece({ item }: { item: DecorItem }) {
     case "floorLamp":
       return (
         <group position={[item.x, 0, item.z]}>
+          {/* weighted base, pole, and a brass collar under the shade */}
+          <mesh position={[0, 0.04, 0]}>
+            <cylinderGeometry args={[0.28, 0.32, 0.08, 20]} />
+            <meshStandardMaterial color="#1a1310" roughness={0.4} metalness={0.3} />
+          </mesh>
           <mesh position={[0, 1.4, 0]}>
-            <cylinderGeometry args={[0.04, 0.04, 2.8, 8]} />
-            <meshStandardMaterial color="#1a1310" />
+            <cylinderGeometry args={[0.035, 0.045, 2.8, 8]} />
+            <meshStandardMaterial color="#1a1310" roughness={0.4} metalness={0.3} />
+          </mesh>
+          <mesh position={[0, 2.68, 0]}>
+            <cylinderGeometry args={[0.07, 0.07, 0.08, 10]} />
+            <meshStandardMaterial color="#c9a45c" metalness={0.55} roughness={0.35} />
           </mesh>
           <mesh position={[0, 2.9, 0]}>
             <coneGeometry args={[0.45, 0.5, 24, 1, true]} />
             <meshStandardMaterial color="#ffcf9a" emissive="#ff9a4a" emissiveIntensity={1.2} side={2} />
+          </mesh>
+          {/* a trim along the shade's lower rim, and the bulb glowing inside */}
+          <mesh position={[0, 2.66, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[0.45, 0.018, 6, 24]} />
+            <meshStandardMaterial color="#c9a45c" metalness={0.55} roughness={0.35} />
+          </mesh>
+          <mesh position={[0, 2.78, 0]}>
+            <sphereGeometry args={[0.1, 12, 8]} />
+            <meshBasicMaterial color="#fff1d6" toneMapped={false} />
           </mesh>
           <pointLight position={[0, 2.6, 0.4]} color="#ffb070" intensity={18} distance={9} decay={2} />
         </group>
@@ -127,6 +159,20 @@ function Fireflies() {
     return g;
   }, []);
   useEffect(() => () => geometry.dispose(), [geometry]);
+  // soft round motes instead of square points
+  const glow = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 32;
+    const ctx = canvas.getContext("2d")!;
+    const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+    gradient.addColorStop(0, "rgba(255,255,255,1)");
+    gradient.addColorStop(0.3, "rgba(255,255,255,0.7)");
+    gradient.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 32, 32);
+    return new THREE.CanvasTexture(canvas);
+  }, []);
+  useEffect(() => () => glow.dispose(), [glow]);
 
   useFrame(({ clock }) => {
     if (!points.current) return;
@@ -143,7 +189,15 @@ function Fireflies() {
 
   return (
     <points ref={points} geometry={geometry}>
-      <pointsMaterial color="#ffc070" size={0.12} transparent opacity={0.9} blending={THREE.AdditiveBlending} depthWrite={false} />
+      <pointsMaterial
+        map={glow}
+        color="#ffc070"
+        size={0.22}
+        transparent
+        opacity={0.95}
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+      />
     </points>
   );
 }
@@ -158,10 +212,17 @@ function NeonDecor({ party }: { party: boolean }) {
         { z: -WHITE_L / 2 - 0.7, color: "#ff4fd8" },
         { z: WHITE_L / 2 + 0.5, color: "#4fd8ff" },
       ].map(({ z, color }) => (
-        <mesh key={z} position={[0, 0.04, z]}>
-          <boxGeometry args={[length, 0.06, 0.08]} />
-          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1.3} />
-        </mesh>
+        <group key={z}>
+          <mesh position={[0, 0.04, z]}>
+            <boxGeometry args={[length, 0.06, 0.08]} />
+            <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1.3} />
+          </mesh>
+          {/* a soft wash under the tube so it seems to light the floor */}
+          <mesh position={[0, 0.012, z]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[length, 0.5]} />
+            <meshBasicMaterial color={color} transparent opacity={0.12} depthWrite={false} toneMapped={false} />
+          </mesh>
+        </group>
       ))}
     </group>
   );

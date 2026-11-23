@@ -84,6 +84,48 @@ function makeGlowTexture() {
 }
 
 /**
+ * A thin rune circle for the floor: two fine rings with short ticks and dots
+ * between them, white so the material tints it.
+ */
+function makeRuneTexture() {
+  const size = 256;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  const c = size / 2;
+  ctx.strokeStyle = "rgba(255,255,255,0.9)";
+  ctx.fillStyle = "rgba(255,255,255,0.9)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(c, c, c - 6, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(c, c, c - 30, 0, Math.PI * 2);
+  ctx.stroke();
+  const marks = 24;
+  for (let i = 0; i < marks; i++) {
+    const a = (i / marks) * Math.PI * 2;
+    const cos = Math.cos(a);
+    const sin = Math.sin(a);
+    if (i % 3 === 0) {
+      ctx.beginPath();
+      ctx.arc(c + cos * (c - 18), c + sin * (c - 18), 4, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(c + cos * (c - 12), c + sin * (c - 12));
+      ctx.lineTo(c + cos * (c - 24), c + sin * (c - 24));
+      ctx.stroke();
+    }
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.center.set(0.5, 0.5);
+  return texture;
+}
+
+/**
  * Swirl layers stacked front-to-back inside the gate. Each turns at its own
  * speed and sits at its own depth, so moving around the portal shows real
  * parallax — it reads as a volume of light rather than a picture of one.
@@ -107,15 +149,20 @@ export function Portal({ portal, glow }: { portal: PortalDef; glow: boolean }) {
   const layers = useRef<(THREE.Mesh | null)[]>([]);
   const halo = useRef<THREE.Mesh>(null);
   const pool = useRef<THREE.Mesh>(null);
+  const runes = useRef<THREE.Mesh>(null);
+  const core = useRef<THREE.Mesh>(null);
   const sparks = useRef<THREE.Points>(null);
   const orbit = useRef<THREE.Points>(null);
   const scratch = useRef(new THREE.Vector3());
+  // normal blending on light regions needs more opacity to read as light at all
+  const fade = (portal.hidden ? 0.45 : 1) * (glow ? 1 : 1.9);
 
   const assets = useMemo(() => {
     const swirl = makeSwirlTexture();
     // each layer needs its own texture so it can spin independently
     const swirls = LAYERS.map((_, i) => (i === 0 ? swirl : swirl.clone()));
     const glowTexture = makeGlowTexture();
+    const runeTexture = makeRuneTexture();
 
     const positions = new Float32Array(SPARK_COUNT * 3);
     const speeds = new Float32Array(SPARK_COUNT);
@@ -132,13 +179,14 @@ export function Portal({ portal, glow }: { portal: PortalDef; glow: boolean }) {
     orbitGeometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(ORBIT_COUNT * 3), 3));
     const orbitPhase = Float32Array.from({ length: ORBIT_COUNT }, (_, i) => hash(i, 5) * Math.PI * 2);
 
-    return { swirls, glowTexture, sparkGeometry, speeds, orbitGeometry, orbitPhase };
+    return { swirls, glowTexture, runeTexture, sparkGeometry, speeds, orbitGeometry, orbitPhase };
   }, []);
 
   useEffect(
     () => () => {
       assets.swirls.forEach((t) => t.dispose());
       assets.glowTexture.dispose();
+      assets.runeTexture.dispose();
       assets.sparkGeometry.dispose();
       assets.orbitGeometry.dispose();
     },
@@ -168,6 +216,16 @@ export function Portal({ portal, glow }: { portal: PortalDef; glow: boolean }) {
     const pulse = 1 + Math.sin(t * 2.6) * 0.05;
     if (halo.current) halo.current.scale.set(GATE_WIDTH * 2.1 * pulse, GATE_HEIGHT * 1.6 * pulse, 1);
     if (pool.current) pool.current.scale.set(pulse, pulse, 1);
+    // the rune circle turns slowly under the gate; the bright eye at its heart breathes
+    if (runes.current) {
+      const material = runes.current.material as THREE.MeshBasicMaterial;
+      if (material.map) material.map.rotation = t * 0.25;
+      material.opacity = (0.35 + Math.sin(t * 2.6) * 0.1) * fade;
+    }
+    if (core.current) {
+      const flare = 0.55 + Math.sin(t * 3.3) * 0.12 + Math.sin(t * 7.1) * 0.05;
+      core.current.scale.set(flare, flare, 1);
+    }
 
     // motes circling the gate, sweeping in front of and behind it
     if (orbit.current) {
@@ -209,8 +267,6 @@ export function Portal({ portal, glow }: { portal: PortalDef; glow: boolean }) {
     color: portal.color,
     side: THREE.DoubleSide,
   } as const;
-  // normal blending on light regions needs more opacity to read as light at all
-  const fade = (portal.hidden ? 0.45 : 1) * (glow ? 1 : 1.9);
 
   return (
     <group position={[portal.x, portal.y ?? 0, portal.z]} scale={portal.hidden ? 0.55 : 1}>
@@ -218,6 +274,12 @@ export function Portal({ portal, glow }: { portal: PortalDef; glow: boolean }) {
       <mesh ref={pool} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
         <planeGeometry args={[GATE_WIDTH * 1.8, GATE_WIDTH * 1.2]} />
         <meshBasicMaterial map={assets.glowTexture} {...material} opacity={0.5 * fade} />
+      </mesh>
+
+      {/* a rune circle on the floor, turning slowly */}
+      <mesh ref={runes} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 0]}>
+        <planeGeometry args={[GATE_WIDTH * 1.5, GATE_WIDTH * 1.5]} />
+        <meshBasicMaterial map={assets.runeTexture} {...material} opacity={0.35 * fade} />
       </mesh>
 
       <group ref={gate} position={[0, GATE_CENTER_Y, 0]}>
@@ -240,6 +302,11 @@ export function Portal({ portal, glow }: { portal: PortalDef; glow: boolean }) {
             <meshBasicMaterial map={assets.swirls[i]} {...material} opacity={layer.opacity * fade} />
           </mesh>
         ))}
+        {/* a bright eye at the heart of the swirl */}
+        <mesh ref={core} position={[0, 0, 0.26]}>
+          <planeGeometry args={[1, 1]} />
+          <meshBasicMaterial map={assets.glowTexture} {...material} opacity={0.5 * fade} />
+        </mesh>
         {/* motes orbiting the gate in depth */}
         <points ref={orbit} geometry={assets.orbitGeometry}>
           <pointsMaterial map={assets.glowTexture} size={0.12} sizeAttenuation {...material} opacity={0.9 * fade} />
