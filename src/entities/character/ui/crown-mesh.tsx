@@ -6,11 +6,12 @@ import * as THREE from "three";
 const STYLE = {
   gold: { color: "#f2c14e", emissive: "#a06a00", glow: 0.25, tip: "#f2c14e" },
   star: { color: "#dfe6ff", emissive: "#6f86ff", glow: 0.55, tip: "#ffe48a" },
+  flame: { color: "#3a2a24", emissive: "#ff5a1f", glow: 0.35, tip: "#ffb347" },
 } as const;
 
 /** A small crown — the reward for topping a jump course. */
-/** gold = the cloud course's reward; star = the night course's */
-export function CrownMesh({ kind = "gold" }: { kind?: "gold" | "star" }) {
+/** gold = the cloud course's reward; star = the night course's; flame = the storm temple's (dark iron, burning tips) */
+export function CrownMesh({ kind = "gold" }: { kind?: keyof typeof STYLE }) {
   const style = STYLE[kind];
   return (
     <group>
@@ -34,6 +35,12 @@ export function CrownMesh({ kind = "gold" }: { kind?: "gold" | "star" }) {
           <mesh key={i} position={[x, 0.2, z]} rotation={[0, -angle + Math.PI / 2, 0]} scale={0.075} geometry={STAR_GEOMETRY}>
             
             <meshStandardMaterial color={style.tip} emissive={style.tip} emissiveIntensity={0.8} toneMapped={false} />
+          </mesh>
+        ) : kind === "flame" ? (
+          // tongues of fire instead of spikes, still burning from the dragon's breath
+          <mesh key={i} position={[x, 0.2, z]} scale={[1, 1.3, 1]}>
+            <coneGeometry args={[0.055, 0.2, 8]} />
+            <meshStandardMaterial color={style.tip} emissive="#ff6a1f" emissiveIntensity={1.4} toneMapped={false} />
           </mesh>
         ) : (
           <mesh key={i} position={[x, 0.17, z]}>

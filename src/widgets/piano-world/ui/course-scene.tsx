@@ -10,13 +10,18 @@ import {
   CRUMBLE_DOWN_TIME,
   PLATFORM_THICKNESS,
   BEAM_LAMP_ABOVE,
+  BELL_GONE,
+  BELL_WARN,
   alwaysLit,
+  bellGone,
+  bellPhase,
   beamLight,
   beamWidthAt,
   beamX,
   goalSpots,
   courseRuntime,
   isSolid,
+  liftOffset,
   slideOffset,
   type Beam,
   type CourseDef,
@@ -24,6 +29,7 @@ import {
 } from "../engine/course";
 import { CrownMesh } from "@/entities/character";
 import { useKeySprings } from "./hooks/use-key-springs";
+import { StormTemple } from "./storm-temple";
 
 const COLORS: Record<Platform["kind"], string> = {
   white: "#fbf8f2",
@@ -32,12 +38,23 @@ const COLORS: Record<Platform["kind"], string> = {
   goal: "#e3b341",
 };
 
+/** The storm temple's steps are weathered stone (and its summit old gold). */
+const STONE_COLORS: Record<Platform["kind"], string> = {
+  white: "#d9cdb8",
+  black: "#3a302b",
+  rest: "#c4b293",
+  goal: "#d9a640",
+};
+
 /** Terrain with a behavior gets its own colour so you can read it before stepping on it. */
 const BEHAVIOR_COLORS: Record<NonNullable<Platform["behavior"]>, string> = {
   slide: "#cfe2ff", // airy blue: it moves
   crumble: "#e8cfa6", // sandy: it won't hold
   bounce: "#ff9ec0", // rubbery pink: it springs
+  lift: "#9db4c4", // cold blue-grey stone: adrift, rising and sinking
+  bell: "#c79a4e", // bell bronze: it goes when the bell tolls
 };
+const BELL_WARN_GLOW = new THREE.Color("#ff9a3a");
 
 const FALL_SPEED = 6;
 const PRESSED_GLOW = { day: new THREE.Color("#b9a8ff"), night: new THREE.Color("#ffe9a8") };
@@ -363,6 +380,7 @@ export const CourseScene = memo(function CourseScene({
 }) {
   const { platforms, beams } = course;
   const night = beams !== undefined;
+  const temple = course.id === "ruins";
   const clouds = useMemo(
     () =>
       Array.from({ length: 18 }, (_, i) => ({
@@ -424,7 +442,8 @@ export const CourseScene = memo(function CourseScene({
     [platforms, night],
   );
   /** smoothed 0–1 visibility per step on the night course */
-  const levels = useRef(platforms.map(() => 0));
+  /** (night steps start dark and fade in; bell stones start solid) */
+  const levels = useRef(platforms.map(() => (night ? 0 : 1)));
 
   // slide, wobble, drop and light platforms from the same runtime the physics reads
   useFrame((_, rawDelta) => {
@@ -434,7 +453,7 @@ export const CourseScene = memo(function CourseScene({
       if (!group) return;
       const p = platforms[i];
       let x = slideOffset(course, i, t);
-      let y = 0;
+      let y = liftOffset(course, i, t);
       const wobbleSince = courseRuntime.crumbling.get(i);
       if (wobbleSince !== undefined) {
         // shake harder the closer it is to giving way
@@ -459,6 +478,24 @@ export const CourseScene = memo(function CourseScene({
         material.emissiveIntensity = down ? 0.6 : restGlow[i].intensity;
       }
 
+      if (p.behavior === "bell") {
+        // bell stones shudder and glow as the toll nears, vanish on it, and come back
+        const phase = bellPhase(i, t);
+        const warn = phase >= 1 - BELL_GONE - BELL_WARN && phase < 1 - BELL_GONE;
+        if (warn) group.position.x += Math.sin(t * 70) * 0.03;
+        const level = (levels.current[i] += ((bellGone(course, i, t) ? 0 : 1) - levels.current[i]) * fade);
+        group.children.forEach((child) => {
+          if (!(child instanceof THREE.Mesh)) return;
+          const material = child.material as THREE.MeshStandardMaterial;
+          material.opacity = 0.06 + 0.94 * level;
+          material.depthWrite = level > 0.9;
+          if (child === top && !down) {
+            material.emissive.copy(BELL_WARN_GLOW);
+            material.emissiveIntensity = warn ? 0.5 : 0;
+          }
+        });
+        return;
+      }
       if (!night || alwaysLit(p)) return;
       // lit: full; in the grace window after the light leaves: half, as a warning; dark: gone
       const light = Math.max(0, beamLight(course, p.x, p.y, t));
@@ -481,7 +518,9 @@ export const CourseScene = memo(function CourseScene({
 
   return (
     <group>
-      {night ? (
+      {temple ? (
+        <StormTemple course={course} />
+      ) : night ? (
         <>
           <NightSky />
           {/* dark water far below */}
@@ -505,10 +544,10 @@ export const CourseScene = memo(function CourseScene({
       )}
 
       {platforms.map((p, i) => {
-        // on the night course, steps that come and go fade with the light
-        const fading = night && !alwaysLit(p);
+        // on the night course, steps that come and go fade with the light (bell stones with the bell)
+        const fading = (night && !alwaysLit(p)) || p.behavior === "bell";
         const lantern = night && !fading;
-        const caseColor = p.kind === "goal" ? "#7a5418" : night ? "#151933" : "#2f2b27";
+        const caseColor = p.kind === "goal" ? "#7a5418" : night ? "#151933" : temple ? "#2a201c" : "#2f2b27";
         return (
           <group
             key={i}
@@ -523,7 +562,7 @@ export const CourseScene = memo(function CourseScene({
               castShadow
               receiveShadow
             >
-              <meshStandardMaterial color={caseColor} roughness={0.5} transparent={fading} opacity={fading ? 0 : 1} />
+              <meshStandardMaterial color={caseColor} roughness={0.5} transparent={fading} opacity={fading && night ? 0 : 1} />
             </mesh>
             <mesh
               ref={(el) => {
@@ -536,16 +575,16 @@ export const CourseScene = memo(function CourseScene({
               receiveShadow
             >
               <meshStandardMaterial
-                color={p.behavior ? BEHAVIOR_COLORS[p.behavior] : COLORS[p.kind]}
+                color={p.behavior ? BEHAVIOR_COLORS[p.behavior] : (temple ? STONE_COLORS : COLORS)[p.kind]}
                 emissive={restGlow[i].colour}
                 emissiveIntensity={restGlow[i].intensity}
-                roughness={0.45}
-                metalness={p.kind === "goal" ? 0.3 : 0}
+                roughness={temple ? 0.9 : 0.45}
+                metalness={p.kind === "goal" ? 0.3 : p.behavior === "bell" ? 0.5 : 0}
                 transparent={fading}
-                opacity={fading ? 0 : 1}
+                opacity={fading && night ? 0 : 1}
               />
             </mesh>
-            {fading ? (
+            {fading && night ? (
               // a faint outline in the dark, so you can learn the route before the light comes
               <lineSegments geometry={outlines[i]} position={[p.x, p.y - PLATFORM_THICKNESS / 2, p.z]}>
                 <lineBasicMaterial color="#8fa0ff" transparent opacity={0.3} />

@@ -7,7 +7,7 @@ import { readCourseBest, writeCourseBest, type CourseRun } from "./course-record
 import type { HatId } from "@/entities/character";
 
 /** Guests keep course rewards in this browser: the hat each course unlocks. */
-const REWARD_OF: Record<CourseId, HatId> = { clouds: "crown", night: "star-crown" };
+export const REWARD_OF: Record<CourseId, HatId> = { clouds: "crown", night: "star-crown", ruins: "flame-crown" };
 const readLocalRewards = (): HatId[] =>
   (Object.keys(REWARD_OF) as CourseId[]).filter((c) => readCourseBest(c) !== null).map((c) => REWARD_OF[c]);
 

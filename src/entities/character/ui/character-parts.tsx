@@ -98,9 +98,10 @@ export function Hat({ hat }: { hat: HatId }) {
   switch (hat) {
     case "crown":
     case "star-crown":
+    case "flame-crown":
       return (
         <group position={[0, 1.33, 0]} rotation={[0, 0, 0.12]} scale={0.95}>
-          <CrownMesh kind={hat === "crown" ? "gold" : "star"} />
+          <CrownMesh kind={hat === "crown" ? "gold" : hat === "star-crown" ? "star" : "flame"} />
         </group>
       );
     case "ribbon":

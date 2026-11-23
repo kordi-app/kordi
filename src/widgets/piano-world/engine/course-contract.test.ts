@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COURSES, type CourseId } from "./course";
+import { COURSES, LIFT_AMPLITUDE, type CourseId } from "./course";
 import { COURSE_CLIMBS, COURSE_FLOOR_HEIGHT, FIRST_STEP_Y } from "./course-contract";
 import { EMOTES } from "./interactables";
 import { REGION_IDS } from "./regions";
@@ -32,11 +32,13 @@ const SERVER_COURSES: Record<string, { goalY: number }> = {
   clouds: { goalY: 19.0 },
   /** Course.NIGHT */
   night: { goalY: 17.3 },
+  /** Course.RUINS */
+  ruins: { goalY: 24.8 },
 };
 
 // kordi server src/main/java/com/kordi_api/world/WorldLobby.java
 /** WorldLobby.REGIONS */
-const SERVER_REGIONS = ["hall", "neon", "cathedral", "lounge", "clouds", "night"];
+const SERVER_REGIONS = ["hall", "neon", "cathedral", "lounge", "clouds", "night", "ruins"];
 /** WorldLobby.EMOTES */
 const SERVER_EMOTES = ["wave", "clap", "dance", "sit"];
 
@@ -81,8 +83,10 @@ describe("jump courses match the server's CourseTimer / Course", () => {
     const course = COURSES[id];
     const finishLine = SERVER_COURSES[id].goalY - SERVER_TIMER.GOAL_TOLERANCE;
     course.platforms.forEach((p, i) => {
+      // rising debris counts at the top of its rise: riding it must not finish the run
+      const highest = p.y + (p.behavior === "lift" ? LIFT_AMPLITUDE : 0);
       if (i === course.goalIndex) expect(p.y).toBeGreaterThanOrEqual(finishLine);
-      else expect(p.y).toBeLessThan(finishLine);
+      else expect(highest).toBeLessThan(finishLine);
     });
   });
 });

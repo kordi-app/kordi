@@ -79,7 +79,7 @@ export default function PianoWorldScene({
     [advance, regionRef],
   );
   const audio = useWorldAudio(regionRef, onStep);
-  const { startAudio, isOn, chime, switchInstrument, silence, warpEffect, syncMusic } = audio;
+  const { startAudio, isOn, chime, switchInstrument, silence, warpEffect, dragonEffect, syncMusic } = audio;
   // the region's background music follows the region and whether sound is on
   useEffect(() => {
     syncMusic(region.music);
@@ -180,6 +180,7 @@ export default function PianoWorldScene({
       onVoice: voice,
       onWarpNearby: handleWarpNearby,
       onNearKeys: setNearKeys,
+      onDragon: dragonEffect,
     }),
     [
       handleStep,
@@ -192,6 +193,7 @@ export default function PianoWorldScene({
       setNearby,
       voice,
       handleWarpNearby,
+      dragonEffect,
     ],
   );
 
@@ -202,7 +204,8 @@ export default function PianoWorldScene({
   const appearance: Appearance = isGuest
     ? {
         ...DEFAULT_APPEARANCE,
-        hat: rewards.includes("star-crown") ? "star-crown" : rewards.includes("crown") ? "crown" : null,
+        // the best crown earned: the storm temple's, then the night's, then the clouds'
+        hat: (["flame-crown", "star-crown", "crown"] as const).find((hat) => rewards.includes(hat)) ?? null,
       }
     : (character?.appearance ?? DEFAULT_APPEARANCE);
 

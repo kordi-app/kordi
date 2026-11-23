@@ -149,6 +149,24 @@ export function playWarpEffect(kind: WarpEffect): void {
   }
 }
 
+export type DragonEffect = "roar" | "burn";
+
+/**
+ * A dragon in a storm: the roar is a low, swelling growl of air with a drum
+ * thud under it; the burn is a bright rush of flame.
+ */
+export function playDragonEffect(kind: DragonEffect): void {
+  if (!running()) return;
+  if (kind === "roar") {
+    whoosh(90, 420, 1.3, 0.55);
+    whoosh(200, 900, 0.9, 0.25);
+    playVoice("drum", 36, 0.9);
+  } else {
+    whoosh(700, 3200, 0.6, 0.5);
+    whoosh(2500, 600, 0.9, 0.3);
+  }
+}
+
 /** Free every voice (e.g. when leaving the page that used them). */
 export function disposeVoices(): void {
   voices.forEach((voice) => voice.dispose());

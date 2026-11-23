@@ -16,14 +16,15 @@ export const BODY_COLORS: Record<BodyColor, string> = {
 };
 
 export const BODY_IDS = Object.keys(BODY_COLORS) as BodyColor[];
-export const HAT_IDS: HatId[] = ["crown", "star-crown", "ribbon", "beret", "headphones", "flower"];
+export const HAT_IDS: HatId[] = ["crown", "star-crown", "flame-crown", "ribbon", "beret", "headphones", "flower"];
 export const FACE_IDS: FaceId[] = ["default", "smile", "sparkle", "sleepy"];
 export const ACCESSORY_IDS: AccessoryId[] = ["scarf", "bowtie", "glasses"];
 
 /** Hats you earn by finishing a jump course (the world region it's in). */
-export const REWARD_HATS: Partial<Record<HatId, "clouds" | "night">> = {
+export const REWARD_HATS: Partial<Record<HatId, "clouds" | "night" | "ruins">> = {
   crown: "clouds",
   "star-crown": "night",
+  "flame-crown": "ruins",
 };
 
 export const isRewardHat = (hat: HatId) => hat in REWARD_HATS;

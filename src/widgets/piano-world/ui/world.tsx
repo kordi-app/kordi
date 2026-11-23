@@ -5,7 +5,16 @@ import type { VoiceId } from "@/shared/lib/audio";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { BOUNDS, CASE_H, SPAWN } from "../engine/layout";
-import { courseRuntime, slideOffset, tickCourse, touchCrumble } from "../engine/course";
+import {
+  BELL_GONE,
+  bellPhase,
+  burning,
+  courseRuntime,
+  slideOffset,
+  tickCourse,
+  tickDragon,
+  touchCrumble,
+} from "../engine/course";
 import { bodyLanguage, createPlayerSim, jumpAndFall, placePlayer, walk, type WalkEnv } from "../engine/player";
 import { interactablesIn, type EmoteId, type InteractableId } from "../engine/interactables";
 import { decorColliders } from "../engine/decor";
@@ -30,6 +39,7 @@ import {
 import { PORTAL_RADIUS, type RegionDef, type RegionId } from "../engine/regions";
 import type { RemotePlayer } from "../net/protocol";
 import type { InteractionScene } from "./hooks/use-interactions";
+import { REWARD_OF } from "./hooks/use-course-run";
 import { CourseScene } from "./course-scene";
 import { EmoteBubble } from "./emote-bubble";
 import { IslandScene } from "./island-scene";
@@ -80,7 +90,15 @@ export interface WorldEvents {
   onWarpNearby: (id: WarpStoneId | null) => void;
   /** whether you're on the keyboard plaza (the melody game only shows there) */
   onNearKeys: (near: boolean) => void;
+  /** the storm temple's dragon roared (an attack is coming) or its fire caught you */
+  onDragon: (kind: "roar" | "burn") => void;
 }
+
+/** Knocked back by dragon fire: this fast sideways (with the flames) and up. */
+const BURN_PUSH = 5.5;
+const BURN_HOP = 4.5;
+/** After a burn you can't be caught again for this long. */
+const BURN_GRACE = 1.2;
 
 export interface WorldPresence {
   remotes: RefObject<Map<string, RemotePlayer>>;
@@ -140,6 +158,8 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
   const bubble = useRef<THREE.Group>(null);
   const lantern = useRef<THREE.Group>(null);
   const fx = useRef<StepEffectsApi>(null);
+  /** dragon fire can't catch you again until then (course clock) */
+  const burnUntil = useRef(0);
   const motion = useRef<KordiMotion>({ phase: 0, amount: 0, emote: null, land: 0, stretch: 0, lean: 0, bank: 0 });
   /** Kordi's live position: one Vector3, mutated in place, shared with the island renderer */
   const [playerPos] = useState(() => new THREE.Vector3(SPAWN.x, CASE_H, SPAWN.z));
@@ -228,7 +248,30 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       if (!s.airborne && s.platform !== null) {
         s.pos.x += slideOffset(course, s.platform, now) - slideOffset(course, s.platform, courseRuntime.time);
       }
+      const before = courseRuntime.time;
       tickCourse(course, now);
+      // the temple bell tolls as each set of bell stones goes (two sets, half a cycle apart)
+      if (course.platforms.some((p) => p.behavior === "bell")) {
+        for (const parity of [0, 1]) {
+          const from = bellPhase(parity, before);
+          const to = bellPhase(parity, now);
+          const crossed = from < 1 - BELL_GONE && to >= 1 - BELL_GONE && to - from < 0.5;
+          if (crossed) events.onVoice("bell", parity ? 45 : 50, 0.55);
+        }
+      }
+      if (tickDragon(course, now, s.pos.x, s.pos.y)) events.onDragon("roar");
+      if (now > burnUntil.current && burning(course, s.pos.x, s.pos.y)) {
+        // knocked back with the flames: off your step, usually down one or two
+        const dir = courseRuntime.breath?.dir ?? 1;
+        s.vx = dir * BURN_PUSH;
+        s.vy = BURN_HOP;
+        s.airborne = true;
+        s.jumped = true;
+        s.springing = true;
+        burnUntil.current = now + BURN_GRACE;
+        events.onDragon("burn");
+        fx.current?.dust(s.pos.x, s.pos.y, s.pos.z);
+      }
     }
 
     // --- walking, then body language
@@ -464,7 +507,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
           key={course.id}
           course={course}
           pressed={pressed}
-          rewardOwned={rewards.includes(course.id === "night" ? "star-crown" : "crown")}
+          rewardOwned={rewards.includes(REWARD_OF[course.id])}
         />
       ) : (
         <PianoFloor pressed={pressed} theme={region.theme} ground={!region.island} keys={region.keys} />
