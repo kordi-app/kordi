@@ -18,6 +18,7 @@ export interface CourseRun {
 const BEST_KEYS: Record<CourseId, string> = {
   clouds: "kordi.world.course-best.v1",
   night: "kordi.world.course-best.night.v1",
+  ruins: "kordi.world.course-best.ruins.v1",
 };
 
 /** Best times live only in this browser; storage can be unavailable, so never throw. */

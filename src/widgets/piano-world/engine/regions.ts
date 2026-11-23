@@ -11,7 +11,7 @@ import { CAVE_PORTAL, ISLAND_BOUNDS } from "./island";
  * optionally, decor), not a scene change.
  */
 
-export const REGION_IDS = ["hall", "neon", "cathedral", "lounge", "clouds", "night"] as const;
+export const REGION_IDS = ["hall", "neon", "cathedral", "lounge", "clouds", "night", "ruins"] as const;
 export type RegionId = (typeof REGION_IDS)[number];
 
 export function isRegionId(value: unknown): value is RegionId {
@@ -121,6 +121,7 @@ const homePortal = (color: string): PortalDef[] => [
 
 const CLOUDS = COURSES.clouds;
 const NIGHT = COURSES.night;
+const RUINS = COURSES.ruins;
 /**
  * A course's way back down: out in the front-left corner of the start area.
  * Beside the start it sat half a step from the first platform, so a jump
@@ -281,7 +282,8 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     camera: [0, 4.5, 12],
     portals: [
       { to: "clouds", ...backPortal(NIGHT), color: "#8f7cff" },
-      goalPortal(NIGHT, "hall", "#ffd36a"),
+      // past the night, the storm temple
+      goalPortal(NIGHT, "ruins", "#ff7a3a"),
     ],
     course: NIGHT,
     theme: {
@@ -301,6 +303,37 @@ export const REGIONS: Record<RegionId, RegionDef> = {
       sunColor: "#9fb0ff",
       dark: true,
       accent: "#ffe08a",
+    },
+  },
+  // the third climb: a ruined temple adrift in an endless storm at dusk, with a dragon
+  ruins: {
+    id: "ruins",
+    instrument: "organ",
+    feature: "course",
+    camera: [0, 4.5, 12],
+    portals: [
+      { to: "night", ...backPortal(RUINS), color: "#ffb36a" },
+      goalPortal(RUINS, "hall", "#ffd36a"),
+    ],
+    course: RUINS,
+    theme: {
+      // the haze is the sky's ember horizon, so the floor fades into it with no edge
+      background: "#c9622f",
+      fog: [28, 95],
+      floor: "#2b1f1c",
+      keyboardCase: "#2a201c",
+      white: "#d9cdb8",
+      whitePressed: "#f0c48a",
+      black: "#3a302b",
+      blackPressed: "#6b4a34",
+      pressedGlow: "#ffb35a",
+      sky: "#ffb46a",
+      ground: "#2b1f1c",
+      ambient: 1.0,
+      sun: 1.5,
+      sunColor: "#ffbf7a",
+      dark: true,
+      accent: "#ffb35a",
     },
   },
 };

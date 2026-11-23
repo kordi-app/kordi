@@ -139,15 +139,20 @@ export function CourseCard({ run, isGuest, copy }: { run: CourseRun; isGuest: bo
   // `now` only ticks during a run: right after a start it can still predate it
   const elapsed = run.startedAt !== null ? Math.max(0, now - run.startedAt) : (run.finishedMs ?? 0);
   const justFinished = run.finishedMs !== null && run.startedAt === null;
-  const night = run.course === "night";
+  // each course's own heading, hint and bar colour (the cloud course is the plain one)
+  const look = {
+    clouds: { title: copy.courseTitle, hint: withJumpKey(copy.courseHint), bar: "bg-palette-purple-500" },
+    night: { title: copy.nightTitle, hint: copy.nightHint, bar: "bg-palette-yellow-300" },
+    ruins: { title: copy.ruinsTitle, hint: copy.ruinsHint, bar: "bg-palette-red-500" },
+  }[run.course];
 
   return (
     <ProgressCard
-      title={justFinished ? copy.courseDone : night ? copy.nightTitle : copy.courseTitle}
+      title={justFinished ? copy.courseDone : look.title}
       value={<span className="text-lg font-semibold tabular-nums text-foreground">{formatTime(elapsed)}</span>}
       ratio={run.reached / COURSES[run.course].goalIndex}
-      barClass={night ? "bg-palette-yellow-300" : "bg-palette-purple-500"}
-      hint={run.best !== null ? `${copy.courseBest} ${formatTime(run.best)}` : night ? copy.nightHint : withJumpKey(copy.courseHint)}
+      barClass={look.bar}
+      hint={run.best !== null ? `${copy.courseBest} ${formatTime(run.best)}` : look.hint}
       footer={<CourseRanking run={run} isGuest={isGuest} copy={copy} />}
     />
   );

@@ -19,7 +19,7 @@
  */
 
 /** Also the region name of the course and the server's Course.region(). */
-export type CourseId = "clouds" | "night";
+export type CourseId = "clouds" | "night" | "ruins";
 
 /** Height of the floor the courses stand on (server: below FLOOR_Y). */
 export const COURSE_FLOOR_HEIGHT = 0;
@@ -34,6 +34,7 @@ export const FIRST_STEP_Y = 0.8;
 export const COURSE_CLIMBS: Record<CourseId, { steps: number; rise: number }> = {
   clouds: { steps: 26, rise: 0.7 },
   night: { steps: 22, rise: 0.75 },
+  ruins: { steps: 30, rise: 0.8 },
 };
 
 /**

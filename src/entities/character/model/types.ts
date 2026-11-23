@@ -1,7 +1,7 @@
 import type { ApiSchema, AssertTrue, FitsContract } from "@/shared/api";
 
 export type BodyColor = "cream" | "sky" | "pink" | "mint" | "lemon" | "lilac" | "cocoa";
-export type HatId = "crown" | "star-crown" | "ribbon" | "beret" | "headphones" | "flower";
+export type HatId = "crown" | "star-crown" | "flame-crown" | "ribbon" | "beret" | "headphones" | "flower";
 export type FaceId = "default" | "smile" | "sparkle" | "sleepy";
 export type AccessoryId = "scarf" | "bowtie" | "glasses";
 

@@ -11,9 +11,11 @@ import {
   playNoteOn,
   playVoice,
   playWarpEffect,
+  playDragonEffect,
   type InstrumentId,
   type VoiceId,
   type WarpEffect,
+  type DragonEffect,
 } from "@/shared/lib/audio";
 import { houseStab, isHousePlaying, startHouse, stopHouse } from "./house-groove";
 import { useCallbackRef } from "@/shared/lib/react/use-callback-ref";
@@ -275,6 +277,12 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
     if (audioRef.current === "on") playWarpEffect(kind);
   }, []);
 
+  /** The storm temple's dragon: its roar before an attack, and the flames when they catch you. */
+  const dragonEffect = useCallback((kind: DragonEffect) => {
+    debugSeam?.voices.push({ id: `dragon:${kind}`, midi: 0, t: performance.now() });
+    if (audioRef.current === "on") playDragonEffect(kind);
+  }, []);
+
   /** The note ball hit (or rolled onto) a key. */
   const handleBallNote = useCallback(
     (midi: number, velocity: number) => chime([midi], velocity, 0, 450),
@@ -295,6 +303,7 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
     chime,
     voice,
     warpEffect,
+    dragonEffect,
     syncMusic,
   };
 }

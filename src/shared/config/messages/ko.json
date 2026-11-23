@@ -147,7 +147,8 @@
         "cathedral": "성당",
         "lounge": "라운지",
         "clouds": "구름 건반",
-        "night": "밤의 건반"
+        "night": "밤의 건반",
+        "ruins": "폭풍의 신전"
       },
       "melodies": {
         "twinkle": "작은별",
@@ -162,6 +163,8 @@
       "courseHint": "{jump}로 점프 · 떨어지면 처음부터 다시",
       "nightTitle": "빛이 닿는 건반만 밟을 수 있어요",
       "nightHint": "조명이 비출 때 건너세요 · 떨어지면 처음부터",
+      "ruinsTitle": "용의 불길을 피해 꼭대기로",
+      "ruinsHint": "종이 울리면 돌이 사라져요 · 붉은 띠가 보이면 비켜요",
       "courseRankingTitle": "역대 랭킹",
       "courseRankingEmpty": "아직 기록이 없어요 · 첫 주인공이 되어 보세요",
       "courseRankSaved": "랭킹 {rank}위에 올랐어요!",
@@ -374,6 +377,7 @@
     "hat": {
       "crown": "왕관",
       "star-crown": "별 왕관",
+      "flame-crown": "불꽃 왕관",
       "ribbon": "리본",
       "beret": "베레모",
       "headphones": "헤드폰",

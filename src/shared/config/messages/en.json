@@ -147,7 +147,8 @@
         "cathedral": "Cathedral",
         "lounge": "Lounge",
         "clouds": "Cloud Keys",
-        "night": "Night Keys"
+        "night": "Night Keys",
+        "ruins": "Storm Temple"
       },
       "melodies": {
         "twinkle": "Twinkle Twinkle Little Star",
@@ -162,6 +163,8 @@
       "courseHint": "{jump} to jump · fall and you start over",
       "nightTitle": "Only lit keys hold you up",
       "nightHint": "Cross while the light is on them · fall and you start over",
+      "ruinsTitle": "Climb past the dragon's fire",
+      "ruinsHint": "Bell stones vanish when the bell tolls · move when a red band shows",
       "courseRankingTitle": "All-time ranking",
       "courseRankingEmpty": "No times yet · be the first",
       "courseRankSaved": "You're #{rank} on the ranking!",
@@ -374,6 +377,7 @@
     "hat": {
       "crown": "Crown",
       "star-crown": "Star crown",
+      "flame-crown": "Flame crown",
       "ribbon": "Ribbon",
       "beret": "Beret",
       "headphones": "Headphones",

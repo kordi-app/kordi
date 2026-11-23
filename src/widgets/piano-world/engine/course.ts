@@ -13,6 +13,8 @@
  *
  * - clouds ("Cloud Keys"): daytime; some steps slide, crumble or bounce
  * - night ("Night Keys"): steps only exist while a sweeping searchlight is on them
+ * - ruins ("Storm Temple"): the hardest — narrow stone steps, debris that rises
+ *   and sinks, and bell stones that vanish each time the temple bell tolls
  */
 
 import {
@@ -42,8 +44,11 @@ export interface Platform {
    * - slide: drifts side to side (you ride along while standing on it)
    * - crumble: wobbles when stood on, then drops away for a few seconds
    * - bounce: a trampoline that launches you on landing
+   * - lift: floating debris that rises and sinks (you ride it; jump off at the right height)
+   * - bell: solid between tolls of the temple bell, gone for a moment on each toll;
+   *   neighbouring bell stones toll half a cycle apart, so one always holds
    */
-  behavior?: "slide" | "crumble" | "bounce";
+  behavior?: "slide" | "crumble" | "bounce" | "lift" | "bell";
 }
 
 /** A searchlight sweeping left and right across the course. */
@@ -64,6 +69,36 @@ export interface CourseDef {
   bounds: { x: number; zMin: number; zMax: number };
   /** night course: steps are solid only while lit (rest steps and the goal always are) */
   beams?: readonly Beam[];
+  /** storm temple: a dragon that breathes fire across the height you're climbing at */
+  dragon?: DragonDef;
+}
+
+/**
+ * The storm temple's dragon. Every `every` seconds it picks the height you're
+ * at, roars (a red line marks the band for `warn` seconds), then a wall of fire
+ * sweeps across the band, side to side, over `sweep` seconds. Caught in it, you
+ * are knocked back — usually down a step or two, never straight to the floor.
+ */
+export interface DragonDef {
+  every: number;
+  warn: number;
+  sweep: number;
+  /** half-height of the burning band */
+  band: number;
+  /** half-width of the wall of fire */
+  wall: number;
+}
+
+/** The dragon's current attack, if any: where the band is and when it began. */
+export interface Breath {
+  /** where you were when it roared: the fire sweeps past here */
+  x: number;
+  /** centre height of the band */
+  y: number;
+  /** roar time; fire starts at roar + warn */
+  at: number;
+  /** +1 sweeps left → right, −1 right → left */
+  dir: 1 | -1;
 }
 
 const C_MAJOR = [0, 2, 4, 5, 7, 9, 11];
@@ -88,6 +123,14 @@ export const CRUMBLE_DOWN_TIME = 3;
 export const BOUNCE_BOOST = 1.6;
 /** A step stays solid this long after the light leaves it — a fair grace window. */
 export const LIGHT_GRACE = 0.4;
+/** Rising debris: ± this much around its place in the climb, once per LIFT_PERIOD. */
+export const LIFT_AMPLITUDE = 0.9;
+const LIFT_PERIOD = 4;
+/** The temple bell: one toll per stone every BELL_PERIOD; the stone is gone for the last BELL_GONE of it. */
+export const BELL_PERIOD = 2.4;
+export const BELL_GONE = 0.38;
+/** …and shudders for this long (fraction of the period) before it goes, as a warning. */
+export const BELL_WARN = 0.16;
 
 function scaleNote(step: number, base: number) {
   return base + Math.floor(step / 7) * 12 + C_MAJOR[step % 7];
@@ -143,7 +186,7 @@ function buildPlatforms({ steps, rise, baseNote, whiteWidth, behaviors = {} }: L
   return platforms;
 }
 
-function defineCourse(id: CourseId, layout: LayoutOptions, beams?: readonly Beam[]): CourseDef {
+function defineCourse(id: CourseId, layout: LayoutOptions, beams?: readonly Beam[], dragon?: DragonDef): CourseDef {
   const platforms = buildPlatforms(layout);
   const goal = platforms[platforms.length - 1];
   return {
@@ -158,6 +201,7 @@ function defineCourse(id: CourseId, layout: LayoutOptions, beams?: readonly Beam
       zMax: COURSE_BOUNDS.zMax,
     },
     beams,
+    dragon,
   };
 }
 
@@ -183,6 +227,20 @@ export const COURSES: Record<CourseId, CourseDef> = {
     { amplitude: 9, period: 11, phase: 0, width: 5.5 },
     { amplitude: 9, period: 15, phase: Math.PI, width: 4.5 },
   ]),
+  // the hardest: narrow stone, and every lap mixes rising debris, bell stones and
+  // crumbling steps. A lift always follows a steady step, so you can wait for it.
+  ruins: defineCourse("ruins", {
+    ...COURSE_CLIMBS.ruins,
+    baseNote: 50, // D3 upward, in D dorian's colours over the C-major steps
+    whiteWidth: 1.15,
+    behaviors: {
+      1: "slide", 2: "bell", 3: "bell", 5: "lift",
+      9: "crumble", 10: "bell", 11: "bell", 13: "lift", 14: "crumble",
+      17: "slide", 18: "bell", 19: "bell", 21: "lift", 22: "crumble",
+      // the last lift sits low enough that its peak stays under the finish line
+      25: "bell", 26: "bell", 28: "lift", 29: "crumble",
+    },
+  }, undefined, { every: 9, warn: 1.6, sweep: 1.4, band: 1.3, wall: 0.9 }),
 };
 
 /** Key slab thickness, plus the dark case under it (both solid). */
@@ -208,12 +266,17 @@ const FOOT_RADIUS = PLAYER_RADIUS * 0.6;
 export const courseRuntime = {
   courseId: null as CourseId | null,
   time: 0,
+  /** the previous frame's time: fire is tested over the whole stretch it swept since then */
+  prevTime: 0,
   /** index → time it started wobbling */
   crumbling: new Map<number, number>(),
   /** index → time it comes back */
   fallenUntil: new Map<number, number>(),
   /** index → time its light runs out (night course) */
   litUntil: new Map<number, number>(),
+  /** the dragon's attack in progress (storm temple), and when the next one comes */
+  breath: null as Breath | null,
+  nextBreath: 0,
 };
 
 /** Centre x of a beam at time t. */
@@ -255,7 +318,10 @@ export function tickCourse(course: CourseDef, t: number) {
     courseRuntime.crumbling.clear();
     courseRuntime.fallenUntil.clear();
     courseRuntime.litUntil.clear();
+    courseRuntime.breath = null;
+    courseRuntime.nextBreath = t + (course.dragon?.every ?? 0);
   }
+  courseRuntime.prevTime = courseRuntime.time;
   courseRuntime.time = t;
 
   for (const [i, since] of courseRuntime.crumbling) {
@@ -280,6 +346,86 @@ export function slideOffset(course: CourseDef, i: number, t: number = courseRunt
   return Math.sin((t / SLIDE_PERIOD) * Math.PI * 2 + i) * SLIDE_AMPLITUDE;
 }
 
+/** After you leave the floor, the dragon waits at least this long before its first attack. */
+const DRAGON_FIRST_WAIT = 3;
+
+/** The fire sweeps this far either side of where you were when the dragon roared. */
+export const FIRE_REACH = 10;
+
+/**
+ * Drive the dragon (call each frame after tickCourse): when an attack is due,
+ * aim it at `playerY` — but not while you're still on the floor, and never at
+ * the summit. Returns the new breath on the frame it roars (for the sound).
+ */
+export function tickDragon(course: CourseDef, t: number, playerX: number, playerY: number): Breath | null {
+  const dragon = course.dragon;
+  if (!dragon) return null;
+  const { breath } = courseRuntime;
+  if (breath && t > breath.at + dragon.warn + dragon.sweep) courseRuntime.breath = null;
+  if (courseRuntime.breath || t < courseRuntime.nextBreath) return null;
+  const summit = course.platforms[course.goalIndex].y;
+  courseRuntime.nextBreath = t + dragon.every;
+  if (playerY < FIRST_STEP_Y || playerY > summit - 1) {
+    // nothing to aim at; once you start climbing you get a few seconds before it comes
+    courseRuntime.nextBreath = t + DRAGON_FIRST_WAIT;
+    return null;
+  }
+  const next: Breath = { x: playerX, y: playerY + 0.9, at: t, dir: Math.floor(t) % 2 === 0 ? 1 : -1 };
+  courseRuntime.breath = next;
+  return next;
+}
+
+/** Where the wall of fire is now (x), or null while the dragon is still roaring / done. */
+export function fireX(course: CourseDef, t: number = courseRuntime.time): number | null {
+  const { breath } = courseRuntime;
+  const dragon = course.dragon;
+  if (!breath || !dragon) return null;
+  const k = (t - breath.at - dragon.warn) / dragon.sweep;
+  if (k < 0 || k > 1) return null;
+  return sweepX(breath, k);
+}
+
+/** The wall's x at sweep progress k (0–1): from behind you, past you, and on. */
+const sweepX = (breath: Breath, k: number) => breath.x + breath.dir * FIRE_REACH * (2 * k - 1);
+
+/**
+ * Did the fire pass over a body at (x, y) since the last frame? (y = feet; the
+ * band covers your body.) Tested over the whole stretch the wall swept, not
+ * just where it is now: it crosses the course in under a second and a half,
+ * so on a slow frame it would otherwise jump clean over you.
+ */
+export function burning(course: CourseDef, x: number, y: number): boolean {
+  const { breath, prevTime, time } = courseRuntime;
+  const dragon = course.dragon;
+  if (!breath || !dragon || Math.abs(y + PLAYER_HEIGHT / 2 - breath.y) >= dragon.band) return false;
+  const progress = (t: number) => Math.min(1, Math.max(0, (t - breath.at - dragon.warn) / dragon.sweep));
+  const k0 = progress(Math.max(prevTime, breath.at));
+  const k1 = progress(time);
+  if (k1 <= 0 || k0 >= 1 || k1 <= k0) return false;
+  const [from, to] = [sweepX(breath, k0), sweepX(breath, k1)].sort((a, b) => a - b);
+  return x > from - dragon.wall && x < to + dragon.wall;
+}
+
+/** Height offset of platform `i` at time `t` (0 for platforms that don't rise and sink). */
+export function liftOffset(course: CourseDef, i: number, t: number = courseRuntime.time) {
+  if (course.platforms[i].behavior !== "lift") return 0;
+  return Math.sin((t / LIFT_PERIOD) * Math.PI * 2 + i * 1.7) * LIFT_AMPLITUDE;
+}
+
+/** Where a bell stone is in its cycle, 0–1; the toll (and its vanishing) is at the end. */
+export function bellPhase(i: number, t: number = courseRuntime.time) {
+  const phase = t / BELL_PERIOD + (i % 2) * 0.5;
+  return phase - Math.floor(phase);
+}
+
+/** Is bell stone `i` gone right now? (Always false for other platforms.) */
+export function bellGone(course: CourseDef, i: number, t: number = courseRuntime.time) {
+  return course.platforms[i].behavior === "bell" && bellPhase(i, t) >= 1 - BELL_GONE;
+}
+
+/** Top of platform `i` right now (debris rises and sinks). */
+export const topOf = (course: CourseDef, i: number) => course.platforms[i].y + liftOffset(course, i);
+
 /** Standing on a crumbling platform sets it wobbling (once). */
 export function touchCrumble(course: CourseDef, i: number, t: number) {
   if (course.platforms[i].behavior !== "crumble") return;
@@ -290,11 +436,12 @@ export function touchCrumble(course: CourseDef, i: number, t: number) {
 /** Can you stand on / collide with platform `i` right now? */
 export function isSolid(course: CourseDef, i: number) {
   if (courseRuntime.fallenUntil.has(i)) return false;
+  if (bellGone(course, i)) return false;
   if (!course.beams || alwaysLit(course.platforms[i])) return true;
   return (courseRuntime.litUntil.get(i) ?? -Infinity) > courseRuntime.time;
 }
 
-const bottomOf = (p: Platform) => p.y - SOLID_DEPTH;
+const bottomOf = (course: CourseDef, i: number) => topOf(course, i) - SOLID_DEPTH;
 
 function overlaps(course: CourseDef, i: number, x: number, z: number, radius: number) {
   const p = course.platforms[i];
@@ -315,10 +462,11 @@ export function courseGround(
   y: number,
 ): { height: number; index: number | null } {
   let best = { height: COURSE_FLOOR_HEIGHT, index: null as number | null };
-  course.platforms.forEach((p, index) => {
+  course.platforms.forEach((_, index) => {
     if (!isSolid(course, index)) return;
-    if (overlaps(course, index, x, z, FOOT_RADIUS) && p.y <= y + STEP_UP && p.y > best.height) {
-      best = { height: p.y, index };
+    const top = topOf(course, index);
+    if (overlaps(course, index, x, z, FOOT_RADIUS) && top <= y + STEP_UP && top > best.height) {
+      best = { height: top, index };
     }
   });
   return best;
@@ -337,7 +485,7 @@ export function courseDepenetrate(course: CourseDef, x: number, z: number, y: nu
   for (let pass = 0; pass < 2; pass++) {
     let moved = false;
     course.platforms.forEach((p, i) => {
-      if (!isSolid(course, i) || p.y <= y + STEP_UP || y + PLAYER_HEIGHT <= bottomOf(p)) return;
+      if (!isSolid(course, i) || topOf(course, i) <= y + STEP_UP || y + PLAYER_HEIGHT <= bottomOf(course, i)) return;
       const dx = x - (p.x + slideOffset(course, i));
       const dz = z - p.z;
       const overlapX = p.width / 2 + PLAYER_RADIUS - Math.abs(dx);
@@ -355,11 +503,11 @@ export function courseDepenetrate(course: CourseDef, x: number, z: number, y: nu
 /** Would a body at (x, y, z) intersect a platform it can't simply step onto? */
 export function courseBlocked(course: CourseDef, x: number, z: number, y: number): boolean {
   return course.platforms.some(
-    (p, i) =>
+    (_, i) =>
       isSolid(course, i) &&
       overlaps(course, i, x, z, PLAYER_RADIUS) &&
-      p.y > y + STEP_UP && // too high to step onto
-      y + PLAYER_HEIGHT > bottomOf(p), // and not entirely above our head
+      topOf(course, i) > y + STEP_UP && // too high to step onto
+      y + PLAYER_HEIGHT > bottomOf(course, i), // and not entirely above our head
   );
 }
 
@@ -375,9 +523,9 @@ export function courseCeiling(
   toY: number,
 ): number | null {
   let limit: number | null = null;
-  course.platforms.forEach((p, i) => {
+  course.platforms.forEach((_, i) => {
     if (!isSolid(course, i) || !overlaps(course, i, x, z, PLAYER_RADIUS * 0.8)) return;
-    const headroom = bottomOf(p) - PLAYER_HEIGHT;
+    const headroom = bottomOf(course, i) - PLAYER_HEIGHT;
     if (headroom >= fromY - 1e-3 && headroom < toY && (limit === null || headroom < limit)) {
       limit = headroom;
     }

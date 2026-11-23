@@ -72,6 +72,8 @@ export async function HomePage() {
           courseRankMember: t.raw("courseRankMember") as string,
           courseRankGuest: t.raw("courseRankGuest") as string,
           nightHint: t("nightHint"),
+          ruinsTitle: t("ruinsTitle"),
+          ruinsHint: t("ruinsHint"),
           courseBest: t("courseBest"),
           courseDone: t("courseDone"),
           regions: {
@@ -81,6 +83,7 @@ export async function HomePage() {
             lounge: t("regions.lounge"),
             clouds: t("regions.clouds"),
             night: t("regions.night"),
+            ruins: t("regions.ruins"),
           },
           soundOff: t("soundOff"),
           soundLoading: t("soundLoading"),

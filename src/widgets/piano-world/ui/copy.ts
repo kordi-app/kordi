@@ -51,6 +51,8 @@ export interface PianoWorldCopy {
   courseRankMember: string;
   courseRankGuest: string;
   nightHint: string;
+  ruinsTitle: string;
+  ruinsHint: string;
   courseBest: string;
   courseDone: string;
   // warp stones

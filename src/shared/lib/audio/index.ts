@@ -16,5 +16,13 @@ export {
   type InstrumentId,
   type InstrumentInfo,
 } from "./piano-sampler";
-export { playVoice, playWarpEffect, disposeVoices, type VoiceId, type WarpEffect } from "./voices";
+export {
+  playVoice,
+  playWarpEffect,
+  playDragonEffect,
+  disposeVoices,
+  type VoiceId,
+  type WarpEffect,
+  type DragonEffect,
+} from "./voices";
 export { leaseTransport, type TransportLease } from "./transport";

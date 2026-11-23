@@ -11,12 +11,15 @@ const FADE_MS = 260;
  * Which region you're in, and the portal hop between regions: fade out, swap
  * (with the caller's cleanup run while the screen is covered), fade in.
  * The region lives in ?region= so a place can be linked to directly — except
- * the night course, which is reached from the top of the clouds: a link to it
- * before you've cleared the clouds starts you at the clouds instead.
+ * the later courses, each reached from the top of the one before: a link to
+ * the night before you've cleared the clouds (or to the storm temple before
+ * the night) starts you at the first course you haven't cleared.
  */
 function initialRegion(): RegionId {
   const param = new URLSearchParams(window.location.search).get("region");
   if (!isRegionId(param)) return "hall";
+  // each later course opens once the one before it is cleared: fall back to the first that isn't
+  if (param === "ruins" && readCourseBest("night") === null) return readCourseBest("clouds") === null ? "clouds" : "night";
   if (param === "night" && readCourseBest("clouds") === null) return "clouds";
   return param;
 }
