@@ -1,11 +1,14 @@
 import * as Tone from "tone";
+import { leaseTransport, type TransportLease } from "@/shared/lib/audio";
 
 /**
  * A four-on-the-floor house groove, all synthesized: kick on every beat, a clap
  * on 2 and 4, off-beat hats, a bassline, and chord stabs you trigger yourself.
  * The progression is our own (Fmaj9 – Em7 – Am9 – Dm9, a bar each).
  *
- * One groove at a time; start() is idempotent and stop() frees everything.
+ * The neon room's music. One groove at a time; start() is idempotent and
+ * stop() frees everything. It borrows the shared clock through a transport
+ * lease, so stopping clears only its own events.
  */
 const BPM = 124;
 
@@ -22,7 +25,7 @@ const LEVELS = { kick: -10, clap: -20, hat: -30, bass: -18, stab: -16 };
 
 interface Groove {
   nodes: Tone.ToneAudioNode[];
-  loops: Tone.Loop[];
+  lease: TransportLease;
   stab: Tone.PolySynth;
 }
 
@@ -35,8 +38,10 @@ const barNow = () => {
 
 /** Start the groove (once audio has been started by a gesture). */
 export function startHouse() {
-  if (groove || Tone.getContext().state !== "running") return;
-  const transport = Tone.getTransport();
+  if (Tone.getContext().state !== "running") return;
+  if (groove?.lease.active) return;
+  stopHouse(); // a groove that lost the clock: free its synths first
+  const lease = leaseTransport();
 
   const kick = new Tone.MembraneSynth({ pitchDecay: 0.03, octaves: 6, envelope: { attack: 0.001, decay: 0.3, sustain: 0 } }).toDestination();
   kick.volume.value = LEVELS.kick;
@@ -68,32 +73,21 @@ export function startHouse() {
   stab.connect(stabVerb);
   stab.volume.value = LEVELS.stab;
 
-  const loops = [
-    new Tone.Loop((time) => kick.triggerAttackRelease("C1", "8n", time), "4n"),
-    new Tone.Loop((time) => clap.triggerAttackRelease("16n", time), "2n"),
-    new Tone.Loop((time) => hat.triggerAttackRelease("32n", time), "4n"),
-    // bass: the bar's root on the off-beats (the classic house push)
-    new Tone.Loop((time) => bass.triggerAttackRelease(barNow().bass, "16n", time, 0.9), "4n"),
-  ];
-  loops[0].start(0);
-  loops[1].start("4n"); // beats 2 and 4
-  loops[2].start("8n"); // off-beats
-  loops[3].start("8n");
+  lease.repeat((time) => kick.triggerAttackRelease("C1", "8n", time), "4n", 0);
+  lease.repeat((time) => clap.triggerAttackRelease("16n", time), "2n", "4n"); // beats 2 and 4
+  lease.repeat((time) => hat.triggerAttackRelease("32n", time), "4n", "8n"); // off-beats
+  // bass: the bar's root on the off-beats (the classic house push)
+  lease.repeat((time) => bass.triggerAttackRelease(barNow().bass, "16n", time, 0.9), "4n", "8n");
 
-  transport.bpm.value = BPM;
-  transport.swing = 0; // straight sixteenths (the lounge swings)
-  transport.start("+0.05");
-  groove = { nodes: [kick, clap, clapFilter, hat, hatFilter, bass, stab, stabVerb], loops, stab };
+  lease.set({ bpm: BPM, swing: 0 }); // straight sixteenths (the lounge swings)
+  lease.start();
+  groove = { nodes: [kick, clap, clapFilter, hat, hatFilter, bass, stab, stabVerb], lease, stab };
 }
 
 /** Stop the groove and free its synths. */
 export function stopHouse() {
   if (!groove) return;
-  const transport = Tone.getTransport();
-  transport.stop();
-  transport.cancel();
-  transport.position = 0;
-  groove.loops.forEach((loop) => loop.dispose());
+  groove.lease.release();
   groove.nodes.forEach((node) => node.dispose());
   groove = null;
 }
@@ -109,4 +103,5 @@ export function houseStab(velocity = 0.8): string | null {
   return bar.name;
 }
 
-export const isHousePlaying = () => groove !== null;
+/** False once another player has taken the shared clock (the band is silent then). */
+export const isHousePlaying = () => groove?.lease.active ?? false;
