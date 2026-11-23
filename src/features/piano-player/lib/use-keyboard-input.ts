@@ -50,7 +50,9 @@ export function useKeyboardInput({
 
     function handleKeyDown(e: KeyboardEvent) {
       if (e.repeat) return;
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      // browser and OS shortcuts (Cmd+C, Ctrl+S, Alt+…) are not notes
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (isTypingTarget(e.target)) return;
 
       const { code } = e;
 
@@ -123,4 +125,13 @@ export function useKeyboardInput({
   }, [enabled]);
 
   return { octave, velocity, sustain };
+}
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    (target instanceof HTMLElement && target.isContentEditable)
+  );
 }
