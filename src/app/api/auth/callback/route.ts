@@ -1,21 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import ky from "ky";
 import { API_BASE_URL } from "@/shared/config/api";
-import { AUTH_COOKIES, COOKIE_OPTIONS, TOKEN_TTL } from "@/shared/config/auth";
 import { ROUTES } from "@/shared/config/routes";
 import { unwrap, type ApiEnvelope } from "@/shared/api";
-
-interface Tokens {
-  accessToken: string;
-  refreshToken: string;
-}
+import { setAuthCookies, type AuthTokens } from "@/shared/api/auth-tokens.server";
 
 /** Trade the one-time login code for tokens, server to server. */
-async function exchange(code: string): Promise<Tokens | null> {
+async function exchange(code: string): Promise<AuthTokens | null> {
   try {
     return await ky
       .post(`${API_BASE_URL}/api/auth/exchange`, { json: { code } })
-      .json<ApiEnvelope<Tokens>>()
+      .json<ApiEnvelope<AuthTokens>>()
       .then(unwrap);
   } catch {
     return null;
@@ -40,13 +35,6 @@ export async function GET(request: NextRequest) {
   }
 
   const response = NextResponse.redirect(new URL(ROUTES.HOME, request.url));
-  response.cookies.set(AUTH_COOKIES.ACCESS_TOKEN, tokens.accessToken, {
-    ...COOKIE_OPTIONS,
-    maxAge: TOKEN_TTL.ACCESS_TOKEN,
-  });
-  response.cookies.set(AUTH_COOKIES.REFRESH_TOKEN, tokens.refreshToken, {
-    ...COOKIE_OPTIONS,
-    maxAge: TOKEN_TTL.REFRESH_TOKEN,
-  });
+  setAuthCookies(response, tokens);
   return response;
 }

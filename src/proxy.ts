@@ -19,7 +19,7 @@ function stripLocale(pathname: string): string {
   return pathname.replace(localePattern, "/").replace(/\/+$/, "") || "/";
 }
 
-export default async function middleware(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const response = intlMiddleware(request);
@@ -31,10 +31,26 @@ export default async function middleware(request: NextRequest) {
       pathnameWithoutLocale.startsWith(route + "/"),
   );
 
-  if (isPublicRoute) return response;
-
   const accessToken = request.cookies.get(AUTH_COOKIES.ACCESS_TOKEN)?.value;
   const refreshToken = request.cookies.get(AUTH_COOKIES.REFRESH_TOKEN)?.value;
+
+  if (isPublicRoute) {
+    // Public pages still render differently for members (home: name, look,
+    // ranked course times), so an expired access token is renewed here too —
+    // otherwise a member coming back after 30 minutes is treated as a guest.
+    // A failed renewal just leaves them a guest; no login redirect.
+    if (!accessToken && refreshToken) {
+      const tokens = await reissueWithRefreshToken(refreshToken);
+      if (!tokens) {
+        clearAuthCookies(response);
+        return response;
+      }
+      const retry = NextResponse.redirect(request.url);
+      setAuthCookies(retry, tokens);
+      return retry;
+    }
+    return response;
+  }
 
   // keep the visitor's language on the way to the login page
   const locale = pathname.match(localePattern)?.[1] ?? routing.defaultLocale;

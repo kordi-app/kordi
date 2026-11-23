@@ -31,7 +31,7 @@ src/
 │   └── config/               # Segment: i18n, messages, env
 │       ├── i18n/             # routing, navigation, request config
 │       └── messages/         # ko.json, en.json
-└── middleware.ts              # Next.js middleware (src root, framework requirement)
+└── proxy.ts                   # Next.js proxy, formerly middleware (src root, framework requirement)
 ```
 
 ## FSD Rules

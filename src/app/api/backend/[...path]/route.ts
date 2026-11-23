@@ -32,6 +32,11 @@ async function handle(
   if (path.some((segment) => segment === "." || segment === ".." || /[\\/]/.test(segment))) {
     return NextResponse.json({ message: "Bad path" }, { status: 400 });
   }
+  // token endpoints stay behind the dedicated /api/auth handlers: through here,
+  // /auth/exchange or /auth/reissue would hand raw tokens to browser JS
+  if (path[0] === "auth") {
+    return NextResponse.json({ message: "Not found" }, { status: 404 });
+  }
   const url = `api/${path.map(encodeURIComponent).join("/")}${request.nextUrl.search}`;
   const body =
     method === "get"

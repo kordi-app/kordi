@@ -6,7 +6,7 @@ import { unwrap, type ApiEnvelope } from "./envelope";
 
 /**
  * Token helpers with no `next/headers` dependency, so they are usable from
- * middleware as well as route handlers. Route handlers normally go through
+ * the proxy (src/proxy.ts) as well as route handlers. Route handlers normally go through
  * `reissueTokens()` in auth-tokens.server.ts, which reads the cookie itself.
  */
 

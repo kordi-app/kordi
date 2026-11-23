@@ -14,7 +14,7 @@ export const COOKIE_OPTIONS = {
 
 /**
  * Cookie lifetimes (seconds). The access token itself lives 30 minutes on the
- * server; its cookie is dropped a minute earlier, so the middleware (which
+ * server; its cookie is dropped a minute earlier, so the proxy (which
  * refreshes when the cookie is gone) renews it *before* the server would reject
  * it — otherwise a page opened in the last seconds sends an expired token and
  * lands on the login page despite a valid refresh token.
