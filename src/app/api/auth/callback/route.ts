@@ -27,17 +27,13 @@ async function exchange(code: string): Promise<Tokens | null> {
  * short-lived one-time code (tokens in a URL end up in history and logs);
  * it's exchanged here and the tokens go straight into httpOnly cookies.
  *
- * Servers from before the code exchange put the tokens in the query instead;
- * that's still accepted until the API is updated everywhere.
+ * Tokens are never accepted from the query string: a link carrying someone
+ * else's tokens would sign the visitor into that account (login CSRF), and
+ * tokens in URLs leak into history and logs.
  */
 export async function GET(request: NextRequest) {
-  const params = request.nextUrl.searchParams;
-  const code = params.get("code");
-  const tokens: Tokens | null = code
-    ? await exchange(code)
-    : params.get("accessToken") && params.get("refreshToken")
-      ? { accessToken: params.get("accessToken")!, refreshToken: params.get("refreshToken")! }
-      : null;
+  const code = request.nextUrl.searchParams.get("code");
+  const tokens = code ? await exchange(code) : null;
 
   if (!tokens) {
     return NextResponse.redirect(new URL(ROUTES.LOGIN, request.url));
