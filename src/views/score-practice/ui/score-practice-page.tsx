@@ -7,7 +7,7 @@ import type { ScoreEntry, ScoreTimeline } from "@/entities/score";
 import { usePianoInput } from "@/features/piano-player";
 import { loadScoreSource, useScoreLibrary } from "@/features/score-library";
 import { useScorePractice, type Hands, type PracticeMode } from "@/features/score-practice";
-import { KeyboardBar, MidiStatus, PianoKeyboard } from "@/widgets/piano-keyboard";
+import { MidiStatus, PracticeKeyboard } from "@/widgets/piano-keyboard";
 import { ScoreSheet } from "@/widgets/score-sheet";
 import { Button } from "@/shared/ui/button";
 import { MonoPill } from "@/shared/ui/mono-button";
@@ -32,7 +32,8 @@ const KEYBOARD_END = 96;
  */
 export function ScorePracticePage() {
   const t = useTranslations("scorePractice");
-  const { activeNotes, isAudioStarted, isLoaded, startAudio, keyboard, midi, mouse, sound } = usePianoInput();
+  const piano = usePianoInput();
+  const { activeNotes, isAudioStarted, isLoaded, startAudio, midi } = piano;
   const library = useScoreLibrary();
   const [selected, setSelected] = useState<ScoreEntry>(library.scores[0]);
   const [source, setSource] = useState<string | Blob | null>(null);
@@ -219,27 +220,13 @@ export function ScorePracticePage() {
         />
         <p className="text-t2 text-fg-neutral-subtle">{t("localNote")}</p>
 
-        {/* the bar and the keyboard share one width (the keyboard\'s, or the page\'s if it scrolls) */}
-        <div className="mx-auto w-fit max-w-full">
-        <KeyboardBar
-          loading={isAudioStarted && !isLoaded}
-          octave={keyboard.octave}
-          velocity={keyboard.velocity}
-          sustain={keyboard.sustain}
-          isMuted={sound.isMuted}
-          onToggleMute={sound.toggleMute}
-        />
-        <PianoKeyboard
+        <PracticeKeyboard
+          input={piano}
+          showDynamics
           startMidi={KEYBOARD_START}
           endMidi={KEYBOARD_END}
-          activeNotes={activeNotes}
           ringingNotes={view.expected}
-          onNoteOn={mouse.onNoteOn}
-          onNoteOff={mouse.onNoteOff}
-          showShortcuts
-          octave={keyboard.octave}
         />
-        </div>
       </div>
     </div>
   );

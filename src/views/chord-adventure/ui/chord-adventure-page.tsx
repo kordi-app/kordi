@@ -7,7 +7,7 @@ import { adventureQueries } from "@/entities/chord-adventure";
 import { useAdventureGame } from "@/features/chord-adventure";
 import { usePianoInput } from "@/features/piano-player";
 import { AdventureStage } from "@/widgets/chord-adventure-stage";
-import { KeyboardBar, MidiStatus, PianoKeyboard } from "@/widgets/piano-keyboard";
+import { MidiStatus, PracticeKeyboard } from "@/widgets/piano-keyboard";
 import { Button } from "@/shared/ui/button";
 
 /**
@@ -16,7 +16,8 @@ import { Button } from "@/shared/ui/button";
  */
 export function ChordAdventurePage() {
   const t = useTranslations("chordAdventure");
-  const { activeNotes, isAudioStarted, isLoaded, startAudio, keyboard, midi, mouse, sound } = usePianoInput();
+  const piano = usePianoInput();
+  const { activeNotes, isAudioStarted, startAudio, midi } = piano;
   const { view, clock, start, result, problem, saving } = useAdventureGame({ activeNotes, isAudioStarted, startAudio });
   const action = useRef<HTMLButtonElement>(null);
 
@@ -81,22 +82,7 @@ export function ChordAdventurePage() {
           ) : null}
         </div>
 
-        {/* the bar and the keyboard share one width (the keyboard\'s, or the page\'s if it scrolls) */}
-        <div className="mx-auto w-fit max-w-full">
-        <KeyboardBar
-          loading={isAudioStarted && !isLoaded}
-          octave={keyboard.octave}
-          isMuted={sound.isMuted}
-          onToggleMute={sound.toggleMute}
-        />
-        <PianoKeyboard
-          activeNotes={activeNotes}
-          onNoteOn={mouse.onNoteOn}
-          onNoteOff={mouse.onNoteOff}
-          showShortcuts
-          octave={keyboard.octave}
-        />
-        </div>
+        <PracticeKeyboard input={piano} />
       </div>
     </div>
   );

@@ -6,9 +6,8 @@ import { DEFAULT_DRILL_SETTINGS, type DrillSettings } from "@/entities/chord-pra
 import { usePianoInput } from "@/features/piano-player";
 import { useDrillGame } from "@/features/chord-practice";
 import {
-  KeyboardBar,
   MidiStatus,
-  PianoKeyboard,
+  PracticeKeyboard,
 } from "@/widgets/piano-keyboard";
 import { ChordPrompt } from "@/widgets/chord-prompt";
 import {
@@ -18,7 +17,6 @@ import {
   DrillSettingsPanel,
 } from "@/widgets/chord-practice-game";
 import { displaySuffix } from "@/shared/lib/music";
-import { cn } from "@/shared/lib/utils";
 
 /**
  * Practice names are already spelled for the chosen key (Bbmaj7 in F major),
@@ -30,16 +28,8 @@ export function ChordPracticePage() {
   const t = useTranslations("chordPractice");
   const [settings, setSettings] = useState<DrillSettings>(DEFAULT_DRILL_SETTINGS);
 
-  const {
-    activeNotes,
-    isAudioStarted,
-    isLoaded,
-    startAudio,
-    keyboard,
-    midi,
-    mouse,
-    sound,
-  } = usePianoInput();
+  const piano = usePianoInput();
+  const { activeNotes, isAudioStarted, startAudio, midi } = piano;
 
   const { state, feedbackState, metronome, start, stop, pause, resume } =
     useDrillGame(settings, activeNotes);
@@ -103,31 +93,7 @@ export function ChordPracticePage() {
           />
         </div>
 
-        {/* the bar and the keyboard share one width (the keyboard\'s, or the page\'s if it scrolls) */}
-        <div className="mx-auto w-fit max-w-full">
-        <KeyboardBar
-          loading={isAudioStarted && !isLoaded}
-          octave={keyboard.octave}
-          isMuted={sound.isMuted}
-          onToggleMute={sound.toggleMute}
-        />
-        <div
-          className={cn(
-            "w-full rounded-lg transition-all duration-200",
-            feedbackState === "correct" && "ring-2 ring-ring",
-            feedbackState === "incorrect" &&
-              "ring-2 ring-ring ring-offset-2 ring-offset-background",
-          )}
-        >
-          <PianoKeyboard
-            activeNotes={activeNotes}
-            onNoteOn={mouse.onNoteOn}
-            onNoteOff={mouse.onNoteOff}
-            showShortcuts
-            octave={keyboard.octave}
-          />
-        </div>
-        </div>
+        <PracticeKeyboard input={piano} feedback={feedbackState} />
       </div>
     </div>
   );
