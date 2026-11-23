@@ -2,15 +2,15 @@
 
 import { useTranslations } from "next-intl";
 import { cn } from "@/shared/lib/utils";
+import type { AnswerFeedback } from "@/shared/lib/music";
 
-type ChordFeedback = "correct" | "incorrect" | "timeout" | null;
 
 interface ChordPromptProps {
   ns: string;
   chordName: string | null;
   nextChordName?: string | null;
   showNext?: boolean;
-  feedbackState: ChordFeedback;
+  feedbackState: AnswerFeedback;
 }
 
 export function ChordPrompt({

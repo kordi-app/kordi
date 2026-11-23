@@ -104,6 +104,9 @@ function rulesFor(root: number, type: ChordType) {
   };
 }
 
+/** How the last answer to a chord question went, for feedback UI (null: nothing to show). */
+export type AnswerFeedback = "correct" | "incorrect" | "timeout" | null;
+
 /** The played notes as intervals above `root` (pitch classes, deduplicated). */
 const intervalsAbove = (root: number, midiNotes: number[]) =>
   toPitchClasses(midiNotes).map((pc) => (pc - root + 12) % 12);

@@ -2,11 +2,11 @@
 
 import { KordiMascot } from "@/shared/ui/illustrations/kordi-mascot";
 import { cn } from "@/shared/lib/utils";
+import type { AnswerFeedback } from "@/shared/lib/music";
 
-type FeedbackType = "correct" | "incorrect" | "timeout" | null;
 
 interface QuizFeedbackOverlayProps {
-  feedback: FeedbackType;
+  feedback: AnswerFeedback;
 }
 
 // useQuizFeedback already clears feedback on its own timer (300ms for a correct

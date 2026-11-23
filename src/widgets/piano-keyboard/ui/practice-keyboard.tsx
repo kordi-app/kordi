@@ -1,6 +1,7 @@
 "use client";
 
 import type { usePianoInput } from "@/features/piano-player";
+import type { AnswerFeedback } from "@/shared/lib/music";
 import { cn } from "@/shared/lib/utils";
 import { KeyboardBar } from "./keyboard-bar";
 import { PianoKeyboard } from "./piano-keyboard";
@@ -11,7 +12,7 @@ interface PracticeKeyboardProps {
   /** everything from usePianoInput(): notes, sound state, keyboard and mouse controls */
   input: PianoInput;
   /** chord modes ring the keyboard on a right/wrong answer */
-  feedback?: "correct" | "incorrect" | "timeout" | null;
+  feedback?: AnswerFeedback;
   /** show velocity and the sustain pedal in the bar (where playing is musical) */
   showDynamics?: boolean;
   startMidi?: number;

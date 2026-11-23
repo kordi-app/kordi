@@ -6,11 +6,11 @@ import {
   playIncorrectSound,
   playTimeoutSound,
 } from "@/shared/lib/audio";
+import type { AnswerFeedback } from "@/shared/lib/music";
 
-type FeedbackType = "correct" | "incorrect" | "timeout" | null;
 
 export function useQuizFeedback() {
-  const [feedbackState, setFeedbackState] = useState<FeedbackType>(null);
+  const [feedbackState, setFeedbackState] = useState<AnswerFeedback>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const clearFeedback = useCallback(() => {

@@ -1,4 +1,4 @@
-import type { ChordType, TimeSignature } from "@/shared/lib/music";
+import type { AnswerFeedback, ChordType, TimeSignature } from "@/shared/lib/music";
 
 export type Difficulty = "beginner" | "intermediate" | "advanced" | "expert" | "custom";
 export type GameMode = "practice" | "timeattack";
@@ -24,7 +24,7 @@ export interface DrillChord {
 }
 
 export type DrillStatus = "idle" | "countdown" | "playing" | "paused";
-export type DrillResult = "correct" | "incorrect" | "timeout" | null;
+export type DrillResult = AnswerFeedback;
 
 export interface DrillState {
   status: DrillStatus;
