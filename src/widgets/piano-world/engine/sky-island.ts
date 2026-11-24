@@ -250,9 +250,12 @@ export type SkyEvent =
  * a pad's note, a constellation completing, and the whole sky finishing.
  * Pads of an unfinished constellation go dark again after PAD_FORGET.
  */
-export function stepSkyPads(x: number, y: number, z: number, now: number, grounded: boolean): SkyEvent[] {
-  const events: SkyEvent[] = [];
-  if (terrainGates.open <= ISLAND_GATE || !grounded || Math.abs(y - SKY_ISLAND.top) > 0.3) return events;
+/** What a quiet frame returns (shared: most frames nothing happens) */
+const NO_EVENTS: readonly SkyEvent[] = [];
+
+export function stepSkyPads(x: number, y: number, z: number, now: number, grounded: boolean): readonly SkyEvent[] {
+  let events: SkyEvent[] | null = null;
+  if (terrainGates.open <= ISLAND_GATE || !grounded || Math.abs(y - SKY_ISLAND.top) > 0.3) return events ?? NO_EVENTS;
   CONSTELLATIONS.forEach((c, group) => {
     if (skyRuntime.done[group]) return;
     const last = Math.max(...c.pads.map((i) => skyRuntime.lit[i]));
@@ -261,16 +264,16 @@ export function stepSkyPads(x: number, y: number, z: number, now: number, ground
   STAR_PADS.forEach((p, i) => {
     if (skyRuntime.lit[i] > -Infinity || Math.hypot(x - p.x, z - p.z) > PAD_REACH) return;
     skyRuntime.lit[i] = now;
-    events.push({ kind: "pad", midi: p.midi });
+    (events ??= []).push({ kind: "pad", midi: p.midi });
     const c = CONSTELLATIONS[p.group];
     if (c.pads.every((j) => skyRuntime.lit[j] > -Infinity)) {
       skyRuntime.done[p.group] = true;
-      events.push({ kind: "constellation", index: p.group });
+      (events ??= []).push({ kind: "constellation", index: p.group });
       if (skyRuntime.done.every(Boolean)) {
         skyRuntime.finishedAt = now;
-        events.push({ kind: "finished" });
+        (events ??= []).push({ kind: "finished" });
       }
     }
   });
-  return events;
+  return events ?? NO_EVENTS;
 }

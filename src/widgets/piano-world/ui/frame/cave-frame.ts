@@ -1,5 +1,5 @@
 import type * as THREE from "three";
-import { startCave, stepCave } from "../../engine/cave";
+import { startCave, stepCave, type CaveStep } from "../../engine/cave";
 import { groundAt } from "../../engine/physics";
 import { placePlayer } from "../../engine/player";
 import { lightCave } from "../cave";
@@ -12,9 +12,14 @@ const REST_GLOW = "#ffcf7a";
 export interface CaveFrame {
   /** when I came in (scene clock), for the necklace's wait */
   since: number;
+  /** this frame's circumstances, refilled every frame */
+  step: CaveStep;
 }
 
-export const createCaveFrame = (): CaveFrame => ({ since: 0 });
+export const createCaveFrame = (): CaveFrame => ({
+  since: 0,
+  step: { grounded: false, crowned: false, hasNecklace: false, stayed: 0 },
+});
 
 /** Coming into the cave: a fresh visit, and dark until the crown's light fills it */
 export function enterCave(state: CaveFrame, light: { current: number }, now: number) {
@@ -36,7 +41,11 @@ export function stepCaveFrame(
   { scene, hemi }: { scene: THREE.Scene; hemi: THREE.HemisphereLight | null },
 ) {
   const { s, now, dt, region, events, fx } = ctx;
-  const step = { grounded: !s.airborne, crowned: cosmicCrown, hasNecklace, stayed: now - state.since };
+  const { step } = state;
+  step.grounded = !s.airborne;
+  step.crowned = cosmicCrown;
+  step.hasNecklace = hasNecklace;
+  step.stayed = now - state.since;
   for (const event of stepCave(s.pos.x, s.pos.y, s.pos.z, step)) {
     if (event.kind === "fell") {
       // the abyss gives you back at the last star rest you woke

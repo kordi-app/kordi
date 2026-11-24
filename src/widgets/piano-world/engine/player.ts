@@ -170,13 +170,20 @@ export function walk(s: PlayerSim, keys: InputState, dt: number, env: WalkEnv, m
   return { speed, steering };
 }
 
+/** Reused every frame: the players close enough to push against, and their colliders */
+const nearbyPlayers: CircleCollider[] = [];
+const playerColliders: CircleCollider[] = [];
+
 /** Props you can't walk through, and a soft push away from other players (with a bump). */
 function pushAround(s: PlayerSim, dt: number, env: WalkEnv, m: KordiMotion) {
   const pushed = resolveCircles(s.pos.x, s.pos.z, BODY_RADIUS, env.props);
-  const nearbyPlayers: CircleCollider[] = [];
+  nearbyPlayers.length = 0;
   for (const other of env.players) {
     if (Math.abs((other.y ?? 0) - s.pos.y) < 1.5) {
-      nearbyPlayers.push({ x: other.x, z: other.z, radius: BODY_RADIUS });
+      const collider = (playerColliders[nearbyPlayers.length] ??= { x: 0, z: 0, radius: BODY_RADIUS });
+      collider.x = other.x;
+      collider.z = other.z;
+      nearbyPlayers.push(collider);
     }
   }
   const shoved = resolveCircles(pushed.x, pushed.z, BODY_RADIUS, nearbyPlayers);

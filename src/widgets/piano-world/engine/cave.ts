@@ -250,21 +250,25 @@ export const NECKLACE_READY_SECONDS = CAVE_SERVER_MIN_STAY_SECONDS + 1.5;
  * on the dais top beside the pedestal, once you've been here long enough for
  * the server to believe it, and only once.
  */
-export function stepCave(x: number, y: number, z: number, step: CaveStep): CaveEvent[] {
+/** What a quiet frame returns (shared: most frames nothing happens) */
+const NO_EVENTS: readonly CaveEvent[] = [];
+
+export function stepCave(x: number, y: number, z: number, step: CaveStep): readonly CaveEvent[] {
   const { grounded, crowned, hasNecklace, stayed } = step;
-  const events: CaveEvent[] = [];
-  STAR_RESTS.forEach((rest, i) => {
-    if (!grounded || Math.hypot(x - rest.x, z - rest.z) > REST_REACH) return;
+  let events: CaveEvent[] | null = null;
+  for (let i = 0; grounded && i < STAR_RESTS.length; i++) {
+    const rest = STAR_RESTS[i];
+    if (Math.hypot(x - rest.x, z - rest.z) > REST_REACH) continue;
     caveRuntime.lastRest = i;
     if (!caveRuntime.rests[i]) {
       caveRuntime.rests[i] = true;
-      events.push({ kind: "rest", index: i });
+      (events ??= []).push({ kind: "rest", index: i });
     }
-  });
+  }
   if (y < ABYSS_CATCH) {
     const rest = caveRuntime.lastRest >= 0 ? STAR_RESTS[caveRuntime.lastRest] : null;
     // just in front of the rest (on it you'd stand in its glow), or back at the entrance
-    events.push({ kind: "fell", to: rest ? { x: rest.x, z: rest.z + 1.2 } : { ...CAVE_ARRIVAL } });
+    (events ??= []).push({ kind: "fell", to: rest ? { x: rest.x, z: rest.z + 1.2 } : { ...CAVE_ARRIVAL } });
   }
   if (
     crowned &&
@@ -276,7 +280,7 @@ export function stepCave(x: number, y: number, z: number, step: CaveStep): CaveE
     Math.hypot(x - ALTAR.x, z - ALTAR.z) <= ALTAR_REACH + ALTAR.pedestal
   ) {
     caveRuntime.taken = true;
-    events.push({ kind: "necklace" });
+    (events ??= []).push({ kind: "necklace" });
   }
-  return events;
+  return events ?? NO_EVENTS;
 }

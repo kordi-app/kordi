@@ -4,7 +4,9 @@ import { useMemo, useRef, useState, type RefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { BOUNDS, CASE_H, SPAWN } from "../engine/layout";
-import { bodyLanguage, createPlayerSim, jumpAndFall, placePlayer, walk, type WalkEnv } from "../engine/player";
+import { bodyLanguage, createPlayerSim, jumpAndFall, placePlayer, walk, type Drift, type WalkEnv } from "../engine/player";
+import type { CourseDef } from "../engine/course";
+import type { Terrain } from "../engine/terrain";
 import { interactablesIn, type InteractableId } from "../engine/interactables";
 import { decorColliders } from "../engine/decor";
 import { skyAt } from "../engine/day-night";
@@ -144,14 +146,17 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
   const terrain = region.terrain ? TERRAINS[region.terrain] : null;
   /** this region's own per-frame rules (see ./frame/region-frames), set up fresh on coming into it */
   const regionFrames = useRef<{ region: RegionDef | null; frames: RegionFrame[] }>({ region: null, frames: [] });
-  /** what you walk among this frame (other players move, so it's built per frame) */
-  const walkEnv = (): WalkEnv => ({
-    bounds: course ? course.bounds : (region.bounds ?? BOUNDS),
-    course,
-    island: terrain,
-    props: solids,
-    players: remotes.current.values(),
-  });
+  /**
+   * The objects each frame fills in and hands around: made once and reused, so
+   * the 60-a-second loop doesn't leave garbage behind for the collector.
+   */
+  const perFrame = useRef<{
+    ctx: FrameContext;
+    inputs: FrameInputs;
+    walk: WalkEnv;
+    jump: { pressed: boolean; held: boolean; buffer: number };
+    fall: { course: CourseDef | null; island: Terrain | null; drift: Drift | null };
+  } | null>(null);
   const ambienceEvents = useMemo<AmbienceEvents>(
     () => ({
       voice: events.onVoice,
@@ -207,13 +212,43 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     if (island) tickSky(skyClock);
 
     const now = state.clock.getElapsedTime();
-    const ctx: FrameContext = { s, dt, now, region, events, fx: fx.current };
+    perFrame.current ??= {
+      ctx: { s, dt, now, region, events, fx: null },
+      inputs: {
+        landing: null,
+        steering: false,
+        sitting: false,
+        skyClock: 0,
+        cosmicCrown: false,
+        hasNecklace: false,
+        scene,
+        hemi: null,
+      },
+      walk: { bounds: BOUNDS, course: null, island: null, props: [], players: [] },
+      jump: { pressed: false, held: false, buffer: JUMP_BUFFER },
+      fall: { course: null, island: null, drift: null },
+    };
+    const reused = perFrame.current;
+    const ctx = reused.ctx;
+    ctx.s = s;
+    ctx.dt = dt;
+    ctx.now = now;
+    ctx.region = region;
+    ctx.events = events;
+    ctx.fx = fx.current;
     // anything that moves on its own goes first (a course's sliding and crumbling steps, its dragon)
     const { frames: steps } = regionFrames.current;
     for (const frame of steps) frame.before?.(ctx);
 
     // --- walking, then body language
-    const { speed, steering } = walk(s, keys, dt, walkEnv(), motion.current);
+    // what you walk among this frame (other players move, so it's refilled every frame)
+    const walkEnv = reused.walk;
+    walkEnv.bounds = course ? course.bounds : (region.bounds ?? BOUNDS);
+    walkEnv.course = course;
+    walkEnv.island = terrain;
+    walkEnv.props = solids;
+    walkEnv.players = remotes.current.values();
+    const { speed, steering } = walk(s, keys, dt, walkEnv, motion.current);
     const m = motion.current;
     bodyLanguage(s, m, dt, speed);
     m.emote = emote;
@@ -221,26 +256,25 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
 
     // --- jumping, falling, landing
     const ground = groundAt(region, s.pos.x, s.pos.z, s.pos.y);
-    const landing = jumpAndFall(
-      s,
-      m,
-      dt,
-      ground,
-      { pressed: takeJump(), held: keys.jumpHeld, buffer: JUMP_BUFFER },
-      { course, island: terrain, drift: island ? SKY_DRIFT : null },
-    );
+    const jump = reused.jump;
+    jump.pressed = takeJump();
+    jump.held = keys.jumpHeld;
+    const fall = reused.fall;
+    fall.course = course;
+    fall.island = terrain;
+    fall.drift = island ? SKY_DRIFT : null;
+    const landing = jumpAndFall(s, m, dt, ground, jump, fall);
     if (landing && landing.impact > HARD_LANDING) fx.current?.dust(s.pos.x, s.pos.y, s.pos.z);
     // the region's own rules once you've moved (the island's secrets, the cave, the dream…)
-    const inputs: FrameInputs = {
-      landing,
-      steering,
-      sitting: emote === "sit",
-      skyClock,
-      cosmicCrown,
-      hasNecklace,
-      scene,
-      hemi: hemi.current,
-    };
+    const inputs = reused.inputs;
+    inputs.landing = landing;
+    inputs.steering = steering;
+    inputs.sitting = emote === "sit";
+    inputs.skyClock = skyClock;
+    inputs.cosmicCrown = cosmicCrown;
+    inputs.hasNecklace = hasNecklace;
+    inputs.scene = scene;
+    inputs.hemi = hemi.current;
     for (const frame of steps) frame.after?.(ctx, inputs);
     // squash on landing eases out; stretch while rising fast
     m.land = Math.max(0, m.land - dt * 4);

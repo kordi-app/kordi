@@ -10,7 +10,7 @@ import {
 } from "../../engine/ball";
 import { BOUNDS } from "../../engine/layout";
 import { groundAt, type CircleCollider } from "../../engine/physics";
-import type { RegionId } from "../../engine/regions";
+import type { RegionDef, RegionId } from "../../engine/regions";
 import type { WorldPresence } from "../world-types";
 import type { FrameContext } from "./context";
 
@@ -21,6 +21,8 @@ export interface BallsFrame {
   /** their meshes, by index (set by the renderer) */
   meshes: (THREE.Mesh | null)[];
   spin: { axis: THREE.Vector3; turn: THREE.Quaternion };
+  /** what the balls roll in, refilled every frame */
+  world: BallWorld & { region: RegionDef | null; player: NonNullable<BallWorld["player"]> };
 }
 
 export const createBallsFrame = (): BallsFrame => ({
@@ -28,7 +30,23 @@ export const createBallsFrame = (): BallsFrame => ({
   region: null,
   meshes: [],
   spin: { axis: new THREE.Vector3(), turn: new THREE.Quaternion() },
+  world: createBallWorld(),
 });
+
+/** A ball world whose ground reads the region it's given each frame (one closure, made once) */
+function createBallWorld(): BallsFrame["world"] {
+  const world: BallsFrame["world"] = {
+    region: null,
+    ground: (x, z) => {
+      const g = groundAt(world.region!, x, z, 0);
+      return { height: g.height, midi: g.midi };
+    },
+    colliders: [],
+    bounds: BOUNDS,
+    player: { x: 0, y: 0, z: 0, vx: 0, vz: 0 },
+  };
+  return world;
+}
 
 /**
  * Setting out the balls: only on coming into a region. They're the channel's,
@@ -53,16 +71,17 @@ export function stepBallsFrame(
   { takeBallNews, sendBall }: Pick<WorldPresence, "takeBallNews" | "sendBall">,
 ) {
   const { s, dt, region, events, fx } = ctx;
-  const world: BallWorld = {
-    ground: (x, z) => {
-      const g = groundAt(region, x, z, 0);
-      return { height: g.height, midi: g.midi };
-    },
-    colliders: solids,
-    // the same edges you walk within (the island's are wider, the band rooms' narrower)
-    bounds: region.bounds ?? BOUNDS,
-    player: { x: s.pos.x, y: s.pos.y, z: s.pos.z, vx: s.vx, vz: s.vz },
-  };
+  const { world } = state;
+  world.region = region;
+  world.colliders = solids;
+  // the same edges you walk within (the island's are wider, the band rooms' narrower)
+  world.bounds = region.bounds ?? BOUNDS;
+  const me = world.player;
+  me.x = s.pos.x;
+  me.y = s.pos.y;
+  me.z = s.pos.z;
+  me.vx = s.vx;
+  me.vz = s.vz;
   for (const { state: news, age, fromMe } of takeBallNews()) {
     const ball = state.balls[news.i];
     if (ball) applyBallNews(ball, news, age / 1000, fromMe, world);

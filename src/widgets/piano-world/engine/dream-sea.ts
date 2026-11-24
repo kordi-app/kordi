@@ -147,13 +147,16 @@ export type DreamEvent = { kind: "note"; index: number; midi: number } | { kind:
  * Take any note within reach (feet at y) and, holding all five on the
  * summit, call the whale. `now` is any clock that only moves forward.
  */
-export function stepDream(x: number, y: number, z: number, now: number): DreamEvent[] {
-  const events: DreamEvent[] = [];
+/** What a quiet frame returns (shared: most frames nothing happens) */
+const NO_EVENTS: readonly DreamEvent[] = [];
+
+export function stepDream(x: number, y: number, z: number, now: number): readonly DreamEvent[] {
+  let events: DreamEvent[] | null = null;
   LOST_NOTES.forEach((note, i) => {
     if (dreamRuntime.found[i]) return;
     if (Math.hypot(x - note.x, y + 0.95 - note.y, z - note.z) > NOTE_REACH) return;
     dreamRuntime.found[i] = true;
-    events.push({ kind: "note", index: i, midi: note.midi });
+    (events ??= []).push({ kind: "note", index: i, midi: note.midi });
   });
   const summit = isle("summit");
   if (
@@ -163,7 +166,7 @@ export function stepDream(x: number, y: number, z: number, now: number): DreamEv
     Math.hypot(x - summit.x, z - summit.z) < SUMMIT_REACH
   ) {
     dreamRuntime.sungAt = now;
-    events.push({ kind: "whale" });
+    (events ??= []).push({ kind: "whale" });
   }
-  return events;
+  return events ?? NO_EVENTS;
 }
