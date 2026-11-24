@@ -1,4 +1,4 @@
-import type { AccessoryId, Appearance, BodyColor, FaceId, HatId, PetId } from "./types";
+import type { AccessoryId, Appearance, BodyColor, FaceId, HatId, PetId, RewardAccessoryId } from "./types";
 
 /**
  * Everything Kordi can wear. Mirrors the server's CharacterCatalog — add an
@@ -18,7 +18,11 @@ export const BODY_COLORS: Record<BodyColor, string> = {
 export const BODY_IDS = Object.keys(BODY_COLORS) as BodyColor[];
 export const HAT_IDS: HatId[] = ["crown", "star-crown", "flame-crown", "ribbon", "beret", "headphones", "flower"];
 export const FACE_IDS: FaceId[] = ["default", "smile", "sparkle", "sleepy"];
-export const ACCESSORY_IDS: AccessoryId[] = ["scarf", "bowtie", "glasses"];
+export const ACCESSORY_IDS: AccessoryId[] = ["scarf", "bowtie", "glasses", "gold-necklace"];
+/** Found, not chosen: only shows in the wardrobe once you have it */
+export const REWARD_ACCESSORIES: readonly RewardAccessoryId[] = ["gold-necklace"];
+export const isRewardAccessory = (accessory: AccessoryId): accessory is RewardAccessoryId =>
+  (REWARD_ACCESSORIES as readonly AccessoryId[]).includes(accessory);
 /** Every pet is a reward: only the ones you've earned show in the wardrobe */
 export const PET_IDS: PetId[] = ["moon-whale"];
 

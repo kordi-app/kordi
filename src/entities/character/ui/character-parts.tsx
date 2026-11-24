@@ -52,7 +52,21 @@ const MAT = {
   flowerCenter: mat("#ffcf4a", 0.5),
   scarf: mat("#e2574c", 0.85),
   bowtie: mat("#3a5bd9", 0.5),
+  gold: new THREE.MeshStandardMaterial({ color: "#f2c14e", metalness: 0.85, roughness: 0.22, emissive: "#7a4a00", emissiveIntensity: 0.3 }),
+  amber: new THREE.MeshStandardMaterial({ color: "#ffb347", emissive: "#ff8a1f", emissiveIntensity: 1.1, toneMapped: false }),
 };
+
+/** The gold necklace: a fine chain resting on the shoulders, dipping to a sun medallion */
+const NECKLACE = {
+  chain: new THREE.TorusGeometry(0.515, 0.014, 8, 64),
+  bead: new THREE.SphereGeometry(0.022, 10, 8),
+  disc: new THREE.CylinderGeometry(0.075, 0.075, 0.022, 28),
+  ray: new THREE.ConeGeometry(0.018, 0.05, 6),
+  gem: new THREE.SphereGeometry(0.03, 16, 12),
+};
+/** tipped forward so the front hangs lower than the back */
+const NECKLACE_TILT = 0.32;
+const NECKLACE_BEADS = Array.from({ length: 14 }, (_, i) => (i / 14) * Math.PI * 2);
 
 /** Eyes for each face style (they replace the default dome eyes). */
 export function Eyes({ face }: { face: FaceId }) {
@@ -164,6 +178,28 @@ export function Accessory({ accessory }: { accessory: AccessoryId }) {
             <mesh key={s} position={[s * 0.07, 0, 0]} rotation={[0, 0, (s * Math.PI) / 2]} scale={[0.065, 0.12, 0.035]} geometry={GEO.cone} material={MAT.bowtie} />
           ))}
           <mesh scale={0.035} geometry={GEO.sphere} material={MAT.bowtie} />
+        </group>
+      );
+    case "gold-necklace":
+      return (
+        <group position={[0, 0.64, 0]} rotation={[NECKLACE_TILT, 0, 0]}>
+          <group scale={[1, 1, 0.9]}>
+            <mesh rotation={[Math.PI / 2, 0, 0]} geometry={NECKLACE.chain} material={MAT.gold} />
+            {NECKLACE_BEADS.map((a) => (
+              <mesh key={a} position={[Math.cos(a) * 0.515, 0, Math.sin(a) * 0.515]} geometry={NECKLACE.bead} material={MAT.gold} />
+            ))}
+          </group>
+          {/* the medallion hangs straight down from the front of the chain, a little sun */}
+          <group position={[0, -0.05, 0.47]} rotation={[-NECKLACE_TILT + Math.PI / 2, 0, 0]}>
+            <mesh geometry={NECKLACE.disc} material={MAT.gold} />
+            {Array.from({ length: 8 }, (_, i) => {
+              const a = (i / 8) * Math.PI * 2;
+              return (
+                <mesh key={i} position={[Math.cos(a) * 0.1, 0, Math.sin(a) * 0.1]} rotation={[0, -a, -Math.PI / 2]} geometry={NECKLACE.ray} material={MAT.gold} />
+              );
+            })}
+            <mesh position={[0, 0.018, 0]} scale={[1, 0.6, 1]} geometry={NECKLACE.gem} material={MAT.amber} />
+          </group>
         </group>
       );
     case "glasses":

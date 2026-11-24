@@ -3,11 +3,13 @@ import type { ApiSchema, AssertTrue, FitsContract } from "@/shared/api";
 export type BodyColor = "cream" | "sky" | "pink" | "mint" | "lemon" | "lilac" | "cocoa";
 export type HatId = "crown" | "star-crown" | "flame-crown" | "ribbon" | "beret" | "headphones" | "flower";
 export type FaceId = "default" | "smile" | "sparkle" | "sleepy";
-export type AccessoryId = "scarf" | "bowtie" | "glasses";
+export type AccessoryId = "scarf" | "bowtie" | "glasses" | "gold-necklace";
 /** Companions that follow Kordi around (all of them earned, none chosen freely) */
 export type PetId = "moon-whale";
+/** Accessories found rather than chosen: the gold necklace waits in the cave of sleeping stars */
+export type RewardAccessoryId = Extract<AccessoryId, "gold-necklace">;
 /** Anything that has to be earned before it can be worn */
-export type RewardId = HatId | PetId;
+export type RewardId = HatId | PetId | RewardAccessoryId;
 
 /** How Kordi looks. Mirrors the server's AppearanceDto. */
 export interface Appearance {
@@ -22,7 +24,7 @@ export interface Appearance {
 /** GET /api/characters/me */
 export interface MyCharacter {
   appearance: Appearance;
-  /** reward items earned: hats from jump courses, pets from secrets */
+  /** reward items earned: hats from jump courses, pets and the necklace from secrets */
   unlocked: RewardId[];
 }
 

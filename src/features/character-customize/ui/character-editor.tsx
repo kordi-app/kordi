@@ -12,6 +12,7 @@ import {
   FACE_IDS,
   HAT_IDS,
   PET_IDS,
+  isRewardAccessory,
   isRewardHat,
   characterQueries,
   type Appearance,
@@ -70,6 +71,7 @@ function Editor({ saved }: { saved: MyCharacter }) {
   const [draft, setDraft] = useState<Appearance>(saved.appearance);
   const unlocked = new Set(saved.unlocked);
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved.appearance);
+  const earnedPets = PET_IDS.filter((pet) => unlocked.has(pet));
 
   const { mutate, isPending } = useMutation({
     mutationFn: updateCharacter,
@@ -132,33 +134,27 @@ function Editor({ saved }: { saved: MyCharacter }) {
           <Choice selected={draft.accessory === null} onSelect={() => set({ accessory: null })}>
             {t("none")}
           </Choice>
-          {ACCESSORY_IDS.map((accessory) => (
+          {/* found accessories (the cave's necklace) only appear once you have them */}
+          {ACCESSORY_IDS.filter((accessory) => !isRewardAccessory(accessory) || unlocked.has(accessory)).map((accessory) => (
             <Choice key={accessory} selected={draft.accessory === accessory} onSelect={() => set({ accessory })}>
               {t(`accessory.${accessory}`)}
             </Choice>
           ))}
         </Section>
 
-        <Section title={t("sections.pet")}>
-          <Choice selected={!draft.pet} onSelect={() => set({ pet: null })}>
-            {t("none")}
-          </Choice>
-          {/* every pet is earned; one you haven't met yet shows only as a hint */}
-          {PET_IDS.map((pet) =>
-            unlocked.has(pet) ? (
+        {/* every pet is a secret: nothing here (not even a hint) until you've found one */}
+        {earnedPets.length > 0 ? (
+          <Section title={t("sections.pet")}>
+            <Choice selected={!draft.pet} onSelect={() => set({ pet: null })}>
+              {t("none")}
+            </Choice>
+            {earnedPets.map((pet) => (
               <Choice key={pet} selected={draft.pet === pet} onSelect={() => set({ pet })}>
                 {t(`pet.${pet}`)}
               </Choice>
-            ) : (
-              <span
-                key={pet}
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-dashed border-border px-3 text-sm text-muted-foreground"
-              >
-                {t(`petHint.${pet}`)}
-              </span>
-            ),
-          )}
-        </Section>
+            ))}
+          </Section>
+        ) : null}
 
         <div className="flex gap-2">
           <Button type="button" disabled={!dirty || isPending} onClick={() => mutate(draft)}>

@@ -7,6 +7,7 @@ export type {
   KordiEmote,
   MyCharacter,
   PetId,
+  RewardAccessoryId,
   RewardId,
 } from "./model/types";
 export {
@@ -17,7 +18,9 @@ export {
   FACE_IDS,
   HAT_IDS,
   PET_IDS,
+  REWARD_ACCESSORIES,
   REWARD_HATS,
+  isRewardAccessory,
   isRewardHat,
 } from "./model/catalog";
 export { characterQueries } from "./api/queries";

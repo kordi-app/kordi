@@ -2,3 +2,5 @@
 // so the catalog and queries don't drag three.js into pages that don't render Kordi.
 export { KordiModel, type KordiMotion } from "./ui/kordi-model";
 export { CrownMesh } from "./ui/crown-mesh";
+// a single wearable on its own (the cave shows its necklace floating over the altar)
+export { Accessory } from "./ui/character-parts";

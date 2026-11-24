@@ -25,5 +25,5 @@ type Story = StoryObj<typeof meta>;
 /** The cloud course's reward. */
 export const Gold: Story = {};
 
-/** The night course's reward. */
+/** The night course's reward: the cosmic crown. */
 export const Star: Story = { args: { kind: "star" } };
