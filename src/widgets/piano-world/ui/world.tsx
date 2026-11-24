@@ -1,36 +1,24 @@
 "use client";
 
 import { useMemo, useRef, useState, type RefObject } from "react";
-import type { VoiceId } from "@/shared/lib/audio";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { BOUNDS, CASE_H, SPAWN } from "../engine/layout";
-import {
-  BELL_GONE,
-  bellPhase,
-  burning,
-  courseRuntime,
-  slideOffset,
-  tickCourse,
-  tickDragon,
-  touchCrumble,
-} from "../engine/course";
 import { bodyLanguage, createPlayerSim, jumpAndFall, placePlayer, walk, type WalkEnv } from "../engine/player";
-import { interactablesIn, type EmoteId, type InteractableId } from "../engine/interactables";
+import { interactablesIn, type InteractableId } from "../engine/interactables";
 import { decorColliders } from "../engine/decor";
 import { skyAt } from "../engine/day-night";
-import { islandHits, type WarpStoneId } from "../engine/island";
+import { islandHits } from "../engine/island";
 import { createAmbience, resetAmbience, stepAmbience, type AmbienceEvents } from "../audio/island-ambience";
 import { aimSunLight, applySky, createSunAim } from "./sun-light";
 import { quality } from "./quality";
 import { ISLAND_TERRAIN } from "../engine/nature";
-import { SKY_DRIFT, SKY_OPEN_SECONDS, openSky, skyNow, stepSkyPads, tickSky, type SkyEvent } from "../engine/sky-island";
-import { DREAM_TERRAIN, startDream, stepDream, type DreamEvent } from "../engine/dream-sea";
-import { CAVE_TERRAIN, startCave, stepCave, type CaveEvent } from "../engine/cave";
-import { sitOnSpot } from "../engine/cat-walk";
+import { SKY_DRIFT, SKY_OPEN_SECONDS, openSky, skyNow, tickSky } from "../engine/sky-island";
+import { DREAM_TERRAIN, startDream, stepDream } from "../engine/dream-sea";
+import { CAVE_TERRAIN } from "../engine/cave";
 import { DreamSea } from "./dream-sea";
-import { CaveScene, IllusoryWall, lightCave } from "./cave";
-import { BALL_RADIUS, applyBallNews, ballResting, ballSpawns, newBall, stepBall, type Ball, type BallWorld } from "../engine/ball";
+import { CaveScene, IllusoryWall } from "./cave";
+import { ballSpawns } from "../engine/ball";
 import { NoteBall } from "./note-ball";
 import {
   HARD_LANDING,
@@ -38,21 +26,17 @@ import {
   JUMP_SPEED,
   SPRING_BOOST,
   groundAt,
-  wrapAngle,
   type Arrival,
   type CircleCollider,
   type InputState,
 } from "../engine/physics";
-import { PORTAL_RADIUS, type RegionDef, type RegionId } from "../engine/regions";
-import type { BallState, RemotePlayer } from "../net/protocol";
-import type { BallNews } from "../net/use-world-presence";
-import type { InteractionScene } from "./hooks/use-interactions";
+import { PORTAL_RADIUS, type RegionDef } from "../engine/regions";
 import { REWARD_OF } from "./hooks/use-course-run";
 import { CourseScene } from "./course-scene";
 import { EmoteBubble } from "./emote-bubble";
 import { IslandScene } from "./island-scene";
 import { debugSeam } from "../lib/debug-seam";
-import type { Appearance, KordiMotion, RewardId } from "@/entities/character";
+import type { KordiMotion } from "@/entities/character";
 import { KordiModel } from "@/entities/character/three";
 import { PianoFloor } from "./piano-floor";
 import { Portal } from "./portal";
@@ -61,6 +45,15 @@ import { RemoteKordi } from "./remote-kordi";
 import { StepEffects, type StepEffectsApi } from "./step-effects";
 import { TargetBeam } from "./target-beam";
 import { ChordCardStand, DiscoBall, Jukebox, MusicBox, PianoCat, Teacher } from "./world-props";
+import type { WorldDisplay, WorldEvents, WorldPresence } from "./world-types";
+import type { FrameContext } from "./frame/context";
+import { createCourseFrame, stepCourseAfter, stepCourseBefore } from "./frame/course-frame";
+import { createDriftFrame, stepDriftFrame } from "./frame/drift-frame";
+import { createIslandFrame, enterIsland, stepIslandFrame } from "./frame/island-frame";
+import { createCaveFrame, enterCave, stepCaveFrame } from "./frame/cave-frame";
+import { createBallsFrame, enterBalls, stepBallsFrame } from "./frame/balls-frame";
+
+export type { WorldDisplay, WorldEvents, WorldPresence } from "./world-types";
 
 /** The cat's footsteps are heard within this distance */
 const CAT_EARSHOT = 9;
@@ -76,49 +69,6 @@ const SKY_INTERVAL = 0.2;
 /** The keyboard plaza: the melody game's card shows only while you're here */
 const PLAZA_REACH = { x: 36, zMin: -10, zMax: 16 };
 
-/** Things the world reports back to the page */
-export interface WorldEvents {
-  /** the key under you changed (null when off the keys or airborne) */
-  onStep: (midi: number | null) => void;
-  /** a remote player's key changed (or they left: null) */
-  onRemoteStep: (id: string, midi: number | null) => void;
-  /** course platform under you changed (null = the cloud floor) */
-  onPlatform: (index: number | null) => void;
-  onPortal: (to: RegionId) => void;
-  /** moving ends an emote */
-  onEmoteCancel: () => void;
-  /** the interactable now in reach */
-  onNearby: (id: InteractableId | null) => void;
-  /** the key the cat is on, only while it's within earshot */
-  onCatStep: (midi: number | null) => void;
-  /** a note ball hit or rolled onto a key */
-  onBallNote: (midi: number, velocity: number) => void;
-  /** the island's terrain made a sound (bridge bar, drum, pipe, harp string, bell…) */
-  onVoice: (voice: VoiceId, midi: number, velocity: number) => void;
-  /** the warp stone now in reach (island only) */
-  onWarpNearby: (id: WarpStoneId | null) => void;
-  /** whether you're on the keyboard plaza (the melody game only shows there) */
-  onNearKeys: (near: boolean) => void;
-  /** the storm temple's dragon roared (an attack is coming) or its fire caught you */
-  onDragon: (kind: "roar" | "burn") => void;
-  /**
-   * You rang the tower bell. `midnight`: it's night here, so it calls the
-   * stars (tell the channel); `opened`: the sky was shut and just opened.
-   */
-  onBell: (midnight: boolean, opened: boolean) => void;
-  /** up on the sky island: a star pad, a constellation, or the whole sky */
-  onSky: (event: SkyEvent) => void;
-  /** in the dream sea: a lost note found, or the whale come down to sing */
-  onDream: (event: DreamEvent) => void;
-  /** the cat sat down on its secret spot (you can hear it from here) */
-  onCatSignal: () => void;
-  /** in the cave of sleeping stars: a star rest woken, a fall into the abyss, the necklace taken */
-  onCave: (event: CaveEvent) => void;
-}
-
-/** The cave's light follows the cosmic crown: this fast to come up (and to fade if you take it off) */
-const CAVE_LIGHT_RATE = 0.9;
-
 /** You hear the cat settle on its spot from this far */
 const CAT_SIGNAL_EARSHOT = 22;
 /** How often my pet echoes a key I step on, an octave up */
@@ -127,54 +77,6 @@ const PET_ECHO_CHANCE = 0.3;
 /** It counts as night for the midnight bell from this far into dusk (day-night.ts: 0 day … 1 night) */
 const MIDNIGHT = 0.6;
 
-/** Knocked back by dragon fire: this fast sideways (with the flames) and up. */
-const BURN_PUSH = 5.5;
-const BURN_HOP = 4.5;
-/** After a burn you can't be caught again for this long. */
-const BURN_GRACE = 1.2;
-
-export interface WorldPresence {
-  remotes: RefObject<Map<string, RemotePlayer>>;
-  others: { id: string; name: string }[];
-  sendPosition: (
-    x: number,
-    y: number,
-    z: number,
-    h: number,
-    m: number | null,
-    e: EmoteId | null,
-  ) => void;
-  /** the channel's ball news since the last call, oldest first (the scene takes it every frame) */
-  takeBallNews: () => readonly BallNews[];
-  /** tell the channel I kicked a ball, or where the one I kicked came to rest (false: not connected) */
-  sendBall: (ball: BallState) => boolean;
-}
-
-export interface WorldDisplay {
-  emote: EmoteId | null;
-  /** melody game: the key to step on next */
-  target: number | null;
-  /** how my Kordi is dressed */
-  appearance: Appearance;
-  /** reward items I own (a course's treasure no longer shows its crown) */
-  rewards: readonly RewardId[];
-  interaction: InteractionScene;
-  /** bump to fire confetti over Kordi */
-  celebrate: number;
-  /** warp stones you've woken (island) */
-  awake: ReadonlySet<WarpStoneId>;
-  /** you've lit the whole sky over the island (its constellation stays up) */
-  skyFound: boolean;
-  /** you've found the cat's way into the dream sea (its spot shows pawprints) */
-  dreamFound: boolean;
-  /** the cave's gold necklace is already mine (members: unlocked; guests: kept in this browser) */
-  hasNecklace: boolean;
-  /**
-   * I carry the cosmic crown's light: members wearing it; guests who've earned it
-   * (they don't choose a hat: in the cave they wear it, outside their best crown)
-   */
-  cosmicCrown: boolean;
-}
 
 interface WorldProps {
   region: RegionDef;
@@ -198,10 +100,16 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
   const { remotes, others, sendPosition, takeBallNews, sendBall } = presence;
   const { emote, target, appearance, rewards, interaction, celebrate, awake, skyFound, dreamFound, hasNecklace, cosmicCrown } =
     display;
-  /** when I came into the cave (scene clock), for the necklace's wait */
-  const caveSince = useRef(0);
-  /** the cave's light right now, 0 (dark) … 1 (the crown's full starlight) */
+  /** the cave's light right now, 0 (dark) … 1 (the crown's full starlight): shared with its renderer */
   const caveLight = useRef(0);
+  /** each region's and feature's own state between frames (see ./frame) */
+  const frames = useRef({
+    course: createCourseFrame(),
+    drift: createDriftFrame(),
+    island: createIslandFrame(),
+    cave: createCaveFrame(),
+    balls: createBallsFrame(),
+  });
   const camera = useThree((state) => state.camera);
   const scene = useThree((state) => state.scene);
   const hemi = useRef<THREE.HemisphereLight>(null);
@@ -211,10 +119,6 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
   const bubble = useRef<THREE.Group>(null);
   const lantern = useRef<THREE.Group>(null);
   const fx = useRef<StepEffectsApi>(null);
-  /** dragon fire can't catch you again until then (course clock) */
-  const burnUntil = useRef(0);
-  /** a drift down from the sky in progress (was it, last frame), and its trail's next sparkle */
-  const drift = useRef({ on: false, sparkAt: 0 });
   const motion = useRef<KordiMotion>({ phase: 0, amount: 0, emote: null, land: 0, stretch: 0, lean: 0, bank: 0 });
   /** Kordi's live position: one Vector3, mutated in place, shared with the island renderer */
   const [playerPos] = useState(() => new THREE.Vector3(SPAWN.x, CASE_H, SPAWN.z));
@@ -240,11 +144,6 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
 
   const cameraOffset = useMemo(() => new THREE.Vector3(...region.camera), [region]);
   const spawns = useMemo(() => ballSpawns(region.id, SPAWN), [region]);
-  const balls = useRef<Ball[]>([]);
-  /** the region the balls were set out for */
-  const ballsFor = useRef<RegionId | null>(null);
-  const ballMeshes = useRef<(THREE.Mesh | null)[]>([]);
-  const ballSpin = useRef({ axis: new THREE.Vector3(), turn: new THREE.Quaternion() });
   const items = useMemo(() => interactablesIn(region.id), [region]);
   const solids = useMemo<CircleCollider[]>(
     () => [
@@ -259,8 +158,6 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
   const island = region.island ? ISLAND_TERRAIN : null;
   /** solid ground beyond the keys: the island's, or the dream sea's */
   const terrain = island ?? (region.dream ? DREAM_TERRAIN : region.cave ? CAVE_TERRAIN : null);
-  /** sitting on the cat's secret spot (seconds so far) */
-  const secretSit = useRef<{ since: number | null }>({ since: null });
   /** what you walk among this frame (other players move, so it's built per frame) */
   const walkEnv = (): WalkEnv => ({
     bounds: course ? course.bounds : (region.bounds ?? BOUNDS),
@@ -303,20 +200,12 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
         fx.current?.notes(s.pos.x, s.pos.y, s.pos.z, "#7fd8ff");
       }
       portalArmed.current = false;
-      secretSit.current.since = null;
+      enterIsland(frames.current.island);
       if (region.dream) startDream();
-      if (region.cave) {
-        startCave();
-        caveSince.current = state.clock.getElapsedTime();
-        caveLight.current = 0; // come in dark: the crown's light then fills the place
-      }
+      if (region.cave) enterCave(frames.current.cave, caveLight, state.clock.getElapsedTime());
       camera.position.copy(s.pos).add(cameraOffset);
       lookTarget.current.set(s.pos.x, s.pos.y + 0.6, s.pos.z - 1.2);
-      // the balls are the channel's: a warp within a region leaves them where they are
-      if (ballsFor.current !== region.id) {
-        ballsFor.current = region.id;
-        balls.current = spawns.map((spot) => newBall(spot.x, spot.z));
-      }
+      enterBalls(frames.current.balls, region.id, spawns);
     }
 
     // playtests (development only): jump straight to a spot
@@ -330,38 +219,10 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     const skyClock = skyNow();
     if (island) tickSky(skyClock);
 
-    // the course's moving and crumbling platforms run on the shared clock
     const now = state.clock.getElapsedTime();
-    if (course) {
-      // ride along on a sliding platform (before anything else moves)
-      if (!s.airborne && s.platform !== null) {
-        s.pos.x += slideOffset(course, s.platform, now) - slideOffset(course, s.platform, courseRuntime.time);
-      }
-      const before = courseRuntime.time;
-      tickCourse(course, now);
-      // the temple bell tolls as each set of bell stones goes (two sets, half a cycle apart)
-      if (course.platforms.some((p) => p.behavior === "bell")) {
-        for (const parity of [0, 1]) {
-          const from = bellPhase(parity, before);
-          const to = bellPhase(parity, now);
-          const crossed = from < 1 - BELL_GONE && to >= 1 - BELL_GONE && to - from < 0.5;
-          if (crossed) events.onVoice("bell", parity ? 45 : 50, 0.55);
-        }
-      }
-      if (tickDragon(course, now, s.pos.x, s.pos.y)) events.onDragon("roar");
-      if (now > burnUntil.current && burning(course, s.pos.x, s.pos.y)) {
-        // knocked back with the flames: off your step, usually down one or two
-        const dir = courseRuntime.breath?.dir ?? 1;
-        s.vx = dir * BURN_PUSH;
-        s.vy = BURN_HOP;
-        s.airborne = true;
-        s.jumped = true;
-        s.springing = true;
-        burnUntil.current = now + BURN_GRACE;
-        events.onDragon("burn");
-        fx.current?.dust(s.pos.x, s.pos.y, s.pos.z);
-      }
-    }
+    const ctx: FrameContext = { s, dt, now, region, events, fx: fx.current };
+    // the course's moving and crumbling platforms run on the shared clock
+    if (course) stepCourseBefore(ctx, course, frames.current.course);
 
     // --- walking, then body language
     const { speed, steering } = walk(s, keys, dt, walkEnv(), motion.current);
@@ -381,68 +242,13 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       { course, island: terrain, drift: island ? SKY_DRIFT : null },
     );
     if (landing && landing.impact > HARD_LANDING) fx.current?.dust(s.pos.x, s.pos.y, s.pos.z);
-    // drifting down from the sky: a soft chime to start and land, a trail of sparkles, a lazy twirl
-    const d = drift.current;
-    if (s.drifting !== d.on) {
-      d.on = s.drifting;
-      if (d.on) {
-        events.onVoice("crystal", 88, 0.35);
-        d.sparkAt = now;
-      } else if (landing?.drifted) {
-        fx.current?.ripple(s.pos.x, s.pos.y, s.pos.z, "#ffe9a8");
-        events.onVoice("harp", 72, 0.45);
-      }
-    }
-    if (d.on) {
-      if (now >= d.sparkAt) {
-        d.sparkAt = now + 0.45;
-        fx.current?.notes(s.pos.x, s.pos.y, s.pos.z, "#ffe9a8");
-      }
-      if (!steering) s.heading = wrapAngle(s.heading + dt * 0.9);
-    }
-    // island drums: every landing is a beat
-    const drum = landing?.solid?.bounce ? landing.solid : null;
-    if (drum) {
-      if (drum.sound) events.onVoice(drum.sound.voice, drum.sound.midi, Math.min(1, 0.45 + landing!.impact / 18));
-      if (drum.tag) islandHits.set(drum.tag, now);
-      fx.current?.notes(s.pos.x, s.pos.y, s.pos.z, region.theme.accent);
-    }
-    if (region.cave) {
-      const caveStep = { grounded: !s.airborne, crowned: cosmicCrown, hasNecklace, stayed: now - caveSince.current };
-      for (const event of stepCave(s.pos.x, s.pos.y, s.pos.z, caveStep)) {
-        if (event.kind === "fell") {
-          // the abyss gives you back at the last star rest you woke
-          placePlayer(s, event.to.x, groundAt(region, event.to.x, event.to.z, 0).height, event.to.z);
-          fx.current?.ripple(s.pos.x, s.pos.y, s.pos.z, "#ffcf7a");
-        } else if (event.kind === "rest") {
-          fx.current?.ripple(s.pos.x, s.pos.y, s.pos.z, "#ffcf7a");
-          fx.current?.notes(s.pos.x, s.pos.y, s.pos.z, "#ffcf7a");
-        } else {
-          fx.current?.confetti(s.pos.x, s.pos.y, s.pos.z);
-        }
-        events.onCave(event);
-      }
-      const want = cosmicCrown ? 1 : 0;
-      caveLight.current += THREE.MathUtils.clamp(want - caveLight.current, -dt * CAVE_LIGHT_RATE, dt * CAVE_LIGHT_RATE);
-      lightCave(scene, hemi.current, region.theme, caveLight.current);
-    }
+    stepDriftFrame(ctx, frames.current.drift, landing, steering);
+    if (island) stepIslandFrame(ctx, frames.current.island, { landing, sitting: emote === "sit", skyClock });
+    if (region.cave) stepCaveFrame(ctx, frames.current.cave, caveLight, { cosmicCrown, hasNecklace }, { scene, hemi: hemi.current });
     if (region.dream) {
       for (const event of stepDream(s.pos.x, s.pos.y, s.pos.z, now)) {
         fx.current?.confetti(s.pos.x, s.pos.y, s.pos.z);
         events.onDream(event);
-      }
-    }
-    // the cat's secret: sit where it sits, and you're through
-    if (island && sitOnSpot(secretSit.current, s.pos.x, s.pos.z, emote === "sit", !s.airborne, now)) {
-      secretSit.current.since = null;
-      fx.current?.ripple(s.pos.x, s.pos.y, s.pos.z, "#9fb8ff");
-      events.onPortal("whale");
-    }
-    if (island) {
-      for (const event of stepSkyPads(s.pos.x, s.pos.y, s.pos.z, skyClock, !s.airborne)) {
-        if (event.kind === "pad") fx.current?.notes(s.pos.x, s.pos.y, s.pos.z, "#ffe9a8");
-        else fx.current?.confetti(s.pos.x, s.pos.y, s.pos.z);
-        events.onSky(event);
       }
     }
     // squash on landing eases out; stretch while rising fast
@@ -455,7 +261,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       s.platform = ground.platform;
       events.onPlatform(ground.platform);
     }
-    if (course && !s.airborne && s.platform !== null) touchCrumble(course, s.platform, now);
+    if (course) stepCourseAfter(ctx, course);
     // island terrain you walk onto plays its own instrument (drums sound on landing, above)
     const solidUnder = s.airborne ? null : ground.solid;
     if (terrain && solidUnder !== s.solid) {
@@ -491,48 +297,8 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       debugSeam.airborne = s.airborne;
     }
 
-    // --- note balls: shared with the channel. Whoever kicks one tells everyone
-    // (every screen then rolls it the same way), and tells them again where it stops.
-    const ballWorld: BallWorld = {
-      ground: (x, z) => {
-        const g = groundAt(region, x, z, 0);
-        return { height: g.height, midi: g.midi };
-      },
-      colliders: solids,
-      // the same edges you walk within (the island's are wider, the band rooms' narrower)
-      bounds: region.bounds ?? BOUNDS,
-      player: { x: s.pos.x, y: s.pos.y, z: s.pos.z, vx: s.vx, vz: s.vz },
-    };
-    for (const { state, age, fromMe } of takeBallNews()) {
-      const ball = balls.current[state.i];
-      if (ball) applyBallNews(ball, state, age / 1000, fromMe, ballWorld);
-    }
-    balls.current.forEach((ball, i) => {
-      const { note, kicked } = stepBall(ball, dt, ballWorld);
-      if (kicked) {
-        // mine only if the channel hears it (offline, it's just my own ball)
-        ball.mine = sendBall({ i, x: ball.x, y: ball.y, z: ball.z, vx: ball.vx, vy: ball.vy, vz: ball.vz });
-      } else if (ball.mine && ballResting(ball)) {
-        ball.mine = false;
-        sendBall({ i, x: ball.x, y: ball.y, z: ball.z, vx: 0, vy: 0, vz: 0 });
-      }
-      if (note) {
-        events.onBallNote(note.midi, note.velocity);
-        if (note.velocity > 0.3) fx.current?.notes(ball.x, ball.y - BALL_RADIUS, ball.z, region.theme.accent);
-      }
-      const mesh = ballMeshes.current[i];
-      if (mesh) {
-        mesh.position.set(ball.x, ball.y, ball.z);
-        // roll: spin about the horizontal axis perpendicular to travel
-        const travel = Math.hypot(ball.vx, ball.vz);
-        if (travel > 1e-3) {
-          const { axis, turn } = ballSpin.current;
-          axis.set(ball.vz, 0, -ball.vx).normalize();
-          turn.setFromAxisAngle(axis, (travel * dt) / BALL_RADIUS);
-          mesh.quaternion.premultiply(turn);
-        }
-      }
-    });
+    // --- note balls, shared with the channel
+    stepBallsFrame(ctx, frames.current.balls, solids, { takeBallNews, sendBall });
 
     // --- one-shot effects requested by the page
     if (seen.current.celebrate !== celebrate) {
@@ -724,7 +490,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
           key={`${region.id}-${i}`}
           accent={region.theme.accent}
           ref={(el) => {
-            ballMeshes.current[i] = el;
+            frames.current.balls.meshes[i] = el;
           }}
         />
       ))}

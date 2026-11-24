@@ -79,6 +79,13 @@ official FSD v2.1 skill, installed at `.claude/skills/feature-sliced-design/`. N
 it discourages the `widgets` layer; our existing widgets stay as they are ("discouraged"
 is not "deprecated"), but prefer composing in `views/` for new work.
 
+## Piano world
+
+The home page's 3D world (`src/widgets/piano-world/`) has its own map: see its
+[README](src/widgets/piano-world/README.md) for how a frame is put together and where each
+region's rules live, and [SECRETS.md](src/widgets/piano-world/SECRETS.md) for the hidden
+content players are never told about (how each secret opens, what it gives, which files).
+
 ## Path Aliases
 
 - `@/*` → `./src/*` (e.g., `@/shared/ui/button`, `@/features/auth/login`)
