@@ -1,4 +1,6 @@
 import * as Tone from "tone";
+import { isAudioStarted } from "./audio-context";
+import { audioReadiness } from "./readiness";
 
 // --- Types ---
 
@@ -157,21 +159,54 @@ let current: Instrument | null = null;
 let currentId: InstrumentId | null = null;
 /** the load in flight; a newer request (or disposeSampler) supersedes it */
 let pending: { id: InstrumentId; promise: Promise<void> } | null = null;
+/**
+ * A plain synth that answers notes while the first instrument loads (or after it failed),
+ * so keys are never silent once the context runs.
+ */
+let fallback: Tone.PolySynth | null = null;
+/** A load that hasn't finished by then is reported as failed (the synth keeps playing; a later gesture retries). */
+const LOAD_TIMEOUT_MS = 15_000;
+
+/** What plays a note right now: the instrument, or the fallback synth until there is one. */
+function voice(): Instrument | null {
+  if (current) return current;
+  if (!isAudioStarted()) return null;
+  fallback ??= withVolume(
+    makeSynth({
+      oscillator: { type: "triangle" },
+      envelope: { attack: 0.005, decay: 0.4, sustain: 0.2, release: 0.8 },
+    }),
+    -10,
+  );
+  return fallback;
+}
+
+/** Readiness when no load is in flight: playable if an instrument is in. */
+function settledReadiness(): void {
+  if (!isAudioStarted()) return;
+  audioReadiness.set(current ? "ready" : "failed");
+}
 
 // --- Public API ---
 
 /**
- * Swaps in the instrument once it can play: until then the previous one (or silence, on
- * the first load) keeps answering notes, so nothing triggers a sampler whose buffers are
+ * Swaps in the instrument once it can play: until then the previous one (or a plain fallback
+ * synth, on the first load) keeps answering notes, so nothing triggers a sampler whose buffers are
  * still loading. If the load fails, the previous instrument stays and the promise rejects.
  */
 export function loadInstrument(id: InstrumentId): Promise<void> {
-  if (pending?.id === id) return pending.promise;
+  // join the load in flight, unless it timed out: then a retry starts it afresh
+  if (pending?.id === id && audioReadiness.get() !== "failed") return pending.promise;
   if (currentId === id && current) {
     pending = null; // back to what is already playing: drop any other load in flight
+    settledReadiness();
     return Promise.resolve();
   }
   const request = { id, promise: Promise.resolve() };
+  if (!current && isAudioStarted()) audioReadiness.set("loading");
+  const timeout = setTimeout(() => {
+    if (pending === request && !current) audioReadiness.set("failed");
+  }, LOAD_TIMEOUT_MS);
   request.promise = new Promise<Instrument>((resolve) => resolve(INSTRUMENT_STRATEGIES[id]()))
     .then((instrument) => {
       if (pending !== request) {
@@ -183,7 +218,10 @@ export function loadInstrument(id: InstrumentId): Promise<void> {
       currentId = id;
     })
     .finally(() => {
-      if (pending === request) pending = null;
+      clearTimeout(timeout);
+      if (pending !== request) return;
+      pending = null;
+      settledReadiness();
     });
   pending = request;
   return request.promise;
@@ -191,28 +229,37 @@ export function loadInstrument(id: InstrumentId): Promise<void> {
 
 /** Make sure some instrument is ready (the piano, unless another was picked). */
 export function loadDefaultInstrument(): Promise<void> {
-  if (current) return Promise.resolve();
+  if (current) {
+    settledReadiness();
+    return Promise.resolve();
+  }
+  // a load that timed out or failed is retried, not awaited again
+  if (pending && audioReadiness.get() === "failed") pending = null;
   if (pending) return pending.promise;
   return loadInstrument("piano");
 }
 
 export function playNoteOn(midi: number, velocity: number): void {
-  if (!current) return;
+  const instrument = voice();
+  if (!instrument) return;
   const note = Tone.Frequency(midi, "midi").toNote();
-  current.triggerAttack(note, Tone.now(), velocity);
+  instrument.triggerAttack(note, Tone.now(), velocity);
 }
 
 /** Schedule a whole note (attack + release) at an audio-clock time, e.g. score playback. */
 export function playNoteAt(midi: number, velocity: number, time: number, duration: number): void {
-  if (!current) return;
+  const instrument = voice();
+  if (!instrument) return;
   const note = Tone.Frequency(midi, "midi").toNote();
-  current.triggerAttackRelease(note, duration, time, velocity);
+  instrument.triggerAttackRelease(note, duration, time, velocity);
 }
 
 export function playNoteOff(midi: number): void {
-  if (!current) return;
+  if (!current && !fallback) return;
   const note = Tone.Frequency(midi, "midi").toNote();
-  current.triggerRelease(note, Tone.now());
+  current?.triggerRelease(note, Tone.now());
+  // a note may have started on the fallback before the instrument arrived
+  fallback?.triggerRelease(note, Tone.now());
 }
 
 export function getCurrentInstrumentId(): InstrumentId | null {
@@ -224,4 +271,7 @@ export function disposeSampler(): void {
   current?.dispose();
   current = null;
   currentId = null;
+  fallback?.dispose();
+  fallback = null;
+  audioReadiness.set("off"); // nothing loaded: the next page's start loads one again
 }

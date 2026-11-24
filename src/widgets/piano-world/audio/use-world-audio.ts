@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import {
+  audioReadiness,
   disposeSampler,
   disposeVoices,
   ensureAudioStarted,
   getCurrentInstrumentId,
+  isAudioStarted,
   loadInstrument,
   playNoteOff,
   playNoteOn,
@@ -21,12 +23,21 @@ import {
 } from "@/shared/lib/audio";
 import { houseStab, isHousePlaying, startHouse, stopHouse } from "./house-groove";
 import { useCallbackRef } from "@/shared/lib/react/use-callback-ref";
+import { createValueStore, type ValueStore } from "@/shared/lib/react/value-store";
 import { midiToNoteName } from "@/shared/lib/music";
 import { isLoungeBandPlaying, playLoungeStep, startLoungeBand, stopLoungeBand } from "./lounge-band";
 import { debugSeam } from "../lib/debug-seam";
 import type { RegionDef } from "../engine/regions";
 
 export type AudioState = "off" | "loading" | "on";
+
+/**
+ * Whether sounds play now: from the first gesture on, also while the region's instrument
+ * loads (the previous instrument, or a plain synth, stands in meanwhile).
+ */
+function playable(state: AudioState): boolean {
+  return state !== "off" && isAudioStarted();
+}
 
 /** Cathedral: how long a note keeps ringing after you step off it. */
 const ECHO_MS = 900;
@@ -58,8 +69,12 @@ const CAT_VELOCITY = 0.18;
 export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: number) => void) {
   const [audio, setAudio] = useState<AudioState>("off");
   const audioRef = useRef<AudioState>("off");
-  /** What the top-right display shows: the key's name, or the chord a band region played */
-  const [note, setNote] = useState<string | null>(null);
+  /**
+   * What the top-right display shows: the key's name, or the chord a band region played.
+   * A store, not state: it changes on every footstep, and only the display reads it.
+   */
+  const [noteStore] = useState<ValueStore<string | null>>(() => createValueStore<string | null>(null));
+  const setNote = noteStore.set;
   const onStepRef = useCallbackRef(onStep);
 
   /** Notes I'm holding (several in the lounge, where a step is a chord) */
@@ -91,15 +106,27 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
         .then(() => {
           if (regionRef.current.instrument === id) setState("on"); // else superseded
         })
-        .catch(() => setState("off"));
+        // a failed load still plays (the previous instrument, or the fallback synth) once the
+        // context runs; the shared readiness says "failed" and the next gesture retries
+        .catch(() => setState(isAudioStarted() ? "on" : "off"));
     },
     [regionRef, setState],
   );
 
-  /** Browsers only allow audio after a user gesture — call from one. */
+  /**
+   * Browsers only allow audio after a user gesture — call from one (every one: it also
+   * resumes a context iOS suspended, and retries a start or load that got stuck).
+   */
   const startAudio = useCallback(() => {
-    if (audioRef.current === "off") switchInstrument(regionRef.current.instrument);
+    void ensureAudioStarted().catch(() => {});
+    if (audioRef.current === "off") {
+      switchInstrument(regionRef.current.instrument);
+    } else if (audioReadiness.get() === "failed") {
+      instrumentChain.current = Promise.resolve(); // don't queue behind the load that hung
+      switchInstrument(regionRef.current.instrument);
+    }
   }, [regionRef, switchInstrument]);
+
 
   /** Stop everything that's sounding and clear the note display. */
   const silence = useCallback(() => {
@@ -118,7 +145,7 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
     if (catHeld.current !== null) playNoteOff(catHeld.current);
     catHeld.current = null;
     setNote(null);
-  }, []);
+  }, [setNote]);
 
 
   /** Let go of the notes your step is sounding (in the cathedral they ring on). */
@@ -159,7 +186,7 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
 
       onStepRef.current(midi);
       debugSeam?.steps.push({ midi, t: performance.now() });
-      if (audioRef.current !== "on") return;
+      if (!playable(audioRef.current)) return;
 
       // neon: steps are chord stabs in time with the house groove
       if (regionRef.current.music === "house" && isHousePlaying()) {
@@ -187,7 +214,7 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
       held.current = [midi];
       holdTimer.current = setTimeout(releaseHeld, STEP_RING_MS);
     },
-    [onStepRef, regionRef, releaseHeld],
+    [onStepRef, regionRef, releaseHeld, setNote],
   );
 
   const releaseRemote = useCallback((id: string) => {
@@ -205,7 +232,7 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
       // in the lounge everyone plays their own tune, and in the house the stabs follow the
       // groove: other players' raw keys would only clash with it
       if (regionRef.current.music) return;
-      if (midi !== null && audioRef.current === "on") {
+      if (midi !== null && playable(audioRef.current)) {
         playNoteOn(midi, REMOTE_VELOCITY);
         remoteHeld.current.set(id, midi);
         remoteTimers.current.set(id, setTimeout(() => releaseRemote(id), STEP_RING_MS));
@@ -218,7 +245,7 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
   const handleCatStep = useCallback((midi: number | null) => {
     if (catHeld.current !== null) playNoteOff(catHeld.current);
     catHeld.current = null;
-    if (midi !== null && audioRef.current === "on") {
+    if (midi !== null && playable(audioRef.current)) {
       playNoteOn(midi, CAT_VELOCITY);
       catHeld.current = midi;
     }
@@ -226,7 +253,7 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
 
   /** Notes started `gapMs` apart, all released after `holdMs`. */
   const chime = useCallback((notes: number[], velocity: number, gapMs: number, holdMs: number) => {
-    if (audioRef.current !== "on") return;
+    if (!playable(audioRef.current)) return;
     const later = (fn: () => void, ms: number) => {
       const timer = setTimeout(() => {
         chimeTimers.current.delete(timer);
@@ -256,7 +283,7 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
 
   /** Start or stop the region's background music (call when the region or sound changes). */
   const syncMusic = useCallback((music: RegionDef["music"]) => {
-    const on = audioRef.current === "on";
+    const on = audioRef.current === "on"; // the bands wait for the real instrument
     // one band at a time (they share the transport): stop the other first
     if (music !== "house") stopHouse();
     if (music !== "jazz") stopLoungeBand();
@@ -265,36 +292,36 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
   }, []);
 
   /** read synchronously in event handlers */
-  const isOn = useCallback(() => audioRef.current === "on", []);
+  const isOn = useCallback(() => playable(audioRef.current), []);
 
   /** A struck/plucked island sound (bridge, drums, pipes, harp, bell) — rings out on its own. */
   const voice = useCallback((id: VoiceId, midi: number, velocity: number) => {
     debugSeam?.voices.push({ id, midi, t: performance.now() });
-    if (audioRef.current === "on") playVoice(id, midi, velocity);
+    if (playable(audioRef.current)) playVoice(id, midi, velocity);
   }, []);
 
   /** Warp stone sounds (waking, leaving, arriving). */
   const warpEffect = useCallback((kind: WarpEffect) => {
     debugSeam?.voices.push({ id: `warp:${kind}`, midi: 0, t: performance.now() });
-    if (audioRef.current === "on") playWarpEffect(kind);
+    if (playable(audioRef.current)) playWarpEffect(kind);
   }, []);
 
   /** The storm temple's dragon: its roar before an attack, and the flames when they catch you. */
   const dragonEffect = useCallback((kind: DragonEffect) => {
     debugSeam?.voices.push({ id: `dragon:${kind}`, midi: 0, t: performance.now() });
-    if (audioRef.current === "on") playDragonEffect(kind);
+    if (playable(audioRef.current)) playDragonEffect(kind);
   }, []);
 
   /** The bell tower's bell: one stroke, or midnight's twelve. */
   const towerBell = useCallback((strokes: number) => {
     debugSeam?.voices.push({ id: `tower-bell:${strokes}`, midi: 0, t: performance.now() });
-    if (audioRef.current === "on") playTowerBell(strokes);
+    if (playable(audioRef.current)) playTowerBell(strokes);
   }, []);
 
   /** Chords in turn (the sky island's orrery). */
   const progression = useCallback((chords: readonly (readonly number[])[]) => {
     debugSeam?.voices.push({ id: "progression", midi: 0, t: performance.now() });
-    if (audioRef.current === "on") playChordProgression(chords);
+    if (playable(audioRef.current)) playChordProgression(chords);
   }, []);
 
   /** The note ball hit (or rolled onto) a key. */
@@ -306,7 +333,7 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
   return {
     audio,
     isOn,
-    note,
+    noteStore,
     startAudio,
     switchInstrument,
     silence,

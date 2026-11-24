@@ -7,6 +7,7 @@ import {
   loadDefaultInstrument,
   playNoteOn,
   playNoteOff,
+  useAudioReadiness,
 } from "@/shared/lib/audio";
 
 interface UseSoundEngineOptions {
@@ -15,9 +16,12 @@ interface UseSoundEngineOptions {
 }
 
 export function useSoundEngine({ noteOn, noteOff }: UseSoundEngineOptions) {
-  const [isAudioStarted, setIsAudioStarted] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const startingRef = useRef(false);
+  // One readiness for the whole app (the world and every page share the engine)
+  const readiness = useAudioReadiness();
+  // keys play as soon as the context runs: a fallback synth answers while samples load
+  const isAudioStarted = readiness === "loading" || readiness === "ready" || readiness === "failed";
+  // "failed" still plays (the fallback synth), so nothing waiting on the samples hangs forever
+  const isLoaded = readiness === "ready" || readiness === "failed";
   const sustainRef = useRef(false);
   // Notes released while the sustain pedal is down — kept ringing until pedal-up
   const sustainedNotes = useRef(new Set<number>());
@@ -43,17 +47,13 @@ export function useSoundEngine({ noteOn, noteOff }: UseSoundEngineOptions) {
     };
   }, []);
 
+  /** Call from a user gesture; safe to repeat (resumes a suspended context, retries a failed load). */
   const startAudio = useCallback(async () => {
-    if (startingRef.current) return;
-    startingRef.current = true;
     try {
       await ensureAudioStarted();
-      setIsAudioStarted(true);
       await loadDefaultInstrument();
-      setIsLoaded(true);
     } catch {
-      // audio could not start: let the next gesture try again
-      startingRef.current = false;
+      // the readiness store says what happened; the next gesture tries again
     }
   }, []);
 
