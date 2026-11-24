@@ -308,7 +308,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/scores": {
+    "/api/review/deck": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["deck"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/review/results": {
         parameters: {
             query?: never;
             header?: never;
@@ -317,8 +333,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @deprecated */
-        post: operations["saveScore"];
+        post: operations["results"];
         delete?: never;
         options?: never;
         head?: never;
@@ -511,8 +526,11 @@ export interface components {
         ApiResponseQuizSessionResponse: {
             data: components["schemas"]["QuizSessionResponse"];
         };
-        ApiResponseScoreResponse: {
-            data: components["schemas"]["ScoreResponse"];
+        ApiResponseReviewDeckResponse: {
+            data: components["schemas"]["ReviewDeckResponse"];
+        };
+        ApiResponseReviewResultResponse: {
+            data: components["schemas"]["ReviewResultResponse"];
         };
         ApiResponseTokenResponse: {
             data: components["schemas"]["TokenResponse"];
@@ -555,7 +573,7 @@ export interface components {
          * @description CoreExceptionCode.code — 실패 응답의 상세 코드
          * @enum {integer}
          */
-        ErrorCode: 1001 | 1003 | 1004 | 1005 | 1006 | 1007 | 1008 | 1999 | 2001 | 2002 | 3001 | 3002 | 4001 | 4002 | 4003 | 4004;
+        ErrorCode: 1001 | 1003 | 1004 | 1005 | 1006 | 1007 | 1008 | 1009 | 1999 | 2001 | 2002 | 2003 | 3001 | 3002 | 4001 | 4002 | 4003 | 4004;
         FriendshipRequest: {
             /** Format: int64 */
             receiverId: number;
@@ -638,14 +656,40 @@ export interface components {
             /** Format: int32 */
             totalScore: number;
         };
-        ScoreRequest: {
+        /** @enum {string} */
+        RankingScope: "ALL" | "FRIENDS";
+        ReviewCardResponse: {
+            /** Format: int32 */
+            box: number;
+            chord: components["schemas"]["QuizChordResponse"];
             /** Format: int32 */
             correctCount: number;
-            difficulty: components["schemas"]["Difficulty"];
+            due: boolean;
+            /** Format: date-time */
+            dueAt: string;
+            /** Format: date-time */
+            lastSeenAt: string;
             /** Format: int32 */
-            totalCount: number;
+            wrongCount: number;
+        };
+        ReviewDeckResponse: {
+            cards: components["schemas"]["ReviewCardResponse"][];
+            /** Format: int64 */
+            dueCount: number;
+        };
+        ReviewOutcomeRequest: {
+            /** Format: int64 */
+            chordId: number;
+            correct: boolean;
+        };
+        ReviewResultRequest: {
+            results: components["schemas"]["ReviewOutcomeRequest"][];
+        };
+        ReviewResultResponse: {
+            /** Format: int64 */
+            dueCount: number;
             /** Format: int32 */
-            totalScore: number;
+            recorded: number;
         };
         ScoreResponse: {
             /** Format: int32 */
@@ -945,6 +989,7 @@ export interface operations {
         parameters: {
             query: {
                 course: string;
+                scope?: components["schemas"]["RankingScope"];
             };
             header?: never;
             path?: never;
@@ -1319,6 +1364,7 @@ export interface operations {
         parameters: {
             query: {
                 difficulty: components["schemas"]["Difficulty"];
+                scope?: components["schemas"]["RankingScope"];
             };
             header?: never;
             path?: never;
@@ -1346,7 +1392,38 @@ export interface operations {
             };
         };
     };
-    saveScore: {
+    deck: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponseReviewDeckResponse"];
+                };
+            };
+            /** @description Error (CoreExceptionCode) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    results: {
         parameters: {
             query?: never;
             header?: never;
@@ -1355,7 +1432,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ScoreRequest"];
+                "application/json": components["schemas"]["ReviewResultRequest"];
             };
         };
         responses: {
@@ -1365,7 +1442,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponseScoreResponse"];
+                    "application/json": components["schemas"]["ApiResponseReviewResultResponse"];
                 };
             };
             /** @description Error (CoreExceptionCode) */

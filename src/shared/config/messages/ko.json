@@ -110,7 +110,11 @@
     "error": "랭킹을 불러오지 못했어요",
     "retry": "다시 시도",
     "adventure": "코드 모험",
-    "monsters": "{count}마리"
+    "monsters": "{count}마리",
+    "scope": "랭킹 범위",
+    "scopeAll": "전체",
+    "scopeFriends": "친구",
+    "emptyFriends": "나와 친구들의 기록이 아직 없어요. 친구를 추가하거나 먼저 도전해 보세요!"
   },
   "friends": {
     "title": "친구",
@@ -392,7 +396,9 @@
     "progression_canon": "캐논 (I–V–vi–iii–IV–I–IV–V)",
     "progression_blues": "12마디 블루스",
     "rotateKeys": "12개 키 순환",
-    "waitForMe": "기다려 주기 (칠 때까지 다음 코드로 넘어가지 않아요)"
+    "waitForMe": "기다려 주기 (칠 때까지 다음 코드로 넘어가지 않아요)",
+    "reviewEntry": "오늘의 복습",
+    "reviewEntryDue": "오늘의 복습 {count}"
   },
   "chordQuiz": {
     "title": "코드 퀴즈",
@@ -429,7 +435,34 @@
     "answerNotes": "정답",
     "yourNotes": "내가 친 음",
     "noNotes": "누른 음 없음",
-    "listen": "들어보기"
+    "listen": "들어보기",
+    "reviewMissed": "틀린 코드 복습하기"
+  },
+  "chordReview": {
+    "title": "오늘의 복습",
+    "backToPractice": "코드 연습으로",
+    "noMidiDevice": "MIDI 장치 없음",
+    "loading": "복습할 코드를 불러오는 중...",
+    "loadError": "복습할 코드를 불러오지 못했어요",
+    "retry": "다시 시도",
+    "emptyTitle": "지금 복습할 코드가 없어요",
+    "emptyHint": "퀴즈를 풀면 약한 코드가 여기 모여요",
+    "goQuiz": "퀴즈 풀러 가기",
+    "dueCount": "복습할 때가 된 코드 {count}개",
+    "nothingDue": "오늘 복습할 코드는 다 쳤어요. 자주 틀린 코드를 한 번 더 연습해요",
+    "record": "맞힘 {correct} · 틀림 {wrong}",
+    "start": "복습 시작",
+    "progress": "{done} / {total}",
+    "skip": "건너뛰기",
+    "stop": "그만하기",
+    "doneTitle": "복습 완료",
+    "firstTry": "한 번에 맞힌 코드",
+    "saving": "복습 기록 저장 중...",
+    "saveError": "복습 기록을 저장하지 못했어요",
+    "retrySave": "다시 저장",
+    "dueLeft": "아직 복습할 코드 {count}개",
+    "allDone": "오늘 복습 끝!",
+    "again": "다시 복습하기"
   },
   "character": {
     "title": "내 캐릭터 꾸미기",

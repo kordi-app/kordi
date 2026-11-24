@@ -11,3 +11,6 @@ export type RankingDifficulty = ApiSchema<"Difficulty">;
 export type RankedCourse = "clouds" | "night" | "ruins";
 
 export type CourseRankingEntry = ApiSchema<"CourseRankingResponse">;
+
+/** Everyone (public), or me and my accepted friends (signed in). */
+export type RankingScope = ApiSchema<"RankingScope">;

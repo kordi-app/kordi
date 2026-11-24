@@ -15,6 +15,9 @@ import {
 } from "@/widgets/chord-quiz-panel";
 import { toDisplayChordName } from "@/shared/lib/music";
 import { Countdown } from "@/shared/ui/countdown";
+import { Link } from "@/shared/config/i18n/navigation";
+import { ROUTES } from "@/shared/config/routes";
+import { buttonVariants } from "@/shared/ui/button";
 import { useStoreValue, type ValueStore } from "@/shared/lib/react/value-store";
 
 export function ChordQuizPage() {
@@ -84,6 +87,18 @@ export function ChordQuizPage() {
               muted={piano.sound.isMuted}
             />
           )}
+
+          {/* the server recorded the missed chords with the result: review them now */}
+          {state.phase === "result" &&
+          resultMutation.data &&
+          resultMutation.data.correctCount < resultMutation.data.totalCount ? (
+            <Link
+              href={ROUTES.CHORD_REVIEW}
+              className={buttonVariants({ variant: "secondary", size: "lg" })}
+            >
+              {t("reviewMissed")}
+            </Link>
+          ) : null}
         </div>
       )}
 
