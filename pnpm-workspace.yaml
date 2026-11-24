@@ -1,5 +1,7 @@
 allowBuilds:
   esbuild: true
+  # opensheetmusicdisplay pulls in headless-gl for server-side rendering; the browser never needs it built
+  gl: false
   "@parcel/watcher": false
   "@suspensive/react-query": false
   "@swc/core": false

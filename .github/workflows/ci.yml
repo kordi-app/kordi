@@ -8,8 +8,21 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      # the contract tests compare the client with the server repo (chord validator fixtures,
+      # the world contract); without it they'd quietly skip
+      KORDI_SERVER_DIR: ${{ github.workspace }}/kordi-server
     steps:
       - uses: actions/checkout@v7
+
+      - uses: actions/checkout@v7
+        with:
+          repository: kordi-app/kordi-server
+          path: kordi-server
+          sparse-checkout: |
+            src/main/resources/world-contract.json
+            src/test/resources/chord-validator-fixtures.json
+          sparse-checkout-cone-mode: false
 
       - uses: pnpm/action-setup@v6
         with:
@@ -25,8 +38,30 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
 
-      # The server enforces these rules; both repos keep the same file (see engine/world-contract.ts)
-      - name: World contract matches the server's
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/kordi-app/kordi-server/main/src/main/resources/world-contract.json -o "$RUNNER_TEMP/server-contract.json"
-          diff -u "$RUNNER_TEMP/server-contract.json" src/widgets/piano-world/engine/world-contract.json
+  # Playtests of the 3D world in a real (CPU-rendered) browser against a dev server
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 12
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm e2e
+
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
