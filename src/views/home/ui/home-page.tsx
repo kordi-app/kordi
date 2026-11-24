@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { getMe } from "@/entities/user/server";
+import { findMe } from "@/entities/user/server";
 import { PianoWorld, type PianoWorldCopy } from "@/widgets/piano-world";
 
 /**
@@ -7,12 +7,11 @@ import { PianoWorld, type PianoWorldCopy } from "@/widgets/piano-world";
  * name for the day ("Mellow Fermata"), which they can re-roll in the world.
  */
 async function resolvePlayer(adjectives: string[], nouns: string[]) {
-  try {
-    return { name: (await getMe()).nickname, isGuest: false };
-  } catch {
-    const pick = (list: string[]) => list[Math.floor(Math.random() * list.length)];
-    return { name: `${pick(adjectives)} ${pick(nouns)}`, isGuest: true };
-  }
+  // no session cookie: no API call; API down: a guest after ~3s rather than a stalled page
+  const me = await findMe();
+  if (me) return { name: me.nickname, isGuest: false };
+  const pick = (list: string[]) => list[Math.floor(Math.random() * list.length)];
+  return { name: `${pick(adjectives)} ${pick(nouns)}`, isGuest: true };
 }
 
 /** Home is the walkable keyboard, filling everything below the app header. */

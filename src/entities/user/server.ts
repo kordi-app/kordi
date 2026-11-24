@@ -3,5 +3,6 @@
 import "server-only";
 
 export { getMe } from "./api/get-me";
+export { findMe } from "./api/find-me.server";
 export { userServerQueries } from "./api/queries.server";
 export { requireUser } from "./api/require-user.server";
