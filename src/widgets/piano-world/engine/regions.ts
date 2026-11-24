@@ -4,7 +4,8 @@ import { COURSES, goalSpots, type CourseDef } from "./course";
 import { CAVE_PORTAL, ISLAND_BOUNDS } from "./island";
 import { SECRET_SPOT } from "./cat-walk";
 import { DREAM_ARRIVAL, DREAM_BOUNDS, DREAM_HOME } from "./dream-sea";
-import { CAVE_ARRIVAL, CAVE_BOUNDS, CAVE_EXIT, ILLUSORY_ARRIVAL, ILLUSORY_WALL } from "./cave";
+import { ABYSS_FLOOR, CAVE_ARRIVAL, CAVE_BOUNDS, CAVE_EXIT, ILLUSORY_ARRIVAL, ILLUSORY_WALL } from "./cave";
+import type { TerrainId } from "./terrains";
 
 /**
  * The piano world is a hub (the Grand Hall) with portals out to themed
@@ -41,6 +42,8 @@ export interface RegionTheme {
   dark: boolean;
   /** Colour for step effects and the melody guide */
   accent: string;
+  /** How brightly a pet glows here, 0–1 (default: 0.6 in the dark, else 0; the island follows its clock) */
+  petGlow?: number;
 }
 
 export interface PortalDef {
@@ -88,12 +91,18 @@ export interface RegionDef {
   portals: PortalDef[];
   /** The jump course, for course regions */
   course?: CourseDef;
-  /** The open island around the keyboard (the hall): terrain, zones, day and night */
+  /** The open island around the keyboard (the hall): zones, ambience, day and night */
   island?: boolean;
-  /** The cat's dream sea: its own terrain over a floor of stars, no keyboard */
-  dream?: boolean;
-  /** The cave of sleeping stars: rock, an abyss, and the dark (cave.ts) */
-  cave?: boolean;
+  /** Solid ground beyond the keys, by name (engine/terrains.ts) */
+  terrain?: TerrainId;
+  /**
+   * What's underfoot where the terrain isn't: absent, the keyboard; a number,
+   * no keyboard at all, just that height (the dream's sea of stars at 0, the
+   * cave's abyss far below)
+   */
+  floor?: number;
+  /** Where a direct link puts you (default: the keyboard's spawn) */
+  entry?: { x: number; z: number };
   /** Background music that plays while you're here (steps then join in) */
   music?: "house" | "jazz";
   /**
@@ -166,6 +175,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     camera: DEFAULT_CAMERA,
     portals: HALL_PORTALS,
     island: true,
+    terrain: "island",
     bounds: ISLAND_BOUNDS,
     theme: {
       // the day/night cycle recolours sky, fog and light on the island
@@ -364,7 +374,10 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     id: "whale",
     instrument: "synth-pad",
     feature: "dream",
-    dream: true,
+    // no keys: a sea of stars at y = 0, and whatever floats on it
+    terrain: "dream",
+    floor: 0,
+    entry: DREAM_ARRIVAL,
     camera: DEFAULT_CAMERA,
     bounds: DREAM_BOUNDS,
     portals: [{ to: "hall", ...DREAM_HOME, color: "#9fb8ff", arrive: DREAM_ARRIVAL }],
@@ -385,13 +398,17 @@ export const REGIONS: Record<RegionId, RegionDef> = {
       sunColor: "#c8d4ff",
       dark: true,
       accent: "#ffe9a8",
+      petGlow: 1,
     },
   },
   cave: {
     id: "cave",
     instrument: "synth-pad",
     feature: "cave",
-    cave: true,
+    // rock floor where there is one; over the abyss, nothing for a long way down
+    terrain: "cave",
+    floor: ABYSS_FLOOR,
+    entry: CAVE_ARRIVAL,
     // closer and lower than outside: rock all round, and the dark
     camera: [0, 9, 10.5],
     bounds: CAVE_BOUNDS,
@@ -413,6 +430,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
       sunColor: "#9d94c4",
       dark: true,
       accent: "#ffd27a",
+      petGlow: 1,
     },
   },
 };
@@ -426,9 +444,8 @@ export function arrivalPoint(to: RegionId, from: RegionId | null): { x: number; 
   if (course) return { ...course.start };
   // a direct link: the keyboard's spawn, or (no keyboard there) the dream sea's landing spot
   if (from === null) {
-    if (REGIONS[to].dream) return { ...DREAM_ARRIVAL };
-    if (REGIONS[to].cave) return { ...CAVE_ARRIVAL };
-    return { x: SPAWN.x, z: SPAWN.z };
+    const entry = REGIONS[to].entry;
+    return entry ? { ...entry } : { x: SPAWN.x, z: SPAWN.z };
   }
   // Prefer a floor-level portal back to where you came from
   const portal =

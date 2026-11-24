@@ -68,6 +68,8 @@ export interface PianoWorldCopy {
   necklaceTitle: string;
   necklaceFound: string;
   necklaceGuestNote: string;
+  /** the server turned a member's claim down (teleported, skipped the bridge…) */
+  necklaceRefused: string;
   courseBest: string;
   courseDone: string;
   /** the night course's finish: its crown is the cosmic one */

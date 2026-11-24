@@ -87,6 +87,7 @@ export async function HomePage() {
           necklaceTitle: t("necklaceTitle"),
           necklaceFound: t("necklaceFound"),
           necklaceGuestNote: t("necklaceGuestNote"),
+          necklaceRefused: t("necklaceRefused"),
           courseBest: t("courseBest"),
           courseDone: t("courseDone"),
           nightDone: t("nightDone"),

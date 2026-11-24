@@ -1,9 +1,7 @@
 import { CASE_H, PRESS_DEPTH, keyAt } from "./layout";
 import { courseGround } from "./course";
-import { ISLAND_TERRAIN } from "./nature";
-import { DREAM_TERRAIN } from "./dream-sea";
-import { ABYSS_FLOOR, CAVE_TERRAIN } from "./cave";
 import { terrainGround } from "./terrain";
+import { TERRAINS } from "./terrains";
 import type { RegionDef } from "./regions";
 
 /** Walking speed, units per second. */
@@ -125,25 +123,18 @@ export function groundAt(region: RegionDef, x: number, z: number, y: number): Gr
       solid: null,
     };
   }
-  if (region.dream) {
-    // no keys here: a sea of stars at y = 0, and whatever floats on it
-    const hit = terrainGround(DREAM_TERRAIN, x, z, y);
-    const on = hit.index !== null && hit.height > 0;
-    return { height: on ? hit.height : 0, midi: null, black: false, platform: null, solid: on ? hit.index : null };
-  }
-  if (region.cave) {
-    // rock floor where there is one; over the abyss, nothing for a long way down
-    const hit = terrainGround(CAVE_TERRAIN, x, z, y);
-    const on = hit.index !== null;
-    return { height: on ? hit.height : ABYSS_FLOOR, midi: null, black: false, platform: null, solid: on ? hit.index : null };
+  const terrain = region.terrain ? TERRAINS[region.terrain] : null;
+  const hit = terrain ? terrainGround(terrain, x, z, y) : null;
+  if (region.floor !== undefined) {
+    // no keyboard: the terrain where there is some, else the region's floor
+    const on = hit !== null && hit.index !== null && hit.height > region.floor;
+    return { height: on ? hit.height : region.floor, midi: null, black: false, platform: null, solid: on ? hit.index : null };
   }
   const key = keyAt(x, z, region.keys);
   const keyHeight = key ? CASE_H + key.height - PRESS_DEPTH : 0;
-  if (region.island) {
-    const hit = terrainGround(ISLAND_TERRAIN, x, z, y);
-    if (hit.index !== null && hit.height > keyHeight) {
-      return { height: hit.height, midi: null, black: false, platform: null, solid: hit.index };
-    }
+  // terrain over the keys (the island's bridges, stairs, rocks…) wins where it's higher
+  if (hit && hit.index !== null && hit.height > keyHeight) {
+    return { height: hit.height, midi: null, black: false, platform: null, solid: hit.index };
   }
   return {
     height: keyHeight,

@@ -4,12 +4,14 @@ import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react"
 import { bffClient, type ApiSchema } from "@/shared/api";
 import { WORLD_SOCKET_URL } from "@/shared/config/api";
 import type { EmoteId } from "../engine/interactables";
+import { PROTOCOL_VERSION } from "../engine/world-contract";
 import {
   CLOSE_FULL,
   encodeClientMessage,
   PING_INTERVAL_MS,
   parseServerMessage,
   type BallState,
+  type CaveReplyMessage,
   type ClientMessage,
   type CourseRecordMessage,
   type MoveMessage,
@@ -49,25 +51,30 @@ const MAX_RETRY_MS = 30_000;
  * If the world is full or the server is unreachable, the scene simply keeps
  * working single-player.
  */
+/** What the server tells me that the page acts on (beyond who's where). */
+export interface PresenceHandlers {
+  /** a jump-course finish the server timed */
+  onRecord: (record: CourseRecordMessage) => void;
+  /**
+   * the star steps are open in my channel for `leftMs` more: `rung` when
+   * someone just rang the bell, not when I joined a channel where it already was
+   */
+  onBell: (leftMs: number, rung: boolean) => void;
+  /** the server gave me a reward item (the whale's pet, the cave's necklace): my look now has it on */
+  onReward: (item: string) => void;
+  /** the server's answer to my claim on the cave's necklace */
+  onCaveReply: (reply: CaveReplyMessage) => void;
+}
+
 /**
  * @param region joins that region's channels; reconnects when it changes
  * @param signedIn members prove who they are with a one-time ticket, so their course times rank
- * @param onRecord a jump-course finish the server timed
- * @param onBell the star steps are open in my channel for `leftMs` more: `rung` when
- *   someone just rang the bell, not when I joined a channel where it already was
- * @param onReward the server gave me a reward item (the whale's pet, the cave's necklace): my look now has it on
  */
-export function useWorldPresence(
-  name: string,
-  region: string,
-  signedIn: boolean,
-  onRecord: (record: CourseRecordMessage) => void,
-  onBell: (leftMs: number, rung: boolean) => void,
-  onReward: (item: string) => void,
-) {
-  const reportRecord = useEffectEvent(onRecord);
-  const reportBell = useEffectEvent(onBell);
-  const reportReward = useEffectEvent(onReward);
+export function useWorldPresence(name: string, region: string, signedIn: boolean, handlers: PresenceHandlers) {
+  const reportRecord = useEffectEvent((record: CourseRecordMessage) => handlers.onRecord(record));
+  const reportBell = useEffectEvent((leftMs: number, rung: boolean) => handlers.onBell(leftMs, rung));
+  const reportReward = useEffectEvent((item: string) => handlers.onReward(item));
+  const reportCaveReply = useEffectEvent((reply: CaveReplyMessage) => handlers.onCaveReply(reply));
   const remotes = useRef(new Map<string, RemotePlayer>());
   /** ball news not yet taken by the scene (see takeBallNews) */
   const ballNews = useRef<BallNews[]>([]);
@@ -102,7 +109,7 @@ export function useWorldPresence(
 
     const connect = () => {
       const socket = new WebSocket(
-        `${WORLD_SOCKET_URL}?region=${encodeURIComponent(region)}&name=${encodeURIComponent(name)}`,
+        `${WORLD_SOCKET_URL}?region=${encodeURIComponent(region)}&name=${encodeURIComponent(name)}&v=${PROTOCOL_VERSION}`,
       );
       live = socket;
       socketRef.current = socket;
@@ -182,6 +189,9 @@ export function useWorldPresence(
           case "pet":
           case "item":
             reportReward(message.item);
+            break;
+          case "cave":
+            reportCaveReply(message);
             break;
           case "ball": {
             const { t: _t, by, ...state } = message;

@@ -12,12 +12,9 @@ import { islandHits } from "../engine/island";
 import { createAmbience, resetAmbience, stepAmbience, type AmbienceEvents } from "../audio/island-ambience";
 import { aimSunLight, applySky, createSunAim } from "./sun-light";
 import { quality } from "./quality";
-import { ISLAND_TERRAIN } from "../engine/nature";
 import { SKY_DRIFT, SKY_OPEN_SECONDS, openSky, skyNow, tickSky } from "../engine/sky-island";
-import { DREAM_TERRAIN, startDream, stepDream } from "../engine/dream-sea";
-import { CAVE_TERRAIN } from "../engine/cave";
-import { DreamSea } from "./dream-sea";
-import { CaveScene, IllusoryWall } from "./cave";
+import { TERRAINS } from "../engine/terrains";
+import { RegionScene } from "./region-scene";
 import { ballSpawns } from "../engine/ball";
 import { NoteBall } from "./note-ball";
 import {
@@ -31,14 +28,10 @@ import {
   type InputState,
 } from "../engine/physics";
 import { PORTAL_RADIUS, type RegionDef } from "../engine/regions";
-import { REWARD_OF } from "./hooks/use-course-run";
-import { CourseScene } from "./course-scene";
 import { EmoteBubble } from "./emote-bubble";
-import { IslandScene } from "./island-scene";
 import { debugSeam } from "../lib/debug-seam";
 import type { KordiMotion } from "@/entities/character";
 import { KordiModel } from "@/entities/character/three";
-import { PianoFloor } from "./piano-floor";
 import { Portal } from "./portal";
 import { RegionDecor } from "./region-decor";
 import { RemoteKordi } from "./remote-kordi";
@@ -47,10 +40,7 @@ import { TargetBeam } from "./target-beam";
 import { ChordCardStand, DiscoBall, Jukebox, MusicBox, PianoCat, Teacher } from "./world-props";
 import type { WorldDisplay, WorldEvents, WorldPresence } from "./world-types";
 import type { FrameContext } from "./frame/context";
-import { createCourseFrame, stepCourseAfter, stepCourseBefore } from "./frame/course-frame";
-import { createDriftFrame, stepDriftFrame } from "./frame/drift-frame";
-import { createIslandFrame, enterIsland, stepIslandFrame } from "./frame/island-frame";
-import { createCaveFrame, enterCave, stepCaveFrame } from "./frame/cave-frame";
+import { framesFor, type FrameInputs, type RegionFrame } from "./frame/region-frames";
 import { createBallsFrame, enterBalls, stepBallsFrame } from "./frame/balls-frame";
 
 export type { WorldDisplay, WorldEvents, WorldPresence } from "./world-types";
@@ -103,13 +93,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
   /** the cave's light right now, 0 (dark) … 1 (the crown's full starlight): shared with its renderer */
   const caveLight = useRef(0);
   /** each region's and feature's own state between frames (see ./frame) */
-  const frames = useRef({
-    course: createCourseFrame(),
-    drift: createDriftFrame(),
-    island: createIslandFrame(),
-    cave: createCaveFrame(),
-    balls: createBallsFrame(),
-  });
+  const frames = useRef({ balls: createBallsFrame() });
   const camera = useThree((state) => state.camera);
   const scene = useThree((state) => state.scene);
   const hemi = useRef<THREE.HemisphereLight>(null);
@@ -155,9 +139,11 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
   const course = region.course ?? null;
   /** how dark it is here, for a pet's glow: the dream is always night; the island follows the clock (set per frame) */
   const petGlow = useRef(0);
-  const island = region.island ? ISLAND_TERRAIN : null;
-  /** solid ground beyond the keys: the island's, or the dream sea's */
-  const terrain = island ?? (region.dream ? DREAM_TERRAIN : region.cave ? CAVE_TERRAIN : null);
+  const island = region.island === true;
+  /** solid ground beyond the keys (the island's, the dream sea's, the cave's) */
+  const terrain = region.terrain ? TERRAINS[region.terrain] : null;
+  /** this region's own per-frame rules (see ./frame/region-frames), set up fresh on coming into it */
+  const regionFrames = useRef<{ region: RegionDef | null; frames: RegionFrame[] }>({ region: null, frames: [] });
   /** what you walk among this frame (other players move, so it's built per frame) */
   const walkEnv = (): WalkEnv => ({
     bounds: course ? course.bounds : (region.bounds ?? BOUNDS),
@@ -200,9 +186,10 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
         fx.current?.notes(s.pos.x, s.pos.y, s.pos.z, "#7fd8ff");
       }
       portalArmed.current = false;
-      enterIsland(frames.current.island);
-      if (region.dream) startDream();
-      if (region.cave) enterCave(frames.current.cave, caveLight, state.clock.getElapsedTime());
+      if (regionFrames.current.region !== region) {
+        regionFrames.current = { region, frames: framesFor(region, { caveLight }) };
+      }
+      for (const frame of regionFrames.current.frames) frame.enter?.(state.clock.getElapsedTime());
       camera.position.copy(s.pos).add(cameraOffset);
       lookTarget.current.set(s.pos.x, s.pos.y + 0.6, s.pos.z - 1.2);
       enterBalls(frames.current.balls, region.id, spawns);
@@ -221,8 +208,9 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
 
     const now = state.clock.getElapsedTime();
     const ctx: FrameContext = { s, dt, now, region, events, fx: fx.current };
-    // the course's moving and crumbling platforms run on the shared clock
-    if (course) stepCourseBefore(ctx, course, frames.current.course);
+    // anything that moves on its own goes first (a course's sliding and crumbling steps, its dragon)
+    const { frames: steps } = regionFrames.current;
+    for (const frame of steps) frame.before?.(ctx);
 
     // --- walking, then body language
     const { speed, steering } = walk(s, keys, dt, walkEnv(), motion.current);
@@ -242,15 +230,18 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       { course, island: terrain, drift: island ? SKY_DRIFT : null },
     );
     if (landing && landing.impact > HARD_LANDING) fx.current?.dust(s.pos.x, s.pos.y, s.pos.z);
-    stepDriftFrame(ctx, frames.current.drift, landing, steering);
-    if (island) stepIslandFrame(ctx, frames.current.island, { landing, sitting: emote === "sit", skyClock });
-    if (region.cave) stepCaveFrame(ctx, frames.current.cave, caveLight, { cosmicCrown, hasNecklace }, { scene, hemi: hemi.current });
-    if (region.dream) {
-      for (const event of stepDream(s.pos.x, s.pos.y, s.pos.z, now)) {
-        fx.current?.confetti(s.pos.x, s.pos.y, s.pos.z);
-        events.onDream(event);
-      }
-    }
+    // the region's own rules once you've moved (the island's secrets, the cave, the dream…)
+    const inputs: FrameInputs = {
+      landing,
+      steering,
+      sitting: emote === "sit",
+      skyClock,
+      cosmicCrown,
+      hasNecklace,
+      scene,
+      hemi: hemi.current,
+    };
+    for (const frame of steps) frame.after?.(ctx, inputs);
     // squash on landing eases out; stretch while rising fast
     m.land = Math.max(0, m.land - dt * 4);
     m.stretch = s.airborne ? THREE.MathUtils.clamp(s.vy / JUMP_SPEED, -0.4, 1) : 0;
@@ -261,7 +252,6 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       s.platform = ground.platform;
       events.onPlatform(ground.platform);
     }
-    if (course) stepCourseAfter(ctx, course);
     // island terrain you walk onto plays its own instrument (drums sound on landing, above)
     const solidUnder = s.airborne ? null : ground.solid;
     if (terrain && solidUnder !== s.solid) {
@@ -396,7 +386,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       sunAim.current.dir.set(...sky.lightDir);
     } else if (!island) {
       sunAim.current.dir.set(0.4, 0.8, 0.45).normalize();
-      petGlow.current = region.dream || region.cave ? 1 : region.theme.dark ? 0.6 : 0;
+      petGlow.current = region.theme.petGlow ?? (region.theme.dark ? 0.6 : 0);
     }
     if (light.current) {
       aimSunLight(light.current, sunAim.current, s.pos, { extent: SHADOW_EXTENT, mapSize: quality.shadowMap, distance: SHADOW_DISTANCE });
@@ -433,22 +423,19 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       />
       <hemisphereLight ref={hemi} args={[region.theme.sky, region.theme.ground, region.theme.ambient]} />
 
-      {course ? (
-        <CourseScene
-          key={course.id}
-          course={course}
-          pressed={pressed}
-          rewardOwned={rewards.includes(REWARD_OF[course.id])}
-        />
-      ) : region.dream ? (
-        <DreamSea player={playerPos} />
-      ) : region.cave ? (
-        <CaveScene player={playerPos} light={caveLight} owned={hasNecklace} remotes={remotes} />
-      ) : (
-        <PianoFloor pressed={pressed} theme={region.theme} ground={!region.island} keys={region.keys} />
-      )}
-      {region.island ? <IslandScene player={playerPos} awake={awake} skyFound={skyFound} dreamFound={dreamFound} /> : null}
-      {region.island ? <IllusoryWall player={playerPos} crowned={cosmicCrown} /> : null}
+      <RegionScene
+        region={region}
+        player={playerPos}
+        pressed={pressed}
+        rewards={rewards}
+        caveLight={caveLight}
+        hasNecklace={hasNecklace}
+        cosmicCrown={cosmicCrown}
+        remotes={remotes}
+        awake={awake}
+        skyFound={skyFound}
+        dreamFound={dreamFound}
+      />
       <RegionDecor region={region.id} party={interaction.party} />
       {items.map((item) => {
         switch (item.id) {

@@ -8,7 +8,7 @@ import { cn } from "@/shared/lib/utils";
 import type { PianoWorldCopy } from "./copy";
 import { EMOTES } from "../engine/interactables";
 import { WARP_STONES, warpArrival, type WarpStoneId } from "../engine/island";
-import type { RegionId } from "../engine/regions";
+import type { RegionDef, RegionFeature, RegionId } from "../engine/regions";
 import { useCourseRun } from "./hooks/use-course-run";
 import { useEmote } from "./hooks/use-emote";
 import { useInteractions } from "./hooks/use-interactions";
@@ -16,7 +16,7 @@ import { useMelodyGame } from "./hooks/use-melody-game";
 import { useRegionTravel } from "./hooks/use-region-travel";
 import { useWorldAudio } from "../audio/use-world-audio";
 import { useWorldControls } from "./hooks/use-world-controls";
-import type { CourseRecordMessage } from "../net/protocol";
+import type { CaveReplyMessage, CourseRecordMessage } from "../net/protocol";
 import { useWorldPresence } from "../net/use-world-presence";
 import { useWarpStones } from "./hooks/use-warp-stones";
 import { useSkyEvents } from "./hooks/use-sky-events";
@@ -108,6 +108,8 @@ export default function PianoWorldScene({
   );
   const sky = useSkyEvents(feedback);
 
+  /** the cave's answer handler (the cave's hook needs presence first, so it's wired in below) */
+  const caveReplyRef = useRef<(reply: CaveReplyMessage) => void>(() => {});
   /** The server gave me a reward item (members: the whale, the necklace): fetch my look, which now has it on. */
   const handleReward = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: characterQueries.me().queryKey });
@@ -121,7 +123,12 @@ export default function PianoWorldScene({
     sendBall,
     sendWhale,
     sendCave,
-  } = useWorldPresence(name, region.id, !isGuest, handleRecord, sky.handleRemoteBell, handleReward);
+  } = useWorldPresence(name, region.id, !isGuest, {
+    onRecord: handleRecord,
+    onBell: sky.handleRemoteBell,
+    onReward: handleReward,
+    onCaveReply: (reply) => caveReplyRef.current(reply),
+  });
 
   /** I rang the bell: by day one stroke; at night midnight's twelve, and the channel hears it too. */
   const { ring } = sky;
@@ -192,32 +199,46 @@ export default function PianoWorldScene({
   const { data: character } = useQuery({ ...characterQueries.me(), enabled: !isGuest });
   const rewards = isGuest ? course.localRewards : (character?.unlocked ?? NO_REWARDS);
   const memberAppearance = character?.appearance;
-  const inCave = region.cave === true;
+  const inCave = region.feature === "cave";
   // guests don't pick a hat: owning the cosmic crown is enough (they put it on in the cave)
   const cosmicCrown = isGuest ? rewards.includes("star-crown") : memberAppearance?.hat === "star-crown";
 
-  const cave = useCaveEvents(feedback, { isGuest, inCave, cosmicCrown, rewards, sendCave, showBanner });
+  const online = presenceInfo.status === "online";
+  const cave = useCaveEvents(feedback, { isGuest, inCave, online, cosmicCrown, rewards, sendCave, showBanner });
+  const { handleReply: handleCaveReply } = cave;
+  useEffect(() => {
+    caveReplyRef.current = handleCaveReply;
+  }, [handleCaveReply]);
   /** the portal hop, for the whale carrying you home (handlePortal is defined below) */
   const portalRef = useRef<(to: RegionId) => void>(() => {});
   const carryHome = useCallback(() => {
-    if (regionRef.current.dream) portalRef.current("hall");
+    if (regionRef.current.feature === "dream") portalRef.current("hall");
   }, [regionRef]);
   const dream = useDreamEvents(feedback, { isGuest, sendWhale, carryHome });
 
   const { leave: leaveDream, enter: enterDream } = dream;
   const { enter: enterCave } = cave;
+  /** what each region's page side does as you come in (the scene's counterpart of the world's frames) */
+  const arrivals = useMemo<Partial<Record<RegionFeature, (next: RegionDef) => void>>>(
+    () => ({
+      course: (next) => {
+        if (next.course) enterCourse(next.course);
+      },
+      dream: enterDream,
+      cave: enterCave,
+    }),
+    [enterCourse, enterDream, enterCave],
+  );
   const handlePortal = useCallback(
     (to: RegionId) =>
       travel(to, (next) => {
         leaveDream();
         silence();
         resetInteractions();
-        if (next.course) enterCourse(next.course);
-        if (next.dream) enterDream();
-        if (next.cave) enterCave();
+        arrivals[next.feature]?.(next);
         if (isOn()) switchInstrument(next.instrument);
       }),
-    [travel, leaveDream, silence, resetInteractions, enterCourse, enterDream, enterCave, isOn, switchInstrument],
+    [travel, leaveDream, silence, resetInteractions, arrivals, isOn, switchInstrument],
   );
   useEffect(() => {
     portalRef.current = handlePortal;
@@ -372,7 +393,7 @@ export default function PianoWorldScene({
         <MelodyCard melody={melody.melody} progress={melody.progress} copy={copy} />
       ) : null}
       {region.feature === "course" ? <CourseCard run={course.run} isGuest={isGuest} copy={copy} /> : null}
-      {region.dream ? <DreamCard found={dream.notes} total={LOST_NOTES.length} sung={dream.sang} copy={copy} /> : null}
+      {region.feature === "dream" ? <DreamCard found={dream.notes} total={LOST_NOTES.length} sung={dream.sang} copy={copy} /> : null}
       <PlaceBanner banner={banner} />
       <NoteDisplay store={audio.noteStore} />
       <NameChip name={name} isGuest={isGuest} onReroll={rerollName} copy={copy} />

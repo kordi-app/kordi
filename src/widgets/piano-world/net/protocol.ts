@@ -67,6 +67,8 @@ export interface WelcomeMessage {
   sky?: number;
   /** the channel's balls as last kicked or left, `age` ms ago (never-kicked ones are at their spawns) */
   balls?: (BallState & { age: number })[];
+  /** the server's protocol version (absent before versions: 1) */
+  v?: number;
 }
 
 /** Someone entered my channel. */
@@ -135,6 +137,16 @@ export interface ItemMessage {
   item: string;
 }
 
+/** The server's answer to my claim on the cave's necklace (CaveClaim). */
+export interface CaveReplyMessage {
+  t: "cave";
+  ok: boolean;
+  /** why not: "altar" | "stay" | "guest" | "region" | "crown" | "movement" | "path" | "error" ("ok" when it is) */
+  reason: string;
+  /** worth asking again shortly (the server heard my position a step behind, or my connection is too new) */
+  retry: boolean;
+}
+
 /** Someone in my channel rang the midnight bell (never sent back to the ringer). */
 export interface BellMessage {
   t: "bell";
@@ -160,7 +172,8 @@ export type ServerMessage =
   | BellMessage
   | BallMessage
   | PetMessage
-  | ItemMessage;
+  | ItemMessage
+  | CaveReplyMessage;
 
 // ── client → server ──────────────────────────────────────────────────────────
 

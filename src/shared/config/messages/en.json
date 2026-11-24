@@ -231,6 +231,7 @@
       "necklaceTitle": "Gold Necklace",
       "necklaceFound": "You found the necklace sleeping in the starlight",
       "necklaceGuestNote": "Sign in so others can see it too",
+      "necklaceRefused": "The necklace scattered into starlight · walk back in from the entrance",
       "courseRankingTitle": "All-time ranking",
       "courseRankingEmpty": "No times yet · be the first",
       "courseRankSaved": "You're #{rank} on the ranking!",
