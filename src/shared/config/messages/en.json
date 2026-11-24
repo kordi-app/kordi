@@ -201,7 +201,8 @@
         "clouds": "Cloud Keys",
         "night": "Night Keys",
         "ruins": "Storm Temple",
-        "whale": "Moon-Whale Sea"
+        "whale": "Moon-Whale Sea",
+        "cave": "Cave of Sleeping Stars"
       },
       "melodies": {
         "twinkle": "Twinkle Twinkle Little Star",
@@ -224,6 +225,12 @@
       "dreamNote": "Found a lost note · {note}",
       "whaleSings": "The whale has its song back! A baby moon-whale follows you now",
       "petGuestNote": "Sign in and everyone else will see your whale too",
+      "caveDark": "You can't see a thing… if only you had some starlight",
+      "caveLit": "The cosmic crown wakes the sleeping stars",
+      "caveRest": "A star rest lit up · if you fall, you'll start again here",
+      "necklaceTitle": "Gold Necklace",
+      "necklaceFound": "You found the necklace sleeping in the starlight",
+      "necklaceGuestNote": "Sign in so others can see it too",
       "courseRankingTitle": "All-time ranking",
       "courseRankingEmpty": "No times yet · be the first",
       "courseRankSaved": "You're #{rank} on the ranking!",
@@ -231,6 +238,7 @@
       "courseRankGuest": "That run places #{rank} all-time · sign in to get on the ranking",
       "courseBest": "Best",
       "courseDone": "You made it! Crown earned",
+      "nightDone": "You made it! The shining cosmic crown is yours",
       "nameLabel": "Today's name",
       "nameReroll": "Pick another name",
       "nameAdjectives": [
@@ -485,7 +493,7 @@
     },
     "hat": {
       "crown": "Crown",
-      "star-crown": "Star crown",
+      "star-crown": "Cosmic crown",
       "flame-crown": "Flame crown",
       "ribbon": "Ribbon",
       "beret": "Beret",
@@ -501,13 +509,11 @@
     "accessory": {
       "scarf": "Scarf",
       "bowtie": "Bow tie",
-      "glasses": "Glasses"
+      "glasses": "Glasses",
+      "gold-necklace": "Gold necklace"
     },
     "pet": {
       "moon-whale": "Baby moon-whale"
-    },
-    "petHint": {
-      "moon-whale": "??? · Only the cat knows where"
     },
     "none": "None",
     "save": "Save",

@@ -1,4 +1,5 @@
 import { TOWER } from "./island";
+import type { Drift } from "./player";
 import { terrainGates, type Solid } from "./terrain";
 
 /**
@@ -68,6 +69,13 @@ export const SKY_ISLAND = {
   top: STAR_STEPS[STAR_COUNT - 1].top + 0.9,
   thickness: 1,
 };
+
+/**
+ * Stepping off the sky island (or missing a star step) you don't drop: you
+ * drift down to the meadow, about ten seconds from the top, steering as you go.
+ * Above the tower roof only, so jumping off the roof is still a jump.
+ */
+export const SKY_DRIFT: Drift = { above: TOWER.top + 2, drop: 4, fallen: 1.5, speed: 2.6 };
 
 /** The orrery at the island's centre */
 export const ORRERY = { x: SKY_ISLAND.x, z: SKY_ISLAND.z, radius: 1, height: 2.6 };

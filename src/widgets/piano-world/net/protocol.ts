@@ -10,6 +10,7 @@ import type { EmoteId } from "../engine/interactables";
  * - .../world/WorldPlayer.java — a player as broadcast ({@link RemotePlayer})
  * - .../world/WorldMove.java   — a position report ({@link MoveMessage})
  * - .../world/WorldLook.java   — a member's look ({@link Appearance})
+ * - .../world/WorldBall.java   — a note ball's state ({@link BallState})
  * - .../course/dto/CourseResult.java — the "record" payload
  *
  * Field names must match those records exactly: the server (de)serializes them
@@ -37,6 +38,18 @@ export interface RemotePlayer {
   look?: Appearance | null;
 }
 
+/** A note ball's state (WorldBall): sent when it's kicked, and by its kicker when it comes to rest. */
+export interface BallState {
+  /** which of the region's balls (ballSpawns order) */
+  i: number;
+  x: number;
+  y: number;
+  z: number;
+  vx: number;
+  vy: number;
+  vz: number;
+}
+
 /** People per region (WorldLobby.playersPerRegion), for portal signs. */
 export type RegionCounts = Record<string, number>;
 
@@ -52,6 +65,8 @@ export interface WelcomeMessage {
   regions?: RegionCounts;
   /** ms the star steps stay open in this channel (0: shut; absent on older servers) */
   sky?: number;
+  /** the channel's balls as last kicked or left, `age` ms ago (never-kicked ones are at their spawns) */
+  balls?: (BallState & { age: number })[];
 }
 
 /** Someone entered my channel. */
@@ -114,11 +129,24 @@ export interface PetMessage {
   item: string;
 }
 
+/** I found a reward accessory just now (the cave's gold necklace; the server put it on me, my look follows as a "look"). */
+export interface ItemMessage {
+  t: "item";
+  item: string;
+}
+
 /** Someone in my channel rang the midnight bell (never sent back to the ringer). */
 export interface BellMessage {
   t: "bell";
   /** ms the star steps now stay open */
   left: number;
+}
+
+/** Someone in my channel kicked a ball, or theirs came to rest (sent to the sender too, so everyone applies them in the server's order). */
+export interface BallMessage extends BallState {
+  t: "ball";
+  /** who sent it (absent from servers that predate the echo) */
+  by?: string;
 }
 
 export type ServerMessage =
@@ -130,11 +158,13 @@ export type ServerMessage =
   | OnlineMessage
   | RecordMessage
   | BellMessage
-  | PetMessage;
+  | BallMessage
+  | PetMessage
+  | ItemMessage;
 
 // ── client → server ──────────────────────────────────────────────────────────
 
-/** My position (WorldMove). Carries no "t": anything that isn't "auth", "bell", "whale" or "ping" is a move. */
+/** My position (WorldMove). Carries no "t": anything that isn't "auth", "bell", "ball", "whale", "cave" or "ping" is a move. */
 export interface MoveMessage {
   x: number;
   y: number;
@@ -155,9 +185,19 @@ export interface RingMessage {
   t: "bell";
 }
 
+/** I kicked a ball, or the ball I kicked came to rest (WorldLobby.moveBall checks I'm beside a kicked one). */
+export interface KickMessage extends BallState {
+  t: "ball";
+}
+
 /** The whale sang for me on the dream sea's summit (WorldSocketHandler.adoptWhale checks it). */
 export interface WhaleMessage {
   t: "whale";
+}
+
+/** I took the necklace from the cave's altar, crowned (WorldSocketHandler.takeNecklace checks it). */
+export interface CaveMessage {
+  t: "cave";
 }
 
 /** Keep-alive while connected (the server drops sockets that stay silent past its idle timeout). */
@@ -168,7 +208,14 @@ export interface PingMessage {
 /** How often a connected socket pings (well inside the server's idle timeout). */
 export const PING_INTERVAL_MS = 25_000;
 
-export type ClientMessage = MoveMessage | AuthMessage | RingMessage | WhaleMessage | PingMessage;
+export type ClientMessage =
+  | MoveMessage
+  | AuthMessage
+  | RingMessage
+  | KickMessage
+  | WhaleMessage
+  | CaveMessage
+  | PingMessage;
 
 // ── connection ───────────────────────────────────────────────────────────────
 

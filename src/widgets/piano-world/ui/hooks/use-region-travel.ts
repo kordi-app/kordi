@@ -5,6 +5,7 @@ import type { Arrival } from "../../engine/physics";
 import { REGIONS, arrivalPoint, isRegionId, type RegionDef, type RegionId } from "../../engine/regions";
 import { readCourseBest } from "./course-record";
 import { dreamFoundBefore } from "./use-dream-sea";
+import { caveFoundBefore } from "./use-cave";
 
 const FADE_MS = 260;
 
@@ -24,6 +25,8 @@ function initialRegion(): RegionId {
   if (param === "night" && readCourseBest("clouds") === null) return "clouds";
   // the cat's dream sea can't be linked to until you've found the way in yourself
   if (param === "whale" && !dreamFoundBefore()) return "hall";
+  // nor the cave behind the illusory wall
+  if (param === "cave" && !caveFoundBefore()) return "hall";
   return param;
 }
 

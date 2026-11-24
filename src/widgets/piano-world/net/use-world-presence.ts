@@ -9,6 +9,8 @@ import {
   encodeClientMessage,
   PING_INTERVAL_MS,
   parseServerMessage,
+  type BallState,
+  type ClientMessage,
   type CourseRecordMessage,
   type MoveMessage,
   type RemotePlayer,
@@ -27,6 +29,15 @@ export interface PresenceInfo {
   regionCounts: Record<string, number>;
 }
 
+/** A ball's state from the channel, how long ago (ms) it was true, and whether it was my own message coming back. */
+export interface BallNews {
+  state: BallState;
+  age: number;
+  fromMe: boolean;
+}
+
+const NO_NEWS: readonly BallNews[] = [];
+
 const SEND_INTERVAL_MS = 100;
 const MAX_RETRY_MS = 30_000;
 
@@ -44,6 +55,7 @@ const MAX_RETRY_MS = 30_000;
  * @param onRecord a jump-course finish the server timed
  * @param onBell the star steps are open in my channel for `leftMs` more: `rung` when
  *   someone just rang the bell, not when I joined a channel where it already was
+ * @param onReward the server gave me a reward item (the whale's pet, the cave's necklace): my look now has it on
  */
 export function useWorldPresence(
   name: string,
@@ -51,12 +63,14 @@ export function useWorldPresence(
   signedIn: boolean,
   onRecord: (record: CourseRecordMessage) => void,
   onBell: (leftMs: number, rung: boolean) => void,
-  onPet: (item: string) => void,
+  onReward: (item: string) => void,
 ) {
   const reportRecord = useEffectEvent(onRecord);
   const reportBell = useEffectEvent(onBell);
-  const reportPet = useEffectEvent(onPet);
+  const reportReward = useEffectEvent(onReward);
   const remotes = useRef(new Map<string, RemotePlayer>());
+  /** ball news not yet taken by the scene (see takeBallNews) */
+  const ballNews = useRef<BallNews[]>([]);
   const [info, setInfo] = useState<PresenceInfo>({
     status: "connecting",
     channel: null,
@@ -127,6 +141,8 @@ export function useWorldPresence(
               regionCounts: message.regions ?? {},
             });
             syncOthers();
+            // this channel's balls, where they are now (anything queued was for the last channel)
+            ballNews.current = (message.balls ?? []).map(({ age, ...state }) => ({ state, age, fromMe: false }));
             // always, even 0: the sky I opened elsewhere isn't open in this channel
             if (message.sky !== undefined) reportBell(message.sky, false);
             if (signedIn) {
@@ -164,8 +180,14 @@ export function useWorldPresence(
             reportBell(message.left, true);
             break;
           case "pet":
-            reportPet(message.item);
+          case "item":
+            reportReward(message.item);
             break;
+          case "ball": {
+            const { t: _t, by, ...state } = message;
+            ballNews.current.push({ state, age: 0, fromMe: by !== undefined && by === myId.current });
+            break;
+          }
           case "join":
             if (message.p.id !== myId.current) {
               remotes.current.set(message.p.id, message.p);
@@ -202,6 +224,7 @@ export function useWorldPresence(
         socketRef.current = null;
         myId.current = null;
         remotes.current.clear();
+        ballNews.current = [];
         if (event.code === CLOSE_FULL) {
           setInfo({ status: "full", channel: null, online: 0, others: [], regionCounts: {} });
           return;
@@ -221,6 +244,7 @@ export function useWorldPresence(
       if (socketRef.current === live) socketRef.current = null;
       myId.current = null;
       remotes.current.clear();
+      ballNews.current = [];
     };
   }, [name, region, signedIn, syncOthers]);
 
@@ -240,17 +264,39 @@ export function useWorldPresence(
     [],
   );
 
-  /** Tell the channel I rang the bell at night. */
-  const sendBell = useCallback(() => {
+  /** Send on the live socket, once the server has seated me; false if there's none to send on. */
+  const send = useCallback((message: ClientMessage) => {
     const socket = socketRef.current;
-    if (socket?.readyState === WebSocket.OPEN && myId.current) socket.send(encodeClientMessage({ t: "bell" }));
+    if (socket?.readyState !== WebSocket.OPEN || !myId.current) return false;
+    socket.send(encodeClientMessage(message));
+    return true;
   }, []);
+
+  /** Tell the channel I rang the bell at night. */
+  const sendBell = useCallback(() => send({ t: "bell" }), [send]);
 
   /** Tell the server the whale sang for me (members get their pet from it). */
-  const sendWhale = useCallback(() => {
-    const socket = socketRef.current;
-    if (socket?.readyState === WebSocket.OPEN && myId.current) socket.send(encodeClientMessage({ t: "whale" }));
+  const sendWhale = useCallback(() => send({ t: "whale" }), [send]);
+
+  /** The ball news since the last call (the scene calls this every frame). */
+  const takeBallNews = useCallback(() => {
+    const news = ballNews.current;
+    if (news.length === 0) return NO_NEWS;
+    ballNews.current = [];
+    return news;
   }, []);
 
-  return { remotes, info, sendPosition, sendBell, sendWhale };
+  /** Tell the channel I kicked a ball, or where the ball I kicked came to rest. */
+  const sendBall = useCallback(
+    (ball: BallState) => {
+      const r = (n: number) => +n.toFixed(2);
+      return send({ t: "ball", i: ball.i, x: r(ball.x), y: r(ball.y), z: r(ball.z), vx: r(ball.vx), vy: r(ball.vy), vz: r(ball.vz) });
+    },
+    [send],
+  );
+
+  /** Tell the server I took the cave's necklace (members get it from that); false while offline. */
+  const sendCave = useCallback(() => send({ t: "cave" }), [send]);
+
+  return { remotes, takeBallNews, info, sendPosition, sendBell, sendBall, sendWhale, sendCave };
 }

@@ -4,6 +4,7 @@ import { COURSES, goalSpots, type CourseDef } from "./course";
 import { CAVE_PORTAL, ISLAND_BOUNDS } from "./island";
 import { SECRET_SPOT } from "./cat-walk";
 import { DREAM_ARRIVAL, DREAM_BOUNDS, DREAM_HOME } from "./dream-sea";
+import { CAVE_ARRIVAL, CAVE_BOUNDS, CAVE_EXIT, ILLUSORY_ARRIVAL, ILLUSORY_WALL } from "./cave";
 
 /**
  * The piano world is a hub (the Grand Hall) with portals out to themed
@@ -13,7 +14,7 @@ import { DREAM_ARRIVAL, DREAM_BOUNDS, DREAM_HOME } from "./dream-sea";
  * optionally, decor), not a scene change.
  */
 
-export const REGION_IDS = ["hall", "neon", "cathedral", "lounge", "clouds", "night", "ruins", "whale"] as const;
+export const REGION_IDS = ["hall", "neon", "cathedral", "lounge", "clouds", "night", "ruins", "whale", "cave"] as const;
 export type RegionId = (typeof REGION_IDS)[number];
 
 export function isRegionId(value: unknown): value is RegionId {
@@ -58,6 +59,11 @@ export interface PortalDef {
    * in is something else (the dream sea's: sitting on the cat's spot).
    */
   secret?: boolean;
+  /**
+   * Walked through like any portal, but never drawn: the cave's illusory wall
+   * (cave.ts). Only the cosmic crown's light gives it away.
+   */
+  invisible?: boolean;
 }
 
 /**
@@ -68,8 +74,9 @@ export interface PortalDef {
  * - jazz: a trio plays ii–V–I; whatever key you step on, your line joins on vibraphone
  * - course: a jump climb (no keyboard floor; see course.ts)
  * - dream: the cat's dream sea — no keys, a sea of stars and a whale's lost song (dream-sea.ts)
+ * - cave: the cave of sleeping stars — pitch dark unless you wear the cosmic crown (cave.ts)
  */
-export type RegionFeature = "melody" | "springs" | "echo" | "jazz" | "course" | "dream";
+export type RegionFeature = "melody" | "springs" | "echo" | "jazz" | "course" | "dream" | "cave";
 
 export interface RegionDef {
   id: RegionId;
@@ -85,6 +92,8 @@ export interface RegionDef {
   island?: boolean;
   /** The cat's dream sea: its own terrain over a floor of stars, no keyboard */
   dream?: boolean;
+  /** The cave of sleeping stars: rock, an abyss, and the dark (cave.ts) */
+  cave?: boolean;
   /** Background music that plays while you're here (steps then join in) */
   music?: "house" | "jazz";
   /**
@@ -114,6 +123,8 @@ const HALL_PORTALS: PortalDef[] = [
   },
   // the cat's secret: nothing here to see or walk into (cat-walk.ts) — you come back out on the spot
   { to: "whale", ...SECRET_SPOT, color: "#9fb8ff", secret: true, arrive: { x: SECRET_SPOT.x + 1.8, z: SECRET_SPOT.z + 1.2 } },
+  // the illusory wall: a stretch of cliff you can walk into, if you know where (cave.ts)
+  { to: "cave", x: ILLUSORY_WALL.x, z: ILLUSORY_WALL.z, color: "#c9b8ff", invisible: true, arrive: ILLUSORY_ARRIVAL },
 ];
 
 /** Three octaves round middle C (C3–C6): plenty of floor to dance on with a band. */
@@ -376,6 +387,34 @@ export const REGIONS: Record<RegionId, RegionDef> = {
       accent: "#ffe9a8",
     },
   },
+  cave: {
+    id: "cave",
+    instrument: "synth-pad",
+    feature: "cave",
+    cave: true,
+    // closer and lower than outside: rock all round, and the dark
+    camera: [0, 9, 10.5],
+    bounds: CAVE_BOUNDS,
+    portals: [{ to: "hall", ...CAVE_EXIT, color: "#c9b8ff", hidden: true, arrive: CAVE_ARRIVAL }],
+    theme: {
+      background: "#040308",
+      fog: [3, 15],
+      floor: "#15121c",
+      keyboardCase: "#040308",
+      white: "#2a2534",
+      whitePressed: "#3d3550",
+      black: "#0d0b12",
+      blackPressed: "#2a2534",
+      pressedGlow: "#c9b8ff",
+      sky: "#4a4466",
+      ground: "#0b0910",
+      ambient: 0.12,
+      sun: 0.08,
+      sunColor: "#9d94c4",
+      dark: true,
+      accent: "#ffd27a",
+    },
+  },
 };
 
 /** How close (in floor units) you must step to a portal to go through it. */
@@ -386,7 +425,11 @@ export function arrivalPoint(to: RegionId, from: RegionId | null): { x: number; 
   const course = REGIONS[to].course;
   if (course) return { ...course.start };
   // a direct link: the keyboard's spawn, or (no keyboard there) the dream sea's landing spot
-  if (from === null) return REGIONS[to].dream ? { ...DREAM_ARRIVAL } : { x: SPAWN.x, z: SPAWN.z };
+  if (from === null) {
+    if (REGIONS[to].dream) return { ...DREAM_ARRIVAL };
+    if (REGIONS[to].cave) return { ...CAVE_ARRIVAL };
+    return { x: SPAWN.x, z: SPAWN.z };
+  }
   // Prefer a floor-level portal back to where you came from
   const portal =
     REGIONS[to].portals.find((p) => p.to === from && !p.y) ?? REGIONS[to].portals[0];

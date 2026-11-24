@@ -201,7 +201,8 @@
         "clouds": "구름 건반",
         "night": "밤의 건반",
         "ruins": "폭풍의 신전",
-        "whale": "달고래의 바다"
+        "whale": "달고래의 바다",
+        "cave": "별이 잠든 동굴"
       },
       "melodies": {
         "twinkle": "작은별",
@@ -224,6 +225,12 @@
       "dreamNote": "잃어버린 음을 찾았어요 · {note}",
       "whaleSings": "고래가 노래를 되찾았어요! 아기 달고래가 따라와요",
       "petGuestNote": "로그인하면 다른 사람에게도 내 고래가 보여요",
+      "caveDark": "한 치 앞도 보이지 않아요… 별빛이 있었더라면",
+      "caveLit": "우주의 왕관이 잠든 별들을 깨워요",
+      "caveRest": "별의 쉼터에 불이 들어왔어요 · 떨어져도 여기서 다시 시작해요",
+      "necklaceTitle": "황금 목걸이",
+      "necklaceFound": "별빛 아래 잠들어 있던 목걸이를 얻었어요",
+      "necklaceGuestNote": "로그인하면 다른 사람에게도 보여요",
       "courseRankingTitle": "역대 랭킹",
       "courseRankingEmpty": "아직 기록이 없어요 · 첫 주인공이 되어 보세요",
       "courseRankSaved": "랭킹 {rank}위에 올랐어요!",
@@ -231,6 +238,7 @@
       "courseRankGuest": "역대 {rank}위 기록이에요 · 로그인하면 랭킹에 올라가요",
       "courseBest": "최고 기록",
       "courseDone": "완주! 왕관을 얻었어요",
+      "nightDone": "완주! 빛나는 우주의 왕관을 얻었어요",
       "nameLabel": "오늘의 이름",
       "nameReroll": "다른 이름으로 바꾸기",
       "nameAdjectives": [
@@ -485,7 +493,7 @@
     },
     "hat": {
       "crown": "왕관",
-      "star-crown": "별 왕관",
+      "star-crown": "우주의 왕관",
       "flame-crown": "불꽃 왕관",
       "ribbon": "리본",
       "beret": "베레모",
@@ -501,13 +509,11 @@
     "accessory": {
       "scarf": "목도리",
       "bowtie": "나비넥타이",
-      "glasses": "안경"
+      "glasses": "안경",
+      "gold-necklace": "황금 목걸이"
     },
     "pet": {
       "moon-whale": "아기 달고래"
-    },
-    "petHint": {
-      "moon-whale": "??? · 고양이가 아는 곳에 있대요"
     },
     "none": "없음",
     "save": "저장",

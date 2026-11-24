@@ -13,6 +13,11 @@ const ROLL_FRICTION = 1.1; // per second, while touching the ground
 const AIR_DRAG = 0.15;
 const MIN_BOUNCE_SPEED = 1.4; // slower than this and it just settles
 const KICK_COOLDOWN = 0.25;
+/** Rolling slower than this, a ball on the ground stops dead (so every screen agrees it's still). */
+const REST_SPEED = 0.05;
+/** Catching up on a ball kicked a while ago: in steps this long, for at most this long (it's still by then). */
+const CATCH_UP_STEP = 1 / 60;
+const CATCH_UP_MAX = 20;
 
 export interface Ball {
   x: number;
@@ -24,6 +29,8 @@ export interface Ball {
   /** key it was last touching, for the roll-over notes */
   key: number | null;
   kickCooldown: number;
+  /** I kicked it last and it hasn't stopped yet: I tell the channel where it comes to rest */
+  mine: boolean;
 }
 
 export const newBall = (x: number, z: number): Ball => ({
@@ -35,14 +42,25 @@ export const newBall = (x: number, z: number): Ball => ({
   vz: 0,
   key: null,
   kickCooldown: 0,
+  mine: false,
 });
+
+/** Lying still on the ground. */
+export const ballResting = (ball: Ball) => ball.vy === 0 && ball.vx === 0 && ball.vz === 0;
 
 export interface BallWorld {
   /** surface height and the key there */
   ground: (x: number, z: number) => { height: number; midi: number | null };
   colliders: readonly CircleCollider[];
   bounds: { x: number; zMin: number; zMax: number };
-  player: { x: number; y: number; z: number; vx: number; vz: number };
+  /** my Kordi, who kicks it (null: nobody, e.g. while catching up) */
+  player: { x: number; y: number; z: number; vx: number; vz: number } | null;
+}
+
+/** What a step did: a note it made, and whether I just kicked it. */
+export interface BallStep {
+  note: BallNote | null;
+  kicked: boolean;
 }
 
 /** A note the ball made this step: velocity 0–1. */
@@ -51,17 +69,18 @@ export interface BallNote {
   velocity: number;
 }
 
-export function stepBall(ball: Ball, dt: number, world: BallWorld): BallNote | null {
+export function stepBall(ball: Ball, dt: number, world: BallWorld): BallStep {
   let note: BallNote | null = null;
+  let kicked = false;
   ball.kickCooldown = Math.max(0, ball.kickCooldown - dt);
 
   // --- kicked by the player
   const p = world.player;
-  const dx = ball.x - p.x;
-  const dz = ball.z - p.z;
+  const dx = p ? ball.x - p.x : Infinity;
+  const dz = p ? ball.z - p.z : Infinity;
   const distance = Math.hypot(dx, dz);
   const reach = BODY_RADIUS + BALL_RADIUS;
-  if (distance < reach && Math.abs(ball.y - BALL_RADIUS - p.y) < 1.2) {
+  if (p && distance < reach && Math.abs(ball.y - BALL_RADIUS - p.y) < 1.2) {
     const nx = distance > 1e-4 ? dx / distance : 0;
     const nz = distance > 1e-4 ? dz / distance : 1;
     ball.x = p.x + nx * reach;
@@ -73,6 +92,7 @@ export function stepBall(ball: Ball, dt: number, world: BallWorld): BallNote | n
       ball.vz = nz * kick + p.vz * 0.4;
       ball.vy = Math.max(ball.vy, 2.2 + playerSpeed * 0.5);
       ball.kickCooldown = KICK_COOLDOWN;
+      kicked = true;
     }
   }
 
@@ -121,6 +141,7 @@ export function stepBall(ball: Ball, dt: number, world: BallWorld): BallNote | n
       const roll = Math.max(0, 1 - ROLL_FRICTION * dt);
       ball.vx *= roll;
       ball.vz *= roll;
+      if (Math.hypot(ball.vx, ball.vz) < REST_SPEED) ball.vx = ball.vz = 0;
       // rolling onto a new key plays it softly — a glissando if you kick it along the keys
       if (ground.midi !== null && ground.midi !== ball.key && Math.hypot(ball.vx, ball.vz) > 1.2) {
         note = { midi: ground.midi, velocity: 0.22 };
@@ -128,13 +149,59 @@ export function stepBall(ball: Ball, dt: number, world: BallWorld): BallNote | n
     }
     ball.key = ground.midi;
   }
-  return note;
+  return { note, kicked };
+}
+
+/**
+ * Take a ball's state from the channel (someone else kicked it, or it came to
+ * rest on their screen), `ageSeconds` old: put it there and roll it on, silently,
+ * to where it is by now. It's theirs now, not mine.
+ */
+export function adoptBall(ball: Ball, state: BallSnapshot, ageSeconds: number, world: BallWorld) {
+  ball.x = state.x;
+  ball.y = state.y;
+  ball.z = state.z;
+  ball.vx = state.vx;
+  ball.vy = state.vy;
+  ball.vz = state.vz;
+  ball.mine = false;
+  const still = { ...world, player: null };
+  for (let t = Math.min(ageSeconds, CATCH_UP_MAX); t > 0 && !ballResting(ball); t -= CATCH_UP_STEP) {
+    stepBall(ball, Math.min(CATCH_UP_STEP, t), still);
+  }
+}
+
+/**
+ * A ball's news from the channel, in the order the server took it (it sends
+ * everyone's back to them too). Someone else's: take it. My own coming back:
+ * nothing to do — unless someone else's kick got in between, in which case the
+ * server took mine last and it's mine again (I'll report where it stops).
+ */
+export function applyBallNews(ball: Ball, state: BallSnapshot, ageSeconds: number, fromMe: boolean, world: BallWorld) {
+  if (fromMe) {
+    const kick = state.vx !== 0 || state.vy !== 0 || state.vz !== 0;
+    if (!kick || ball.mine) return;
+    adoptBall(ball, state, ageSeconds, world);
+    ball.mine = true;
+    return;
+  }
+  adoptBall(ball, state, ageSeconds, world);
+}
+
+/** Position and velocity: what the channel hears about a ball. */
+export interface BallSnapshot {
+  x: number;
+  y: number;
+  z: number;
+  vx: number;
+  vy: number;
+  vz: number;
 }
 
 /** Where the balls start in each region (none on the jump course). */
 export function ballSpawns(region: string, spawn: { x: number; z: number }): { x: number; z: number }[] {
-  // none on the jump courses (no keyboard floor) or in the dream sea (nothing to play)
-  if (region === "clouds" || region === "night" || region === "ruins" || region === "whale") return [];
+  // none on the jump courses (no keyboard floor), in the dream sea (nothing to play) or in the cave
+  if (region === "clouds" || region === "night" || region === "ruins" || region === "whale" || region === "cave") return [];
   if (region === "hall") {
     return [
       { x: spawn.x + 3, z: spawn.z + 1.2 },

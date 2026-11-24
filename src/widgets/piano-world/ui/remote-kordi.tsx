@@ -5,6 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import type { RemotePlayer } from "../net/protocol";
 import { CASE_H, PRESS_DEPTH, keyAt, type KeyRange } from "../engine/layout";
+import { lerpAngle } from "../engine/physics";
 import { DEFAULT_APPEARANCE, type Appearance, type KordiMotion } from "@/entities/character";
 import { KordiModel } from "@/entities/character/three";
 import { useLabelTexture } from "./label-texture";
@@ -74,8 +75,7 @@ export function RemoteKordi({
     const beforeY = pos.current.y;
     pos.current.y = THREE.MathUtils.lerp(pos.current.y, targetY, 1 - Math.exp(-dt * 18));
 
-    const delta = ((target.h - heading.current + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
-    heading.current += delta * ease;
+    heading.current = lerpAngle(heading.current, target.h, ease);
 
     const speed = Math.hypot(pos.current.x - beforeX, pos.current.z - beforeZ) / Math.max(dt, 1e-3);
     const m = motion.current;

@@ -148,7 +148,7 @@ export function CourseCard({ run, isGuest, copy }: { run: CourseRun; isGuest: bo
 
   return (
     <ProgressCard
-      title={justFinished ? copy.courseDone : look.title}
+      title={justFinished ? (run.course === "night" ? copy.nightDone : copy.courseDone) : look.title}
       value={<span className="text-lg font-semibold tabular-nums text-foreground">{formatTime(elapsed)}</span>}
       ratio={run.reached / COURSES[run.course].goalIndex}
       barClass={look.bar}

@@ -61,8 +61,17 @@ export interface PianoWorldCopy {
   dreamNote: string;
   whaleSings: string;
   petGuestNote: string;
+  /** the cave of sleeping stars: coming in without the cosmic crown, and with it */
+  caveDark: string;
+  caveLit: string;
+  caveRest: string;
+  necklaceTitle: string;
+  necklaceFound: string;
+  necklaceGuestNote: string;
   courseBest: string;
   courseDone: string;
+  /** the night course's finish: its crown is the cosmic one */
+  nightDone: string;
   // warp stones
   warpStones: Record<WarpStoneId, string>;
   warpTitle: string;

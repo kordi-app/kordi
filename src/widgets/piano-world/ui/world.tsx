@@ -24,11 +24,13 @@ import { createAmbience, resetAmbience, stepAmbience, type AmbienceEvents } from
 import { aimSunLight, applySky, createSunAim } from "./sun-light";
 import { quality } from "./quality";
 import { ISLAND_TERRAIN } from "../engine/nature";
-import { SKY_OPEN_SECONDS, openSky, skyNow, stepSkyPads, tickSky, type SkyEvent } from "../engine/sky-island";
+import { SKY_DRIFT, SKY_OPEN_SECONDS, openSky, skyNow, stepSkyPads, tickSky, type SkyEvent } from "../engine/sky-island";
 import { DREAM_TERRAIN, startDream, stepDream, type DreamEvent } from "../engine/dream-sea";
+import { CAVE_TERRAIN, startCave, stepCave, type CaveEvent } from "../engine/cave";
 import { sitOnSpot } from "../engine/cat-walk";
 import { DreamSea } from "./dream-sea";
-import { BALL_RADIUS, ballSpawns, newBall, stepBall, type Ball } from "../engine/ball";
+import { CaveScene, IllusoryWall, lightCave } from "./cave";
+import { BALL_RADIUS, applyBallNews, ballResting, ballSpawns, newBall, stepBall, type Ball, type BallWorld } from "../engine/ball";
 import { NoteBall } from "./note-ball";
 import {
   HARD_LANDING,
@@ -36,12 +38,14 @@ import {
   JUMP_SPEED,
   SPRING_BOOST,
   groundAt,
+  wrapAngle,
   type Arrival,
   type CircleCollider,
   type InputState,
 } from "../engine/physics";
 import { PORTAL_RADIUS, type RegionDef, type RegionId } from "../engine/regions";
-import type { RemotePlayer } from "../net/protocol";
+import type { BallState, RemotePlayer } from "../net/protocol";
+import type { BallNews } from "../net/use-world-presence";
 import type { InteractionScene } from "./hooks/use-interactions";
 import { REWARD_OF } from "./hooks/use-course-run";
 import { CourseScene } from "./course-scene";
@@ -108,7 +112,12 @@ export interface WorldEvents {
   onDream: (event: DreamEvent) => void;
   /** the cat sat down on its secret spot (you can hear it from here) */
   onCatSignal: () => void;
+  /** in the cave of sleeping stars: a star rest woken, a fall into the abyss, the necklace taken */
+  onCave: (event: CaveEvent) => void;
 }
+
+/** The cave's light follows the cosmic crown: this fast to come up (and to fade if you take it off) */
+const CAVE_LIGHT_RATE = 0.9;
 
 /** You hear the cat settle on its spot from this far */
 const CAT_SIGNAL_EARSHOT = 22;
@@ -135,6 +144,10 @@ export interface WorldPresence {
     m: number | null,
     e: EmoteId | null,
   ) => void;
+  /** the channel's ball news since the last call, oldest first (the scene takes it every frame) */
+  takeBallNews: () => readonly BallNews[];
+  /** tell the channel I kicked a ball, or where the one I kicked came to rest (false: not connected) */
+  sendBall: (ball: BallState) => boolean;
 }
 
 export interface WorldDisplay {
@@ -154,6 +167,13 @@ export interface WorldDisplay {
   skyFound: boolean;
   /** you've found the cat's way into the dream sea (its spot shows pawprints) */
   dreamFound: boolean;
+  /** the cave's gold necklace is already mine (members: unlocked; guests: kept in this browser) */
+  hasNecklace: boolean;
+  /**
+   * I carry the cosmic crown's light: members wearing it; guests who've earned it
+   * (they don't choose a hat: in the cave they wear it, outside their best crown)
+   */
+  cosmicCrown: boolean;
 }
 
 interface WorldProps {
@@ -175,8 +195,13 @@ interface WorldProps {
  * something visible does (the emote bubble, who's here).
  */
 export function World({ region, arrival, input, takeJump, presence, display, events }: WorldProps) {
-  const { remotes, others, sendPosition } = presence;
-  const { emote, target, appearance, rewards, interaction, celebrate, awake, skyFound, dreamFound } = display;
+  const { remotes, others, sendPosition, takeBallNews, sendBall } = presence;
+  const { emote, target, appearance, rewards, interaction, celebrate, awake, skyFound, dreamFound, hasNecklace, cosmicCrown } =
+    display;
+  /** when I came into the cave (scene clock), for the necklace's wait */
+  const caveSince = useRef(0);
+  /** the cave's light right now, 0 (dark) … 1 (the crown's full starlight) */
+  const caveLight = useRef(0);
   const camera = useThree((state) => state.camera);
   const scene = useThree((state) => state.scene);
   const hemi = useRef<THREE.HemisphereLight>(null);
@@ -188,6 +213,8 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
   const fx = useRef<StepEffectsApi>(null);
   /** dragon fire can't catch you again until then (course clock) */
   const burnUntil = useRef(0);
+  /** a drift down from the sky in progress (was it, last frame), and its trail's next sparkle */
+  const drift = useRef({ on: false, sparkAt: 0 });
   const motion = useRef<KordiMotion>({ phase: 0, amount: 0, emote: null, land: 0, stretch: 0, lean: 0, bank: 0 });
   /** Kordi's live position: one Vector3, mutated in place, shared with the island renderer */
   const [playerPos] = useState(() => new THREE.Vector3(SPAWN.x, CASE_H, SPAWN.z));
@@ -214,6 +241,8 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
   const cameraOffset = useMemo(() => new THREE.Vector3(...region.camera), [region]);
   const spawns = useMemo(() => ballSpawns(region.id, SPAWN), [region]);
   const balls = useRef<Ball[]>([]);
+  /** the region the balls were set out for */
+  const ballsFor = useRef<RegionId | null>(null);
   const ballMeshes = useRef<(THREE.Mesh | null)[]>([]);
   const ballSpin = useRef({ axis: new THREE.Vector3(), turn: new THREE.Quaternion() });
   const items = useMemo(() => interactablesIn(region.id), [region]);
@@ -229,7 +258,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
   const petGlow = useRef(0);
   const island = region.island ? ISLAND_TERRAIN : null;
   /** solid ground beyond the keys: the island's, or the dream sea's */
-  const terrain = island ?? (region.dream ? DREAM_TERRAIN : null);
+  const terrain = island ?? (region.dream ? DREAM_TERRAIN : region.cave ? CAVE_TERRAIN : null);
   /** sitting on the cat's secret spot (seconds so far) */
   const secretSit = useRef<{ since: number | null }>({ since: null });
   /** what you walk among this frame (other players move, so it's built per frame) */
@@ -276,9 +305,18 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       portalArmed.current = false;
       secretSit.current.since = null;
       if (region.dream) startDream();
+      if (region.cave) {
+        startCave();
+        caveSince.current = state.clock.getElapsedTime();
+        caveLight.current = 0; // come in dark: the crown's light then fills the place
+      }
       camera.position.copy(s.pos).add(cameraOffset);
       lookTarget.current.set(s.pos.x, s.pos.y + 0.6, s.pos.z - 1.2);
-      balls.current = spawns.map((spot) => newBall(spot.x, spot.z));
+      // the balls are the channel's: a warp within a region leaves them where they are
+      if (ballsFor.current !== region.id) {
+        ballsFor.current = region.id;
+        balls.current = spawns.map((spot) => newBall(spot.x, spot.z));
+      }
     }
 
     // playtests (development only): jump straight to a spot
@@ -340,15 +378,53 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       dt,
       ground,
       { pressed: takeJump(), held: keys.jumpHeld, buffer: JUMP_BUFFER },
-      { course, island: terrain },
+      { course, island: terrain, drift: island ? SKY_DRIFT : null },
     );
     if (landing && landing.impact > HARD_LANDING) fx.current?.dust(s.pos.x, s.pos.y, s.pos.z);
+    // drifting down from the sky: a soft chime to start and land, a trail of sparkles, a lazy twirl
+    const d = drift.current;
+    if (s.drifting !== d.on) {
+      d.on = s.drifting;
+      if (d.on) {
+        events.onVoice("crystal", 88, 0.35);
+        d.sparkAt = now;
+      } else if (landing?.drifted) {
+        fx.current?.ripple(s.pos.x, s.pos.y, s.pos.z, "#ffe9a8");
+        events.onVoice("harp", 72, 0.45);
+      }
+    }
+    if (d.on) {
+      if (now >= d.sparkAt) {
+        d.sparkAt = now + 0.45;
+        fx.current?.notes(s.pos.x, s.pos.y, s.pos.z, "#ffe9a8");
+      }
+      if (!steering) s.heading = wrapAngle(s.heading + dt * 0.9);
+    }
     // island drums: every landing is a beat
     const drum = landing?.solid?.bounce ? landing.solid : null;
     if (drum) {
       if (drum.sound) events.onVoice(drum.sound.voice, drum.sound.midi, Math.min(1, 0.45 + landing!.impact / 18));
       if (drum.tag) islandHits.set(drum.tag, now);
       fx.current?.notes(s.pos.x, s.pos.y, s.pos.z, region.theme.accent);
+    }
+    if (region.cave) {
+      const caveStep = { grounded: !s.airborne, crowned: cosmicCrown, hasNecklace, stayed: now - caveSince.current };
+      for (const event of stepCave(s.pos.x, s.pos.y, s.pos.z, caveStep)) {
+        if (event.kind === "fell") {
+          // the abyss gives you back at the last star rest you woke
+          placePlayer(s, event.to.x, groundAt(region, event.to.x, event.to.z, 0).height, event.to.z);
+          fx.current?.ripple(s.pos.x, s.pos.y, s.pos.z, "#ffcf7a");
+        } else if (event.kind === "rest") {
+          fx.current?.ripple(s.pos.x, s.pos.y, s.pos.z, "#ffcf7a");
+          fx.current?.notes(s.pos.x, s.pos.y, s.pos.z, "#ffcf7a");
+        } else {
+          fx.current?.confetti(s.pos.x, s.pos.y, s.pos.z);
+        }
+        events.onCave(event);
+      }
+      const want = cosmicCrown ? 1 : 0;
+      caveLight.current += THREE.MathUtils.clamp(want - caveLight.current, -dt * CAVE_LIGHT_RATE, dt * CAVE_LIGHT_RATE);
+      lightCave(scene, hemi.current, region.theme, caveLight.current);
     }
     if (region.dream) {
       for (const event of stepDream(s.pos.x, s.pos.y, s.pos.z, now)) {
@@ -415,18 +491,31 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       debugSeam.airborne = s.airborne;
     }
 
-    // --- note balls
+    // --- note balls: shared with the channel. Whoever kicks one tells everyone
+    // (every screen then rolls it the same way), and tells them again where it stops.
+    const ballWorld: BallWorld = {
+      ground: (x, z) => {
+        const g = groundAt(region, x, z, 0);
+        return { height: g.height, midi: g.midi };
+      },
+      colliders: solids,
+      // the same edges you walk within (the island's are wider, the band rooms' narrower)
+      bounds: region.bounds ?? BOUNDS,
+      player: { x: s.pos.x, y: s.pos.y, z: s.pos.z, vx: s.vx, vz: s.vz },
+    };
+    for (const { state, age, fromMe } of takeBallNews()) {
+      const ball = balls.current[state.i];
+      if (ball) applyBallNews(ball, state, age / 1000, fromMe, ballWorld);
+    }
     balls.current.forEach((ball, i) => {
-      const note = stepBall(ball, dt, {
-        ground: (x, z) => {
-          const g = groundAt(region, x, z, 0);
-          return { height: g.height, midi: g.midi };
-        },
-        colliders: solids,
-        // the same edges you walk within (the island's are wider, the band rooms' narrower)
-        bounds: region.bounds ?? BOUNDS,
-        player: { x: s.pos.x, y: s.pos.y, z: s.pos.z, vx: s.vx, vz: s.vz },
-      });
+      const { note, kicked } = stepBall(ball, dt, ballWorld);
+      if (kicked) {
+        // mine only if the channel hears it (offline, it's just my own ball)
+        ball.mine = sendBall({ i, x: ball.x, y: ball.y, z: ball.z, vx: ball.vx, vy: ball.vy, vz: ball.vz });
+      } else if (ball.mine && ballResting(ball)) {
+        ball.mine = false;
+        sendBall({ i, x: ball.x, y: ball.y, z: ball.z, vx: 0, vy: 0, vz: 0 });
+      }
       if (note) {
         events.onBallNote(note.midi, note.velocity);
         if (note.velocity > 0.3) fx.current?.notes(ball.x, ball.y - BALL_RADIUS, ball.z, region.theme.accent);
@@ -541,7 +630,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       sunAim.current.dir.set(...sky.lightDir);
     } else if (!island) {
       sunAim.current.dir.set(0.4, 0.8, 0.45).normalize();
-      petGlow.current = region.dream ? 1 : region.theme.dark ? 0.6 : 0;
+      petGlow.current = region.dream || region.cave ? 1 : region.theme.dark ? 0.6 : 0;
     }
     if (light.current) {
       aimSunLight(light.current, sunAim.current, s.pos, { extent: SHADOW_EXTENT, mapSize: quality.shadowMap, distance: SHADOW_DISTANCE });
@@ -549,7 +638,8 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
 
     // The camera follows the ground you stand on (not your jumps); the course climbs with you
     const follow = 1 - Math.exp(-dt * 4);
-    const cameraY = course ? s.pos.y : terrain ? s.restY : 0;
+    // …except a long drift down from the sky, which it rides along
+    const cameraY = course || s.drifting ? s.pos.y : terrain ? s.restY : 0;
     const { camera: wantCamera, look } = scratch.current;
     camera.position.lerp(wantCamera.set(s.pos.x, cameraY, s.pos.z).add(cameraOffset), follow);
     lookTarget.current.lerp(look.set(s.pos.x, cameraY + 0.6, s.pos.z - 1.2), follow);
@@ -586,10 +676,13 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
         />
       ) : region.dream ? (
         <DreamSea player={playerPos} />
+      ) : region.cave ? (
+        <CaveScene player={playerPos} light={caveLight} owned={hasNecklace} remotes={remotes} />
       ) : (
         <PianoFloor pressed={pressed} theme={region.theme} ground={!region.island} keys={region.keys} />
       )}
       {region.island ? <IslandScene player={playerPos} awake={awake} skyFound={skyFound} dreamFound={dreamFound} /> : null}
+      {region.island ? <IllusoryWall player={playerPos} crowned={cosmicCrown} /> : null}
       <RegionDecor region={region.id} party={interaction.party} />
       {items.map((item) => {
         switch (item.id) {
@@ -620,7 +713,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
         }
       })}
       {region.portals
-        .filter((portal) => !portal.secret)
+        .filter((portal) => !portal.secret && !portal.invisible)
         .map((portal) => (
           <Portal key={`${portal.to}-${portal.x}`} portal={portal} glow={region.theme.dark} />
         ))}

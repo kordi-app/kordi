@@ -2,6 +2,7 @@ import { CASE_H, PRESS_DEPTH, keyAt } from "./layout";
 import { courseGround } from "./course";
 import { ISLAND_TERRAIN } from "./nature";
 import { DREAM_TERRAIN } from "./dream-sea";
+import { ABYSS_FLOOR, CAVE_TERRAIN } from "./cave";
 import { terrainGround } from "./terrain";
 import type { RegionDef } from "./regions";
 
@@ -130,6 +131,12 @@ export function groundAt(region: RegionDef, x: number, z: number, y: number): Gr
     const on = hit.index !== null && hit.height > 0;
     return { height: on ? hit.height : 0, midi: null, black: false, platform: null, solid: on ? hit.index : null };
   }
+  if (region.cave) {
+    // rock floor where there is one; over the abyss, nothing for a long way down
+    const hit = terrainGround(CAVE_TERRAIN, x, z, y);
+    const on = hit.index !== null;
+    return { height: on ? hit.height : ABYSS_FLOOR, midi: null, black: false, platform: null, solid: on ? hit.index : null };
+  }
   const key = keyAt(x, z, region.keys);
   const keyHeight = key ? CASE_H + key.height - PRESS_DEPTH : 0;
   if (region.island) {
@@ -147,10 +154,17 @@ export function groundAt(region: RegionDef, x: number, z: number, y: number): Gr
   };
 }
 
-/** Shortest-path angle interpolation, so turning never spins the long way round. */
+/** An angle folded into [-π, π), whatever its size or sign. */
+export function wrapAngle(angle: number) {
+  return angle - Math.PI * 2 * Math.floor((angle + Math.PI) / (Math.PI * 2));
+}
+
+/**
+ * Shortest-path angle interpolation, so turning never spins the long way round
+ * (for any two angles: `%` alone keeps the sign, and a far-apart pair went the long way).
+ */
 export function lerpAngle(from: number, to: number, t: number) {
-  const delta = ((to - from + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
-  return from + delta * t;
+  return from + wrapAngle(to - from) * t;
 }
 
 /** Where to put the player on entering a region. A fresh object per entry. */

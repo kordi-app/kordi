@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { ISLAND_BOUNDS, ISLAND_SOLIDS, TOWER } from "./island";
-import { JUMP_SPEED, GRAVITY, SPEED } from "./physics";
+import type { KordiMotion } from "@/entities/character";
+import { JUMP_SPEED, GRAVITY, HARD_LANDING, SPEED, lerpAngle, wrapAngle, type Ground } from "./physics";
+import { createPlayerSim, jumpAndFall } from "./player";
 import {
   ISLAND_GATE,
+  SKY_DRIFT,
   ORRERY,
   SKY_ISLAND,
   SKY_OPEN_SECONDS,
@@ -155,5 +158,72 @@ describe("constellations", () => {
     skyRuntime.until = -Infinity;
     tickSky(2);
     expect(stand(0, 2)).toEqual([]);
+  });
+});
+
+describe("drifting down from the sky", () => {
+  const motion = (): KordiMotion => ({ phase: 0, amount: 0, emote: null, land: 0, stretch: 0, lean: 0, bank: 0 });
+  const vec = (y: number) => ({ x: 0, y, z: 0, set(x: number, ny: number, z: number) { this.x = x; this.y = ny; this.z = z; } });
+  const flat = (height: number): Ground => ({ height, midi: null, black: false, platform: null, solid: null });
+  const env = { course: null, island: null, drift: SKY_DRIFT };
+  const noJump = { pressed: false, held: false, buffer: 0 };
+
+  /** Seconds from walking off at `from` to landing on `to`, and how the landing went. */
+  function fall(from: number, to: number) {
+    const s = createPlayerSim(vec(from));
+    s.restY = from; // where you were standing
+    s.airborne = true;
+    const dt = 1 / 60;
+    for (let t = 0; t < 30; t += dt) {
+      const landing = jumpAndFall(s, motion(), dt, flat(to), noJump, env);
+      if (landing) return { seconds: t, landing };
+    }
+    throw new Error("never landed");
+  }
+
+  it("takes about ten seconds from the island to the meadow, and lands softly", () => {
+    const { seconds, landing } = fall(SKY_ISLAND.top, 0);
+    expect(seconds).toBeGreaterThan(9);
+    expect(seconds).toBeLessThan(12);
+    expect(landing.drifted).toBe(true);
+    expect(landing.impact).toBeLessThan(HARD_LANDING);
+  });
+
+  it("leaves short hops between star steps alone", () => {
+    const { seconds, landing } = fall(SKY_ISLAND.top, SKY_ISLAND.top - 1);
+    expect(landing.drifted).toBe(false);
+    expect(seconds).toBeLessThan(0.5);
+  });
+
+  it("leaves a hop between star steps alone, even with the meadow far below the gap", () => {
+    // jumping from one star step up to the next: mid-hop there's nothing under you but the ground
+    const step = STAR_STEPS[STAR_STEPS.length - 2];
+    const s = createPlayerSim(vec(step.top));
+    s.restY = step.top;
+    s.airborne = true;
+    s.jumped = true;
+    s.vy = JUMP_SPEED;
+    const dt = 1 / 60;
+    const next = step.top + 0.6;
+    for (let t = 0; t < 2; t += dt) {
+      jumpAndFall(s, motion(), dt, flat(0), { pressed: false, held: true, buffer: 0 }, env);
+      expect(s.drifting).toBe(false);
+      if (s.vy < 0 && s.pos.y <= next) break; // it lands on the next step here
+    }
+  });
+
+  it("leaves a jump off the tower roof alone", () => {
+    expect(fall(TOWER.top, 0).landing.drifted).toBe(false);
+  });
+});
+
+describe("angles", () => {
+  it("turns the short way round however far the heading has wound up", () => {
+    // a long twirl leaves the heading many turns round; the next step must not unwind them
+    const wound = Math.PI * 2 * 7 + 0.1;
+    expect(lerpAngle(wound, 0, 1) - wound).toBeCloseTo(-0.1);
+    expect(lerpAngle(-wound, 0, 1) + wound).toBeCloseTo(0.1);
+    expect(wrapAngle(wound)).toBeCloseTo(0.1);
+    expect(wrapAngle(-Math.PI)).toBeCloseTo(-Math.PI);
   });
 });

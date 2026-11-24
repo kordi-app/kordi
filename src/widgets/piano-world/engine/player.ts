@@ -62,6 +62,8 @@ export interface PlayerSim {
   jumped: boolean;
   /** launched by a spring, trampoline or drum: ignores the early-release cut */
   springing: boolean;
+  /** drifting down slowly (stepped off the sky island) until the next landing */
+  drifting: boolean;
   sinceGrounded: number;
   jumpBuffer: number;
   lastForward: number;
@@ -84,6 +86,7 @@ export const createPlayerSim = (pos: Vec3): PlayerSim => ({
   airborne: false,
   jumped: false,
   springing: false,
+  drifting: false,
   sinceGrounded: 0,
   jumpBuffer: 0,
   lastForward: 0,
@@ -99,7 +102,7 @@ export function placePlayer(s: PlayerSim, x: number, y: number, z: number) {
   s.pos.set(x, y, z);
   s.heading = 0; // face the camera on arrival
   s.vx = s.vz = s.vy = 0;
-  s.airborne = s.jumped = s.springing = false;
+  s.airborne = s.jumped = s.springing = s.drifting = false;
   s.platform = null;
   s.midi = null;
   s.solid = null;
@@ -230,6 +233,27 @@ export function bodyLanguage(s: PlayerSim, m: KordiMotion, dt: number, speed: nu
 export interface Landing {
   impact: number;
   solid: Solid | null;
+  /** the end of a slow drift down (see {@link Drift}) */
+  drifted: boolean;
+}
+
+/**
+ * A slow, floaty descent instead of a drop: a fall that starts high enough,
+ * over enough air, eases to `speed` and stays there until you land.
+ */
+export interface Drift {
+  /** only a fall from above this height drifts */
+  above: number;
+  /** …with at least this much air underneath */
+  drop: number;
+  /**
+   * …once you've fallen this far below where you last stood. A hop between
+   * steps up there never sinks this far (you land on the next one), however
+   * far down the ground is in the gap between them.
+   */
+  fallen: number;
+  /** falling speed while drifting, units per second */
+  speed: number;
 }
 
 /**
@@ -243,9 +267,9 @@ export function jumpAndFall(
   dt: number,
   ground: Ground,
   jump: { pressed: boolean; held: boolean; buffer: number },
-  env: Pick<WalkEnv, "course" | "island">,
+  env: Pick<WalkEnv, "course" | "island"> & { drift?: Drift | null },
 ): Landing | null {
-  const { course, island } = env;
+  const { course, island, drift = null } = env;
   if (jump.pressed) s.jumpBuffer = jump.buffer;
   else s.jumpBuffer = Math.max(0, s.jumpBuffer - dt);
   s.sinceGrounded = s.airborne ? s.sinceGrounded + dt : 0;
@@ -264,6 +288,17 @@ export function jumpAndFall(
     // let go of jump early and the rise is cut short (springs always go full height)
     const cut = s.vy > 0 && !jump.held && !s.springing ? JUMP_CUT_GRAVITY : 1;
     s.vy -= GRAVITY * cut * dt;
+    if (
+      drift &&
+      !s.drifting &&
+      s.vy < 0 &&
+      s.pos.y > drift.above &&
+      s.pos.y - ground.height > drift.drop &&
+      s.restY - s.pos.y > drift.fallen
+    ) {
+      s.drifting = true;
+    }
+    if (s.drifting && drift && s.vy < -drift.speed) s.vy = approach(s.vy, -drift.speed, GRAVITY * 2 * dt);
     const nextY = s.pos.y + s.vy * dt;
     const ceiling =
       s.vy <= 0
@@ -281,14 +316,17 @@ export function jumpAndFall(
     }
     if (s.vy < 0 && s.pos.y <= ground.height) {
       const impact = -s.vy;
+      const drifted = s.drifting;
       s.pos.y = ground.height; // landing re-strikes the key below
       s.airborne = false;
       s.jumped = false;
       s.springing = false;
+      s.drifting = false;
       s.vy = 0;
+      s.restY = ground.height; // the camera settles here now, not a frame later
       if (impact > HARD_LANDING) m.land = Math.min(1, (impact - HARD_LANDING) / 8 + 0.35); // squash
       const solid = island && ground.solid !== null ? island.solids[ground.solid] : null;
-      landing = { impact, solid };
+      landing = { impact, solid, drifted };
       // trampolines (course) and drums (island) fling you back up
       const boost =
         course && ground.platform !== null && course.platforms[ground.platform].behavior === "bounce"
