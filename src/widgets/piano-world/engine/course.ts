@@ -240,7 +240,9 @@ export const COURSES: Record<CourseId, CourseDef> = {
       // the last lift sits low enough that its peak stays under the finish line
       25: "bell", 26: "bell", 28: "lift", 29: "crumble",
     },
-  }, undefined, { every: 9, warn: 1.6, sweep: 1.4, band: 1.3, wall: 0.9 }),
+    // band 0.9: a jump in place (apex ≈ 1.28) clears it for ~0.3 s while the wall takes
+    // ~0.13 s to pass, so a timed jump dodges it — and so does one step up or down
+  }, undefined, { every: 7, warn: 1.6, sweep: 1.4, band: 0.9, wall: 0.9 }),
 };
 
 /** Key slab thickness, plus the dark case under it (both solid). */

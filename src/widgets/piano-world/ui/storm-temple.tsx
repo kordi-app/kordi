@@ -343,32 +343,50 @@ function Dragon() {
 }
 
 /**
- * The attack: a red band where the fire will sweep (while the dragon roars),
- * then the wall of fire crossing it. Drawn from the same runtime the hit test
- * reads, so the flames you see are the flames that burn.
+ * The attack: a red band where the fire will sweep, then the wall of fire
+ * crossing it. Drawn from the same runtime the hit test reads, so the flames
+ * you see are the flames that burn.
+ *
+ * Read at a glance: the band stays up until the wall has passed (no quiet gap
+ * between the warning and the hit), and a bright cap marks the end the fire
+ * comes from, so you know which way to watch and when to jump.
  */
 function FireBreath({ course }: { course: CourseDef }) {
   const band = useRef<THREE.Group>(null);
+  const haze = useRef<THREE.MeshBasicMaterial>(null);
+  const edges = useRef<THREE.MeshBasicMaterial[]>([]);
+  const cap = useRef<THREE.Mesh>(null);
+  const capMaterial = useRef<THREE.MeshBasicMaterial>(null);
   const wall = useRef<THREE.Group>(null);
   const glow = useRef<THREE.PointLight>(null);
   const dragon = course.dragon;
 
   useFrame(({ clock }) => {
+    if (!dragon) return;
     const breath = courseRuntime.breath;
     const t = courseRuntime.time;
     const x = fireX(course, t);
-    const warning = breath && dragon && x === null && t < breath.at + dragon.warn;
+    const fireAt = breath ? breath.at + dragon.warn : 0;
+    const warning = breath !== null && t < fireAt;
+    const active = breath !== null && t < fireAt + dragon.sweep;
+
     if (band.current) {
-      band.current.visible = Boolean(warning);
+      band.current.visible = active;
       if (breath) band.current.position.set(breath.x, breath.y, -1.3);
-      // pulsing faster as the fire nears
-      const left = breath && dragon ? breath.at + dragon.warn - t : 1;
-      const pulse = 0.5 + 0.5 * Math.sin(clock.getElapsedTime() * (10 + 20 * (1 - Math.max(0, left) / (dragon?.warn ?? 1))));
-      band.current.children.forEach((child, i) => {
-        const material = (child as THREE.Mesh).material as THREE.MeshBasicMaterial;
-        material.opacity = i === 0 ? 0.22 + 0.2 * pulse : 0.6 + 0.4 * pulse;
-      });
     }
+    // pulsing faster as the fire nears; once it's out, a steady, fainter line until it has passed
+    const left = Math.max(0, fireAt - t);
+    const pulse = warning ? 0.5 + 0.5 * Math.sin(clock.getElapsedTime() * (10 + 20 * (1 - left / dragon.warn))) : 0;
+    // faint inside, so the steps (and the bell stones' own warning glow) stay readable
+    if (haze.current) haze.current.opacity = warning ? 0.08 + 0.12 * pulse : 0.05;
+    for (const edge of edges.current) edge.opacity = warning ? 0.6 + 0.4 * pulse : 0.4;
+    if (cap.current && capMaterial.current) {
+      cap.current.visible = warning;
+      if (breath) cap.current.position.x = -breath.dir * FIRE_REACH;
+      capMaterial.current.opacity = 0.55 + 0.45 * pulse;
+      cap.current.scale.x = 1 + pulse * 0.6;
+    }
+
     if (wall.current) {
       wall.current.visible = x !== null;
       if (x !== null && breath) {
@@ -385,17 +403,30 @@ function FireBreath({ course }: { course: CourseDef }) {
   return (
     <>
       <group ref={band} visible={false}>
-        {/* a red haze over the band, with bright edges top and bottom */}
+        {/* a faint red haze over the band, with bright edges top and bottom */}
         <mesh>
           <boxGeometry args={[FIRE_REACH * 2, dragon.band * 2, 6]} />
-          <meshBasicMaterial color="#ff2a10" transparent opacity={0.3} depthWrite={false} toneMapped={false} />
+          <meshBasicMaterial ref={haze} color="#ff2a10" transparent opacity={0.1} depthWrite={false} toneMapped={false} />
         </mesh>
-        {[-1, 1].map((s) => (
+        {[-1, 1].map((s, i) => (
           <mesh key={s} position={[0, s * dragon.band, 3]}>
             <boxGeometry args={[FIRE_REACH * 2, 0.06, 0.06]} />
-            <meshBasicMaterial color="#ff5a2a" transparent opacity={0.8} toneMapped={false} />
+            <meshBasicMaterial
+              ref={(m) => {
+                if (m) edges.current[i] = m;
+              }}
+              color="#ff5a2a"
+              transparent
+              opacity={0.8}
+              toneMapped={false}
+            />
           </mesh>
         ))}
+        {/* the end the fire comes from: the wall appears here */}
+        <mesh ref={cap} visible={false}>
+          <boxGeometry args={[0.35, dragon.band * 2.2, 6.2]} />
+          <meshBasicMaterial ref={capMaterial} color="#ffb04a" transparent opacity={0.8} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+        </mesh>
       </group>
       <group ref={wall} visible={false}>
         {/* a hot core inside a wider, softer sheet of flame */}
