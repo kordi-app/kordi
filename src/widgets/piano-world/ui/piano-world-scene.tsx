@@ -19,14 +19,12 @@ import { useWorldControls } from "./hooks/use-world-controls";
 import type { CourseRecordMessage } from "../net/protocol";
 import { useWorldPresence } from "../net/use-world-presence";
 import { useWarpStones } from "./hooks/use-warp-stones";
-import { useSkyFound } from "./hooks/use-sky-found";
-import { useDreamSea } from "./hooks/use-dream-sea";
-import { useCave } from "./hooks/use-cave";
-import type { CaveEvent } from "../engine/cave";
+import { useSkyEvents } from "./hooks/use-sky-events";
+import { useDreamEvents } from "./hooks/use-dream-events";
+import { useCaveEvents } from "./hooks/use-cave-events";
+import type { WorldFeedback } from "./hooks/world-feedback";
 import { PlaceBanner, usePlaceBanner } from "./hud/place-banner";
-import { LOST_NOTES, SERVER_MIN_STAY_SECONDS, WHALE_SONG, dreamRuntime, type DreamEvent } from "../engine/dream-sea";
-import { midiToNoteName } from "@/shared/lib/music";
-import { PROGRESSION, openSky, skyNow, skyRuntime, syncSky, type SkyEvent } from "../engine/sky-island";
+import { LOST_NOTES } from "../engine/dream-sea";
 import { quality } from "./quality";
 import { CourseCard, DreamCard, MelodyCard } from "./hud/progress-cards";
 import { EmoteBar, InteractPrompt, SpeechBubble, WarpPrompt } from "./hud/interaction-hud";
@@ -62,15 +60,7 @@ export default function PianoWorldScene({
 
   const { region, regionRef, arrival, fading, travel, warp } = useRegionTravel();
   const { awake, wake } = useWarpStones();
-  const { found: skyFound, markFound: markSkyFound } = useSkyFound();
-  const dreamSea = useDreamSea();
-  const { markFound: markDreamFound, adoptGuestWhale } = dreamSea;
-  const cave = useCave();
-  const { markFound: markCaveFound, takeGuestNecklace } = cave;
   const { banner, show: showBanner } = usePlaceBanner();
-  /** notes found on this visit to the dream sea (for the card) */
-  const [dreamNotes, setDreamNotes] = useState(0);
-  const [whaleSang, setWhaleSang] = useState(false);
   /** the warp stone in reach, if any (the island only) */
   const [warpNearby, setWarpNearbyState] = useState<WarpStoneId | null>(null);
   /** the melody card only shows on the keyboard plaza */
@@ -111,19 +101,13 @@ export default function PianoWorldScene({
   const interactions = useInteractions(copy, audioApi, bumpCelebrate);
   const { interact, nearbyRef, panelRef, setPanel, setNearby, say, reset: resetInteractions } = interactions;
 
-  /** Someone in the channel rang the midnight bell (or I joined while the stars were out). */
-  const handleRemoteBell = useCallback(
-    (leftMs: number, rung: boolean) => {
-      if (!rung) {
-        syncSky(skyNow(), leftMs / 1000);
-        return;
-      }
-      const opened = openSky(skyNow(), leftMs / 1000, true);
-      towerBell(opened ? 12 : 1);
-      if (opened) say(copy.skyOpened);
-    },
-    [towerBell, say, copy],
+  /** how each region's events answer the player (sounds, a line, confetti) */
+  const feedback = useMemo<WorldFeedback>(
+    () => ({ copy, audio: { voice, progression, towerBell, warpEffect }, say, celebrate: bumpCelebrate }),
+    [copy, voice, progression, towerBell, warpEffect, say, bumpCelebrate],
   );
+  const sky = useSkyEvents(feedback);
+
   /** The server gave me a reward item (members: the whale, the necklace): fetch my look, which now has it on. */
   const handleReward = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: characterQueries.me().queryKey });
@@ -137,37 +121,16 @@ export default function PianoWorldScene({
     sendBall,
     sendWhale,
     sendCave,
-  } = useWorldPresence(name, region.id, !isGuest, handleRecord, handleRemoteBell, handleReward);
+  } = useWorldPresence(name, region.id, !isGuest, handleRecord, sky.handleRemoteBell, handleReward);
 
   /** I rang the bell: by day one stroke; at night midnight's twelve, and the channel hears it too. */
+  const { ring } = sky;
   const handleBell = useCallback(
     (midnight: boolean, opened: boolean) => {
-      towerBell(opened ? 12 : 1);
-      if (opened) say(copy.skyOpened);
+      ring(opened);
       if (midnight) sendBell();
     },
-    [towerBell, say, copy, sendBell],
-  );
-
-  const handleSky = useCallback(
-    (event: SkyEvent) => {
-      switch (event.kind) {
-        case "pad":
-          voice("crystal", event.midi, 0.7);
-          break;
-        case "constellation":
-          // the last one's chord is the start of the orrery's progression instead
-          if (!skyRuntime.done.every(Boolean)) progression([PROGRESSION[event.index]]);
-          break;
-        case "finished":
-          progression(PROGRESSION);
-          markSkyFound();
-          bumpCelebrate();
-          say(copy.skyFound);
-          break;
-      }
-    },
-    [voice, progression, markSkyFound, bumpCelebrate, say, copy],
+    [ring, sendBell],
   );
 
   const openWarp = useCallback(() => {
@@ -224,112 +187,41 @@ export default function PianoWorldScene({
   });
 
   const { handlePlatform: handleCoursePlatform, enter: enterCourse } = course;
-  /** the whale carrying you home from the dream sea (cancelled by any trip, so it can't fire on a later visit) */
-  const homeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  /** telling the server the whale sang, held back until it will believe it */
-  const whaleTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  useEffect(
-    () => () => {
-      clearTimeout(homeTimer.current);
-      clearTimeout(whaleTimer.current);
-    },
-    [],
-  );
-  /** a member took the necklace and the server hasn't answered yet (see the effect below) */
-  const [necklacePending, setNecklacePending] = useState(false);
-  /** whether I carry the cosmic crown's light, for callbacks that shouldn't re-subscribe to my look */
-  const crownedRef = useRef(false);
-  /** when I reached the dream sea (its socket opens with the region) */
-  const dreamArrivedAt = useRef(0);
-  useEffect(() => {
-    if (region.dream) dreamArrivedAt.current = performance.now();
-  }, [region.dream]);
+  // Members wear what they chose (and earned) on the server; guests wear the best crown
+  // they've earned in this browser, put on automatically
+  const { data: character } = useQuery({ ...characterQueries.me(), enabled: !isGuest });
+  const rewards = isGuest ? course.localRewards : (character?.unlocked ?? NO_REWARDS);
+  const memberAppearance = character?.appearance;
+  const inCave = region.cave === true;
+  // guests don't pick a hat: owning the cosmic crown is enough (they put it on in the cave)
+  const cosmicCrown = isGuest ? rewards.includes("star-crown") : memberAppearance?.hat === "star-crown";
+
+  const cave = useCaveEvents(feedback, { isGuest, inCave, cosmicCrown, rewards, sendCave, showBanner });
+  /** the portal hop, for the whale carrying you home (handlePortal is defined below) */
+  const portalRef = useRef<(to: RegionId) => void>(() => {});
+  const carryHome = useCallback(() => {
+    if (regionRef.current.dream) portalRef.current("hall");
+  }, [regionRef]);
+  const dream = useDreamEvents(feedback, { isGuest, sendWhale, carryHome });
+
+  const { leave: leaveDream, enter: enterDream } = dream;
+  const { enter: enterCave } = cave;
   const handlePortal = useCallback(
     (to: RegionId) =>
       travel(to, (next) => {
-        clearTimeout(homeTimer.current);
-        clearTimeout(whaleTimer.current);
+        leaveDream();
         silence();
         resetInteractions();
         if (next.course) enterCourse(next.course);
-        if (next.dream) {
-          // you found the cat's way in: from now on a link (or the pawprints) can bring you back
-          markDreamFound();
-          setDreamNotes(0);
-          setWhaleSang(false);
-          warpEffect("arrive");
-        }
-        if (next.cave) {
-          // you walked through the wall: a link can bring you back from now on
-          markCaveFound();
-          warpEffect("arrive");
-          showBanner(copy.regions.cave, crownedRef.current ? copy.caveLit : copy.caveDark, "place");
-        }
+        if (next.dream) enterDream();
+        if (next.cave) enterCave();
         if (isOn()) switchInstrument(next.instrument);
       }),
-    [travel, silence, resetInteractions, isOn, switchInstrument, enterCourse, markDreamFound, markCaveFound, warpEffect, showBanner, copy],
+    [travel, leaveDream, silence, resetInteractions, enterCourse, enterDream, enterCave, isOn, switchInstrument],
   );
-
-  /** In the cave: a star rest woken, a fall into the abyss, the necklace taken. */
-  const handleCave = useCallback(
-    (event: CaveEvent) => {
-      switch (event.kind) {
-        case "rest":
-          voice("crystal", 76, 0.6);
-          setTimeout(() => voice("crystal", 83, 0.5), 180);
-          say(copy.caveRest);
-          return;
-        case "fell":
-          voice("bell", 38, 0.35);
-          return;
-        case "necklace": {
-          // a slow golden arpeggio as it settles on you
-          progression([[62, 66, 69, 74]]);
-          bumpCelebrate();
-          showBanner(copy.necklaceTitle, isGuest ? `${copy.necklaceFound} · ${copy.necklaceGuestNote}` : copy.necklaceFound, "treasure");
-          // the world only hands it over once the server will believe it; members tell it now
-          if (isGuest) takeGuestNecklace();
-          else setNecklacePending(true);
-        }
-      }
-    },
-    [voice, say, copy, progression, bumpCelebrate, showBanner, isGuest, takeGuestNecklace],
-  );
-
-  /** In the dream sea: a lost note found, or the whale come to sing (and carry you home). */
-  const handleDream = useCallback(
-    (event: DreamEvent) => {
-      if (event.kind === "note") {
-        voice("crystal", event.midi, 0.85);
-        const found = dreamRuntime.found.filter(Boolean).length;
-        setDreamNotes(found);
-        say(found >= LOST_NOTES.length ? copy.dreamReady : copy.dreamNote.replace("{note}", midiToNoteName(event.midi)));
-        return;
-      }
-      setWhaleSang(true);
-      // the whale sings its song whole again, low and slow
-      progression(WHALE_SONG.map((midi) => [midi - 24, midi]));
-      bumpCelebrate();
-      if (isGuest) adoptGuestWhale();
-      say(isGuest ? `${copy.whaleSings} · ${copy.petGuestNote}` : copy.whaleSings);
-      // members: the server only believes it after a minute here (plus a margin for lag)
-      const wait = Math.max(0, SERVER_MIN_STAY_SECONDS * 1000 + 1500 - (performance.now() - dreamArrivedAt.current));
-      clearTimeout(whaleTimer.current);
-      whaleTimer.current = setTimeout(sendWhale, wait);
-      // then it carries you home (never before the server has heard)
-      clearTimeout(homeTimer.current);
-      homeTimer.current = setTimeout(
-        () => {
-          if (regionRef.current.dream) {
-            warpEffect("depart");
-            handlePortal("hall");
-          }
-        },
-        Math.max(11_000, wait + 1500),
-      );
-    },
-    [voice, say, copy, progression, bumpCelebrate, sendWhale, isGuest, adoptGuestWhale, regionRef, warpEffect, handlePortal],
-  );
+  useEffect(() => {
+    portalRef.current = handlePortal;
+  }, [handlePortal]);
 
   /** The cat settled on its spot: a soft two-note mew, for anyone near enough to wonder why. */
   const handleCatSignal = useCallback(() => {
@@ -367,10 +259,10 @@ export default function PianoWorldScene({
       onNearKeys: setNearKeys,
       onDragon: dragonEffect,
       onBell: handleBell,
-      onSky: handleSky,
-      onDream: handleDream,
+      onSky: sky.handleSky,
+      onDream: dream.handleDream,
       onCatSignal: handleCatSignal,
-      onCave: handleCave,
+      onCave: cave.handleCave,
     }),
     [
       handleStep,
@@ -385,21 +277,15 @@ export default function PianoWorldScene({
       handleWarpNearby,
       dragonEffect,
       handleBell,
-      handleSky,
-      handleDream,
+      sky.handleSky,
+      dream.handleDream,
       handleCatSignal,
-      handleCave,
+      cave.handleCave,
     ],
   );
 
-  // Members wear what they chose (and earned) on the server; guests wear the best crown
-  // they've earned in this browser, put on automatically
-  const { data: character } = useQuery({ ...characterQueries.me(), enabled: !isGuest });
-  const rewards = isGuest ? course.localRewards : (character?.unlocked ?? NO_REWARDS);
-  const guestWhale = dreamSea.guestWhale;
+  const guestWhale = dream.guestWhale;
   const guestNecklace = cave.guestNecklace;
-  const memberAppearance = character?.appearance;
-  const inCave = region.cave === true;
   const appearance = useMemo<Appearance>(
     () =>
       isGuest
@@ -417,26 +303,12 @@ export default function PianoWorldScene({
         : (memberAppearance ?? DEFAULT_APPEARANCE),
     [isGuest, rewards, guestWhale, guestNecklace, memberAppearance, inCave],
   );
-  const hasNecklace = isGuest ? guestNecklace : rewards.includes("gold-necklace");
-  // guests don't pick a hat: owning the cosmic crown is enough (they put it on in the cave)
-  const cosmicCrown = isGuest ? rewards.includes("star-crown") : appearance.hat === "star-crown";
-  useEffect(() => {
-    crownedRef.current = cosmicCrown;
-  }, [cosmicCrown]);
-  // a member's take: tell the server, and keep telling it while still in the cave until the
-  // necklace shows up in my unlocks. The server checks where it last heard I was, which can lag
-  // a step behind (positions go out 10×/s), so it may say no at first; a dropped connection or a
-  // fresh socket it doesn't trust yet too. Leave and come back, and the altar offers it again.
-  useEffect(() => {
-    if (!necklacePending || !inCave || hasNecklace) return;
-    sendCave();
-    const retry = setInterval(sendCave, 1_000);
-    return () => clearInterval(retry);
-  }, [necklacePending, inCave, hasNecklace, sendCave]);
+  const hasNecklace = cave.hasNecklace;
 
   const target = region.feature === "melody" ? melody.target : null;
   const interactionScene = interactions.scene;
-  const dreamFound = dreamSea.found;
+  const { dreamFound } = dream;
+  const { skyFound } = sky;
   // memoized so a HUD-only re-render doesn't hand the 3D world a new object
   const display = useMemo<WorldDisplay>(
     () => ({
@@ -500,7 +372,7 @@ export default function PianoWorldScene({
         <MelodyCard melody={melody.melody} progress={melody.progress} copy={copy} />
       ) : null}
       {region.feature === "course" ? <CourseCard run={course.run} isGuest={isGuest} copy={copy} /> : null}
-      {region.dream ? <DreamCard found={dreamNotes} total={LOST_NOTES.length} sung={whaleSang} copy={copy} /> : null}
+      {region.dream ? <DreamCard found={dream.notes} total={LOST_NOTES.length} sung={dream.sang} copy={copy} /> : null}
       <PlaceBanner banner={banner} />
       <NoteDisplay store={audio.noteStore} />
       <NameChip name={name} isGuest={isGuest} onReroll={rerollName} copy={copy} />
