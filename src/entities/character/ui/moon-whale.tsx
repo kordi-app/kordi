@@ -24,8 +24,8 @@ const SHARED = {
 };
 const INK = new THREE.MeshStandardMaterial({ color: "#1d1b2e", roughness: 0.3 });
 
-/** Behind the right shoulder, a little above the head */
-const HOME = new THREE.Vector3(-0.75, 1.55, -0.35);
+/** Behind the right shoulder, above the head (clear of any hat, from the side too) */
+const HOME = new THREE.Vector3(-0.8, 1.85, -0.45);
 const SPARKS = 7;
 
 export function MoonWhale({

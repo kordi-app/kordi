@@ -230,7 +230,9 @@ const NOTE_LINES: readonly [number, number][] = [
   [6, 7],
 ];
 /** Where the note hangs: past the island's back edge, low enough to be in view from up there */
-const NOTE_AT = { x: SKY_ISLAND.x, y: SKY_ISLAND.top + 1.8, z: SKY_ISLAND.z - SKY_ISLAND.radius - 4 };
+const NOTE_AT = { x: SKY_ISLAND.x, y: SKY_ISLAND.top - 0.5, z: SKY_ISLAND.z - SKY_ISLAND.radius - 3 };
+/** big enough to read from the island (~6 units tall), low enough to stay in view */
+const NOTE_SCALE = 1.7;
 
 function NoteConstellation({ found }: { found: boolean }) {
   const group = useRef<THREE.Group>(null);
@@ -246,18 +248,22 @@ function NoteConstellation({ found }: { found: boolean }) {
   return (
     <group ref={group} position={[NOTE_AT.x, NOTE_AT.y, NOTE_AT.z]} visible={false}>
       {NOTE_STARS.map(([x, y], i) => (
-        <mesh key={i} position={[x * 1.4, y * 1.4, 0]}>
-          <octahedronGeometry args={[0.16, 0]} />
+        <mesh key={i} position={[x * NOTE_SCALE, y * NOTE_SCALE, 0]}>
+          <octahedronGeometry args={[0.32, 0]} />
           <meshBasicMaterial color={STAR_GOLD} toneMapped={false} />
         </mesh>
       ))}
       {NOTE_LINES.map(([from, to]) => {
         const [ax, ay] = NOTE_STARS[from];
         const [bx, by] = NOTE_STARS[to];
-        const length = Math.hypot(bx - ax, by - ay) * 1.4;
+        const length = Math.hypot(bx - ax, by - ay) * NOTE_SCALE;
         return (
-          <mesh key={`${from}-${to}`} position={[((ax + bx) / 2) * 1.4, ((ay + by) / 2) * 1.4, 0]} rotation={[0, 0, Math.atan2(by - ay, bx - ax)]}>
-            <boxGeometry args={[length, 0.03, 0.03]} />
+          <mesh
+            key={`${from}-${to}`}
+            position={[((ax + bx) / 2) * NOTE_SCALE, ((ay + by) / 2) * NOTE_SCALE, 0]}
+            rotation={[0, 0, Math.atan2(by - ay, bx - ax)]}
+          >
+            <boxGeometry args={[length, 0.07, 0.07]} />
             <meshBasicMaterial color={STAR_GOLD} transparent opacity={0.55} toneMapped={false} />
           </mesh>
         );

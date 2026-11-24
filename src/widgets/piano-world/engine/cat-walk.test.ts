@@ -14,6 +14,17 @@ describe("the cat's secret spot", () => {
       expect(gap, `solid at ${f.x}, ${f.z}`).toBeGreaterThan(2);
     }
     expect(Math.abs(SECRET_SPOT.x)).toBeLessThan(ISLAND_BOUNDS.x);
+  });
+
+  it("can be seen: nothing tall between it and the camera (which follows from +z)", () => {
+    for (const solid of [...ISLAND_SOLIDS, ...NATURE_SOLIDS]) {
+      if (solid.top < 1.2) continue;
+      const f = solid.foot;
+      const r = f.shape === "circle" ? f.r : Math.max(f.w, f.d) / 2;
+      const dx = Math.abs(f.x - SECRET_SPOT.x) - r;
+      const dz = f.z - SECRET_SPOT.z;
+      expect(dx < 2.5 && dz > -r && dz < 16, `solid at ${f.x}, ${f.z} hides the spot`).toBe(false);
+    }
     expect(SECRET_SPOT.z).toBeLessThan(ISLAND_BOUNDS.zMax - 2);
   });
 

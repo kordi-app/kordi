@@ -11,8 +11,8 @@ import { SPAWN } from "./layout";
  * same walk at the same time.
  */
 
-/** The spot: an unremarkable stretch of meadow south-west of the keys */
-export const SECRET_SPOT = { x: -28, z: 32 };
+/** The spot: an unremarkable stretch of open meadow south of the keys (nothing tall between it and the camera, so you can see the cat sit) */
+export const SECRET_SPOT = { x: -11, z: 30 };
 /** How close to it you must sit */
 export const SECRET_REACH = 1.1;
 /** ...and for how long */
