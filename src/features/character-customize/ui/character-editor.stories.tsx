@@ -5,7 +5,7 @@ import { CharacterEditor } from "./character-editor";
 const ME = ["character", "me"] as const;
 
 const withCrown: MyCharacter = {
-  appearance: { body: "mint", hat: "crown", face: "smile", accessory: null },
+  appearance: { body: "mint", hat: "crown", face: "smile", accessory: null, pet: null },
   unlocked: ["crown"],
 };
 
@@ -24,13 +24,13 @@ export const CrownUnlocked: Story = {};
 
 export const Fresh: Story = {
   parameters: {
-    queries: [[ME, { appearance: { body: "cream", hat: null, face: "default", accessory: null }, unlocked: [] }]],
+    queries: [[ME, { appearance: { body: "cream", hat: null, face: "default", accessory: null, pet: null }, unlocked: [] }]],
   },
 };
 
 export const AllRewards: Story = {
   parameters: {
-    queries: [[ME, { appearance: { body: "lilac", hat: "star-crown", face: "sparkle", accessory: "glasses" }, unlocked: ["crown", "star-crown"] }]],
+    queries: [[ME, { appearance: { body: "lilac", hat: "star-crown", face: "sparkle", accessory: "glasses", pet: null }, unlocked: ["crown", "star-crown"] }]],
   },
 };
 

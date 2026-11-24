@@ -20,9 +20,12 @@ import type { CourseRecordMessage } from "../net/protocol";
 import { useWorldPresence } from "../net/use-world-presence";
 import { useWarpStones } from "./hooks/use-warp-stones";
 import { useSkyFound } from "./hooks/use-sky-found";
+import { useDreamSea } from "./hooks/use-dream-sea";
+import { LOST_NOTES, WHALE_SONG, dreamRuntime, type DreamEvent } from "../engine/dream-sea";
+import { midiToNoteName } from "@/shared/lib/music";
 import { PROGRESSION, openSky, skyNow, skyRuntime, type SkyEvent } from "../engine/sky-island";
 import { quality } from "./quality";
-import { CourseCard, MelodyCard } from "./hud/progress-cards";
+import { CourseCard, DreamCard, MelodyCard } from "./hud/progress-cards";
 import { EmoteBar, InteractPrompt, SpeechBubble, WarpPrompt } from "./hud/interaction-hud";
 import { NameChip, NoteDisplay, RegionLabel, StatusStack } from "./hud/status";
 import { TouchControls } from "./hud/touch-controls";
@@ -52,6 +55,10 @@ export default function PianoWorldScene({
   const { region, regionRef, arrival, fading, travel, warp } = useRegionTravel();
   const { awake, wake } = useWarpStones();
   const { found: skyFound, markFound: markSkyFound } = useSkyFound();
+  const dreamSea = useDreamSea();
+  const { markFound: markDreamFound, adoptGuestWhale } = dreamSea;
+  /** notes found on this visit to the dream sea (for the card) */
+  const [dreamNotes, setDreamNotes] = useState(0);
   /** the warp stone in reach, if any (the island only) */
   const [warpNearby, setWarpNearbyState] = useState<WarpStoneId | null>(null);
   /** the melody card only shows on the keyboard plaza */
@@ -102,12 +109,17 @@ export default function PianoWorldScene({
     },
     [towerBell, say, copy],
   );
+  /** The server gave me a pet (members): fetch my look, which now has it on. */
+  const handlePet = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: characterQueries.me().queryKey });
+  }, [queryClient]);
   const {
     remotes,
     info: presenceInfo,
     sendPosition,
     sendBell,
-  } = useWorldPresence(name, region.id, !isGuest, handleRecord, handleRemoteBell);
+    sendWhale,
+  } = useWorldPresence(name, region.id, !isGuest, handleRecord, handleRemoteBell, handlePet);
 
   /** I rang the bell: by day one stroke; at night midnight's twelve, and the channel hears it too. */
   const handleBell = useCallback(
@@ -200,10 +212,52 @@ export default function PianoWorldScene({
         silence();
         resetInteractions();
         if (next.course) enterCourse(next.course);
+        if (next.dream) {
+          // you found the cat's way in: from now on a link (or the pawprints) can bring you back
+          markDreamFound();
+          setDreamNotes(0);
+          warpEffect("arrive");
+        }
         if (isOn()) switchInstrument(next.instrument);
       }),
-    [travel, silence, resetInteractions, isOn, switchInstrument, enterCourse],
+    [travel, silence, resetInteractions, isOn, switchInstrument, enterCourse, markDreamFound, warpEffect],
   );
+
+  /** In the dream sea: a lost note found, or the whale come to sing (and carry you home). */
+  const homeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(homeTimer.current), []);
+  const handleDream = useCallback(
+    (event: DreamEvent) => {
+      if (event.kind === "note") {
+        voice("crystal", event.midi, 0.85);
+        const found = dreamRuntime.found.filter(Boolean).length;
+        setDreamNotes(found);
+        say(found >= LOST_NOTES.length ? copy.dreamReady : copy.dreamNote.replace("{note}", midiToNoteName(event.midi)));
+        return;
+      }
+      // the whale sings its song whole again, low and slow
+      progression(WHALE_SONG.map((midi) => [midi - 24, midi]));
+      bumpCelebrate();
+      sendWhale();
+      if (isGuest) adoptGuestWhale();
+      say(isGuest ? `${copy.whaleSings} · ${copy.petGuestNote}` : copy.whaleSings);
+      // then it carries you home
+      clearTimeout(homeTimer.current);
+      homeTimer.current = setTimeout(() => {
+        if (regionRef.current.dream) {
+          warpEffect("depart");
+          handlePortal("hall");
+        }
+      }, 11_000);
+    },
+    [voice, say, copy, progression, bumpCelebrate, sendWhale, isGuest, adoptGuestWhale, regionRef, warpEffect, handlePortal],
+  );
+
+  /** The cat settled on its spot: a soft two-note mew, for anyone near enough to wonder why. */
+  const handleCatSignal = useCallback(() => {
+    voice("crystal", 79, 0.45);
+    setTimeout(() => voice("crystal", 74, 0.4), 260);
+  }, [voice]);
 
   const handlePlatform = useCallback(
     (index: number | null) => {
@@ -234,6 +288,8 @@ export default function PianoWorldScene({
       onDragon: dragonEffect,
       onBell: handleBell,
       onSky: handleSky,
+      onDream: handleDream,
+      onCatSignal: handleCatSignal,
     }),
     [
       handleStep,
@@ -249,6 +305,8 @@ export default function PianoWorldScene({
       dragonEffect,
       handleBell,
       handleSky,
+      handleDream,
+      handleCatSignal,
     ],
   );
 
@@ -261,6 +319,7 @@ export default function PianoWorldScene({
         ...DEFAULT_APPEARANCE,
         // the best crown earned: the storm temple's, then the night's, then the clouds'
         hat: (["flame-crown", "star-crown", "crown"] as const).find((hat) => rewards.includes(hat)) ?? null,
+        pet: dreamSea.guestWhale ? "moon-whale" : null,
       }
     : (character?.appearance ?? DEFAULT_APPEARANCE);
 
@@ -273,6 +332,7 @@ export default function PianoWorldScene({
     celebrate,
     awake,
     skyFound,
+    dreamFound: dreamSea.found,
   };
 
   const { panel } = interactions;
@@ -312,6 +372,7 @@ export default function PianoWorldScene({
         <MelodyCard melody={melody.melody} progress={melody.progress} copy={copy} />
       ) : null}
       {region.feature === "course" ? <CourseCard run={course.run} isGuest={isGuest} copy={copy} /> : null}
+      {region.dream ? <DreamCard found={dreamNotes} total={LOST_NOTES.length} copy={copy} /> : null}
       <NoteDisplay note={audio.note} />
       <NameChip name={name} isGuest={isGuest} onReroll={rerollName} copy={copy} />
       <EmoteBar emote={emote} onToggle={toggleEmote} copy={copy} />

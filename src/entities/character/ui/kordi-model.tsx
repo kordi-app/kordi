@@ -1,11 +1,12 @@
 "use client";
 
-import { forwardRef, useRef, type MutableRefObject } from "react";
+import { forwardRef, useRef, type MutableRefObject, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { BODY_COLORS, DEFAULT_APPEARANCE } from "../model/catalog";
 import type { Appearance, BodyColor, KordiEmote } from "../model/types";
 import { Accessory, Eyes, Hat } from "./character-parts";
+import { MoonWhale } from "./moon-whale";
 
 export interface KordiMotion {
   /** Walk-cycle phase; advances while moving. */
@@ -71,8 +72,14 @@ function bodySkin(color: BodyColor) {
  */
 export const KordiModel = forwardRef<
   THREE.Group,
-  { motion: MutableRefObject<KordiMotion>; scale?: number; appearance?: Appearance }
->(function KordiModel({ motion, scale = 1, appearance = DEFAULT_APPEARANCE }, ref) {
+  {
+    motion: MutableRefObject<KordiMotion>;
+    scale?: number;
+    appearance?: Appearance;
+    /** 0–1 (or a ref to it): how dark it is around Kordi (a pet glows at night) */
+    glow?: number | RefObject<number>;
+  }
+>(function KordiModel({ motion, scale = 1, appearance = DEFAULT_APPEARANCE, glow = 0 }, ref) {
   const skin = bodySkin(appearance.body);
   const leftFoot = useRef<THREE.Mesh>(null);
   const rightFoot = useRef<THREE.Mesh>(null);
@@ -186,6 +193,8 @@ export const KordiModel = forwardRef<
 
       </group>
       </group>
+      {/* the pet swims alongside, untouched by the body's squash and lean */}
+      {appearance.pet === "moon-whale" ? <MoonWhale motion={motion} glow={glow} /> : null}
     </group>
   );
 });

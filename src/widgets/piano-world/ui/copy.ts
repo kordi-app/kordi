@@ -53,6 +53,14 @@ export interface PianoWorldCopy {
   nightHint: string;
   ruinsTitle: string;
   ruinsHint: string;
+  // the dream sea
+  dreamTitle: string;
+  dreamHint: string;
+  dreamReady: string;
+  /** "{note}" is filled in */
+  dreamNote: string;
+  whaleSings: string;
+  petGuestNote: string;
   courseBest: string;
   courseDone: string;
   // warp stones

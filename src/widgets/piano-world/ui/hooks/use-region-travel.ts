@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Arrival } from "../../engine/physics";
 import { REGIONS, arrivalPoint, isRegionId, type RegionDef, type RegionId } from "../../engine/regions";
 import { readCourseBest } from "./course-record";
+import { dreamFoundBefore } from "./use-dream-sea";
 
 const FADE_MS = 260;
 
@@ -21,6 +22,8 @@ function initialRegion(): RegionId {
   // each later course opens once the one before it is cleared: fall back to the first that isn't
   if (param === "ruins" && readCourseBest("night") === null) return readCourseBest("clouds") === null ? "clouds" : "night";
   if (param === "night" && readCourseBest("clouds") === null) return "clouds";
+  // the cat's dream sea can't be linked to until you've found the way in yourself
+  if (param === "whale" && !dreamFoundBefore()) return "hall";
   return param;
 }
 

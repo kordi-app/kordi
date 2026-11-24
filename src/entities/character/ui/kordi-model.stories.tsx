@@ -28,27 +28,32 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {};
 
 export const HeadphonesScarf: Story = {
-  args: { appearance: { body: "sky", hat: "headphones", face: "smile", accessory: "scarf" } },
+  args: { appearance: { body: "sky", hat: "headphones", face: "smile", accessory: "scarf", pet: null } },
 };
 
 export const BeretGlasses: Story = {
-  args: { appearance: { body: "cocoa", hat: "beret", face: "default", accessory: "glasses" } },
+  args: { appearance: { body: "cocoa", hat: "beret", face: "default", accessory: "glasses", pet: null } },
 };
 
 export const FlowerSleepy: Story = {
-  args: { appearance: { body: "pink", hat: "flower", face: "sleepy", accessory: null } },
+  args: { appearance: { body: "pink", hat: "flower", face: "sleepy", accessory: null, pet: null } },
 };
 
 export const RibbonBowtie: Story = {
-  args: { appearance: { body: "lilac", hat: "ribbon", face: "sparkle", accessory: "bowtie" } },
+  args: { appearance: { body: "lilac", hat: "ribbon", face: "sparkle", accessory: "bowtie", pet: null } },
 };
 
 export const GoldCrown: Story = {
-  args: { appearance: { body: "lemon", hat: "crown", face: "sparkle", accessory: null } },
+  args: { appearance: { body: "lemon", hat: "crown", face: "sparkle", accessory: null, pet: null } },
 };
 
 export const StarCrown: Story = {
-  args: { appearance: { body: "mint", hat: "star-crown", face: "smile", accessory: "scarf" } },
+  args: { appearance: { body: "mint", hat: "star-crown", face: "smile", accessory: "scarf", pet: null } },
+};
+
+/** The baby moon-whale, from the cat's dream sea, swimming by the shoulder. */
+export const MoonWhalePet: Story = {
+  args: { appearance: { body: "sky", hat: null, face: "smile", accessory: null, pet: "moon-whale" }, glow: 1 },
 };
 
 /** Walking pose is driven by `motion`; this one is frozen mid-wave. */

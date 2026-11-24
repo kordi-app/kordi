@@ -10,6 +10,7 @@ import {
   BODY_IDS,
   FACE_IDS,
   HAT_IDS,
+  PET_IDS,
   isRewardHat,
   characterQueries,
   type Appearance,
@@ -130,6 +131,27 @@ function Editor({ saved }: { saved: MyCharacter }) {
               {t(`accessory.${accessory}`)}
             </Choice>
           ))}
+        </Section>
+
+        <Section title={t("sections.pet")}>
+          <Choice selected={!draft.pet} onSelect={() => set({ pet: null })}>
+            {t("none")}
+          </Choice>
+          {/* every pet is earned; one you haven't met yet shows only as a hint */}
+          {PET_IDS.map((pet) =>
+            unlocked.has(pet) ? (
+              <Choice key={pet} selected={draft.pet === pet} onSelect={() => set({ pet })}>
+                {t(`pet.${pet}`)}
+              </Choice>
+            ) : (
+              <span
+                key={pet}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-dashed border-border px-3 text-sm text-muted-foreground"
+              >
+                {t(`petHint.${pet}`)}
+              </span>
+            ),
+          )}
         </Section>
 
         <div className="flex gap-2">

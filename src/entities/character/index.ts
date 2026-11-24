@@ -6,6 +6,8 @@ export type {
   HatId,
   KordiEmote,
   MyCharacter,
+  PetId,
+  RewardId,
 } from "./model/types";
 export {
   ACCESSORY_IDS,
@@ -14,6 +16,7 @@ export {
   DEFAULT_APPEARANCE,
   FACE_IDS,
   HAT_IDS,
+  PET_IDS,
   REWARD_HATS,
   isRewardHat,
 } from "./model/catalog";

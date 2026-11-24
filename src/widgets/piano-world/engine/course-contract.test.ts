@@ -38,7 +38,7 @@ const SERVER_COURSES: Record<string, { goalY: number }> = {
 
 // kordi server src/main/java/com/kordi_api/world/WorldLobby.java
 /** WorldLobby.REGIONS */
-const SERVER_REGIONS = ["hall", "neon", "cathedral", "lounge", "clouds", "night", "ruins"];
+const SERVER_REGIONS = ["hall", "neon", "cathedral", "lounge", "clouds", "night", "ruins", "whale"];
 /** WorldLobby.EMOTES */
 const SERVER_EMOTES = ["wave", "clap", "dance", "sit"];
 

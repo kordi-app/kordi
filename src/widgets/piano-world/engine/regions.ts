@@ -2,6 +2,8 @@ import type { InstrumentId } from "@/shared/lib/audio";
 import { BOUNDS, SPAWN, WHITE_L, keySpan, type KeyRange } from "./layout";
 import { COURSES, goalSpots, type CourseDef } from "./course";
 import { CAVE_PORTAL, ISLAND_BOUNDS } from "./island";
+import { SECRET_SPOT } from "./cat-walk";
+import { DREAM_ARRIVAL, DREAM_BOUNDS, DREAM_HOME } from "./dream-sea";
 
 /**
  * The piano world is a hub (the Grand Hall) with portals out to themed
@@ -11,7 +13,7 @@ import { CAVE_PORTAL, ISLAND_BOUNDS } from "./island";
  * optionally, decor), not a scene change.
  */
 
-export const REGION_IDS = ["hall", "neon", "cathedral", "lounge", "clouds", "night", "ruins"] as const;
+export const REGION_IDS = ["hall", "neon", "cathedral", "lounge", "clouds", "night", "ruins", "whale"] as const;
 export type RegionId = (typeof REGION_IDS)[number];
 
 export function isRegionId(value: unknown): value is RegionId {
@@ -51,6 +53,11 @@ export interface PortalDef {
   hidden?: boolean;
   /** Where you appear coming back through it (default: beside it) */
   arrive?: { x: number; z: number };
+  /**
+   * Never drawn and never walked through: only a place to arrive at. The way
+   * in is something else (the dream sea's: sitting on the cat's spot).
+   */
+  secret?: boolean;
 }
 
 /**
@@ -60,8 +67,9 @@ export interface PortalDef {
  * - echo: steps ripple and the organ rings on after you leave a key
  * - jazz: a trio plays ii–V–I; whatever key you step on, your line joins on vibraphone
  * - course: a jump climb (no keyboard floor; see course.ts)
+ * - dream: the cat's dream sea — no keys, a sea of stars and a whale's lost song (dream-sea.ts)
  */
-export type RegionFeature = "melody" | "springs" | "echo" | "jazz" | "course";
+export type RegionFeature = "melody" | "springs" | "echo" | "jazz" | "course" | "dream";
 
 export interface RegionDef {
   id: RegionId;
@@ -75,6 +83,8 @@ export interface RegionDef {
   course?: CourseDef;
   /** The open island around the keyboard (the hall): terrain, zones, day and night */
   island?: boolean;
+  /** The cat's dream sea: its own terrain over a floor of stars, no keyboard */
+  dream?: boolean;
   /** Background music that plays while you're here (steps then join in) */
   music?: "house" | "jazz";
   /**
@@ -102,6 +112,8 @@ const HALL_PORTALS: PortalDef[] = [
     hidden: true,
     arrive: { x: CAVE_PORTAL.x, z: CAVE_PORTAL.z + 3 },
   },
+  // the cat's secret: nothing here to see or walk into (cat-walk.ts) — you come back out on the spot
+  { to: "whale", ...SECRET_SPOT, color: "#9fb8ff", secret: true, arrive: { x: SECRET_SPOT.x + 1.8, z: SECRET_SPOT.z + 1.2 } },
 ];
 
 /** Three octaves round middle C (C3–C6): plenty of floor to dance on with a band. */
@@ -334,6 +346,34 @@ export const REGIONS: Record<RegionId, RegionDef> = {
       sunColor: "#ffbf7a",
       dark: true,
       accent: "#ffb35a",
+    },
+  },
+  // the cat's dream: a night sea of stars, reached only by sitting where the cat sits
+  whale: {
+    id: "whale",
+    instrument: "synth-pad",
+    feature: "dream",
+    dream: true,
+    camera: DEFAULT_CAMERA,
+    bounds: DREAM_BOUNDS,
+    portals: [{ to: "hall", ...DREAM_HOME, color: "#9fb8ff", arrive: DREAM_ARRIVAL }],
+    theme: {
+      background: "#0b0d26",
+      fog: [30, 95],
+      floor: "#141a46",
+      keyboardCase: "#0b0d26",
+      white: "#2a3170",
+      whitePressed: "#4250a8",
+      black: "#0f1236",
+      blackPressed: "#2a3170",
+      pressedGlow: "#9fb8ff",
+      sky: "#8fa6ff",
+      ground: "#1a1f52",
+      ambient: 1.1,
+      sun: 0.9,
+      sunColor: "#c8d4ff",
+      dark: true,
+      accent: "#ffe9a8",
     },
   },
 };

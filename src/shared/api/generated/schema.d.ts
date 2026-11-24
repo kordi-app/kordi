@@ -532,6 +532,7 @@ export interface components {
             body: string;
             face: string;
             hat: string | null;
+            pet: string | null;
         };
         CharacterResponse: {
             appearance: components["schemas"]["AppearanceDto"];

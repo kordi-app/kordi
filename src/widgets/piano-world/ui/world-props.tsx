@@ -6,6 +6,7 @@ import * as THREE from "three";
 import { KordiModel, type KordiMotion } from "@/entities/character";
 import { CASE_H, KEYS, SPAWN, keyAt } from "../engine/layout";
 import type { InteractableDef } from "../engine/interactables";
+import { CAT_HOME, CAT_WALK_SPEED, catPlan } from "../engine/cat-walk";
 
 const INK = "#221d19";
 
@@ -305,14 +306,22 @@ const CAT_LEGS = [
  * walks. Reports its live position every frame so the scene can offer "pet
  * the cat" when you're close. Freezes while being petted.
  */
+/**
+ * The plaza cat. It pads about the keys near the spawn — and every so often
+ * goes for a walk out to its secret spot in the meadow (cat-walk.ts), sits
+ * there gazing up at the sky for a while (`onSignal` as it sits down), then
+ * trots back.
+ */
 export function PianoCat({
   petting,
   onKey,
   onPosition,
+  onSignal,
 }: {
   petting: boolean;
   onKey: (midi: number | null) => void;
   onPosition: (position: THREE.Vector3) => void;
+  onSignal?: (position: THREE.Vector3) => void;
 }) {
   const group = useRef<THREE.Group>(null);
   const tail = useRef<THREE.Group>(null);
@@ -329,6 +338,9 @@ export function PianoCat({
     wait: 1,
     heading: 0,
     key: null as number | null,
+    /** out on (or coming back from) its walk to the secret spot */
+    outing: false,
+    sitting: false,
   });
   const range = useMemo(() => {
     const near = KEYS.filter((k) => !k.black && Math.abs(k.x - SPAWN.x) < 8);
@@ -345,10 +357,23 @@ export function PianoCat({
     if (tailTip.current) tailTip.current.rotation.z = Math.sin(t * (petting ? 9 : 3) - 0.9) * 0.5;
     let moving = false;
 
-    if (!petting) {
+    // the walk to the secret spot runs on the wall clock (everyone sees the same walk)
+    const plan = catPlan(Date.now());
+    if (plan.kind === "out") {
+      s.outing = true;
+      s.target.set(plan.x, 0, plan.z);
+    } else if (s.outing) {
+      s.target.set(CAT_HOME.x, 0, CAT_HOME.z);
+    }
+    const sitting = plan.kind === "out" && plan.sitting && p.distanceTo(s.target) < 0.15;
+    if (sitting && !s.sitting) onSignal?.(p);
+    s.sitting = sitting;
+
+    if (!petting && !sitting) {
       const toTarget = new THREE.Vector3().subVectors(s.target, p).setY(0);
       const distance = toTarget.length();
-      if (distance < 0.1) {
+      if (s.outing && plan.kind === "home" && distance < 0.1) s.outing = false;
+      if (distance < 0.1 && !s.outing) {
         s.wait -= dt;
         if (s.wait <= 0) {
           // pick a new spot on the keys (frame-time randomness, not render)
@@ -357,7 +382,7 @@ export function PianoCat({
         }
       } else {
         toTarget.normalize();
-        p.addScaledVector(toTarget, Math.min(1.3 * dt, distance));
+        p.addScaledVector(toTarget, Math.min((s.outing ? CAT_WALK_SPEED * 1.2 : 1.3) * dt, distance));
         s.heading = Math.atan2(toTarget.x, toTarget.z);
         moving = true;
       }
@@ -372,11 +397,14 @@ export function PianoCat({
     if (body.current) {
       const breathe = 1 + Math.sin(t * 2.4) * 0.025 * (1 - s.walking);
       body.current.scale.set(0.32 * breathe, 0.26 * breathe, 0.5);
-      body.current.position.y = 0.4 + Math.abs(Math.sin(s.stride)) * 0.03 * s.walking;
+      body.current.position.y = (sitting ? 0.34 : 0.4) + Math.abs(Math.sin(s.stride)) * 0.03 * s.walking;
+      // sitting: rump down, chest up
+      body.current.rotation.x = sitting ? -0.45 : 0;
     }
     if (head.current) {
-      head.current.rotation.x = petting ? -0.25 : Math.sin(s.stride * 2) * 0.05 * s.walking;
-      head.current.rotation.z = petting ? Math.sin(t * 3) * 0.12 : 0;
+      // on its spot it gazes up at the sky, ears twitching now and then
+      head.current.rotation.x = petting ? -0.25 : sitting ? -0.6 + Math.sin(t * 0.8) * 0.05 : Math.sin(s.stride * 2) * 0.05 * s.walking;
+      head.current.rotation.z = petting ? Math.sin(t * 3) * 0.12 : sitting && Math.sin(t * 0.37) > 0.97 ? 0.08 : 0;
     }
 
     const key = keyAt(p.x, p.z);

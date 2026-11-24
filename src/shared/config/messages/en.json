@@ -148,7 +148,8 @@
         "lounge": "Lounge",
         "clouds": "Cloud Keys",
         "night": "Night Keys",
-        "ruins": "Storm Temple"
+        "ruins": "Storm Temple",
+        "whale": "Moon-Whale Sea"
       },
       "melodies": {
         "twinkle": "Twinkle Twinkle Little Star",
@@ -165,6 +166,12 @@
       "nightHint": "Cross while the light is on them · fall and you start over",
       "ruinsTitle": "Climb past the dragon's fire",
       "ruinsHint": "Bell stones vanish when the bell tolls · move when a red band shows",
+      "dreamTitle": "The whale's lost song",
+      "dreamHint": "Find the five notes hidden in the dream things",
+      "dreamReady": "All five notes found · climb to the highest isle",
+      "dreamNote": "Found a lost note · {note}",
+      "whaleSings": "The whale has its song back! A baby moon-whale follows you now",
+      "petGuestNote": "Sign in and everyone else will see your whale too",
       "courseRankingTitle": "All-time ranking",
       "courseRankingEmpty": "No times yet · be the first",
       "courseRankSaved": "You're #{rank} on the ranking!",
@@ -365,7 +372,8 @@
       "body": "Body colour",
       "hat": "Hat",
       "face": "Face",
-      "accessory": "Accessory"
+      "accessory": "Accessory",
+      "pet": "Pet"
     },
     "body": {
       "cream": "Cream",
@@ -395,6 +403,12 @@
       "scarf": "Scarf",
       "bowtie": "Bow tie",
       "glasses": "Glasses"
+    },
+    "pet": {
+      "moon-whale": "Baby moon-whale"
+    },
+    "petHint": {
+      "moon-whale": "??? · Only the cat knows where"
     },
     "none": "None",
     "save": "Save",

@@ -17,9 +17,9 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {};
 
 export const Dressed: Story = {
-  args: { appearance: { body: "sky", hat: "headphones", face: "smile", accessory: "scarf" } },
+  args: { appearance: { body: "sky", hat: "headphones", face: "smile", accessory: "scarf", pet: null } },
 };
 
 export const CrownWinner: Story = {
-  args: { appearance: { body: "lemon", hat: "crown", face: "sparkle", accessory: "bowtie" } },
+  args: { appearance: { body: "lemon", hat: "crown", face: "sparkle", accessory: "bowtie", pet: null } },
 };

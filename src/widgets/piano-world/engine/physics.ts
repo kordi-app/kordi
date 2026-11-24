@@ -1,6 +1,7 @@
 import { CASE_H, PRESS_DEPTH, keyAt } from "./layout";
 import { courseGround } from "./course";
 import { ISLAND_TERRAIN } from "./nature";
+import { DREAM_TERRAIN } from "./dream-sea";
 import { terrainGround } from "./terrain";
 import type { RegionDef } from "./regions";
 
@@ -122,6 +123,12 @@ export function groundAt(region: RegionDef, x: number, z: number, y: number): Gr
       platform: hit.index,
       solid: null,
     };
+  }
+  if (region.dream) {
+    // no keys here: a sea of stars at y = 0, and whatever floats on it
+    const hit = terrainGround(DREAM_TERRAIN, x, z, y);
+    const on = hit.index !== null && hit.height > 0;
+    return { height: on ? hit.height : 0, midi: null, black: false, platform: null, solid: on ? hit.index : null };
   }
   const key = keyAt(x, z, region.keys);
   const keyHeight = key ? CASE_H + key.height - PRESS_DEPTH : 0;

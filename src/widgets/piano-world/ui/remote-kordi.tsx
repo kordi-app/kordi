@@ -27,6 +27,7 @@ export function RemoteKordi({
   remotes,
   course,
   keys,
+  glow = 0,
 }: {
   id: string;
   name: string;
@@ -35,6 +36,8 @@ export function RemoteKordi({
   course: boolean;
   /** the region's stretch of keyboard */
   keys?: KeyRange;
+  /** how dark it is here (a pet glows at night), kept current by the scene */
+  glow?: number | RefObject<number>;
 }) {
   const group = useRef<THREE.Group>(null);
   const tag = useRef<THREE.SpriteMaterial>(null);
@@ -67,6 +70,7 @@ export function RemoteKordi({
       const key = course ? null : keyAt(pos.current.x, pos.current.z, keys);
       targetY = key ? CASE_H + key.height - PRESS_DEPTH : 0;
     }
+    const beforeY = pos.current.y;
     pos.current.y = THREE.MathUtils.lerp(pos.current.y, targetY, 1 - Math.exp(-dt * 18));
 
     const delta = ((target.h - heading.current + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
@@ -76,6 +80,8 @@ export function RemoteKordi({
     const m = motion.current;
     m.amount = THREE.MathUtils.lerp(m.amount, Math.min(speed / 3, 1), 1 - Math.exp(-dt * 10));
     m.phase += dt * 11 * m.amount;
+    // rising fast reads as a jump (their pet spouts stars, like mine)
+    m.stretch = THREE.MathUtils.clamp((pos.current.y - beforeY) / Math.max(dt, 1e-3) / 7.5, -0.4, 1);
 
     group.current.position.copy(pos.current);
     group.current.rotation.y = heading.current;
@@ -99,7 +105,7 @@ export function RemoteKordi({
 
   return (
     <group ref={group}>
-      <KordiModel motion={motion} scale={SCALE} appearance={look} />
+      <KordiModel motion={motion} scale={SCALE} appearance={look} glow={glow} />
       {/* name tag floats above the head and always faces the camera */}
       <sprite position={[0, 2.55, 0]} scale={[0.42 * aspect, 0.42, 1]}>
         <spriteMaterial ref={tag} map={texture} transparent depthWrite={false} />

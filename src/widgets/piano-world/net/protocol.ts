@@ -106,6 +106,12 @@ export interface RecordMessage extends CourseRecordMessage {
   t: "record";
 }
 
+/** I earned a pet just now (the server put it on me; my look follows as a "look"). */
+export interface PetMessage {
+  t: "pet";
+  item: string;
+}
+
 /** Someone in my channel rang the midnight bell (never sent back to the ringer). */
 export interface BellMessage {
   t: "bell";
@@ -121,7 +127,8 @@ export type ServerMessage =
   | LookMessage
   | OnlineMessage
   | RecordMessage
-  | BellMessage;
+  | BellMessage
+  | PetMessage;
 
 // ── client → server ──────────────────────────────────────────────────────────
 
@@ -146,7 +153,12 @@ export interface RingMessage {
   t: "bell";
 }
 
-export type ClientMessage = MoveMessage | AuthMessage | RingMessage;
+/** The whale sang for me on the dream sea's summit (WorldSocketHandler.adoptWhale checks it). */
+export interface WhaleMessage {
+  t: "whale";
+}
+
+export type ClientMessage = MoveMessage | AuthMessage | RingMessage | WhaleMessage;
 
 // ── connection ───────────────────────────────────────────────────────────────
 

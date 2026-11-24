@@ -157,3 +157,20 @@ export function CourseCard({ run, isGuest, copy }: { run: CourseRun; isGuest: bo
     />
   );
 }
+
+/** The dream sea: the whale's notes you've found so far. */
+export function DreamCard({ found, total, copy }: { found: number; total: number; copy: PianoWorldCopy }) {
+  return (
+    <ProgressCard
+      title={copy.dreamTitle}
+      value={
+        <span className="text-xs tabular-nums text-muted-foreground">
+          {found} / {total}
+        </span>
+      }
+      ratio={found / total}
+      barClass="bg-palette-purple-500"
+      hint={found >= total ? copy.dreamReady : copy.dreamHint}
+    />
+  );
+}

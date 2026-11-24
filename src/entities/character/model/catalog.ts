@@ -1,4 +1,4 @@
-import type { AccessoryId, Appearance, BodyColor, FaceId, HatId } from "./types";
+import type { AccessoryId, Appearance, BodyColor, FaceId, HatId, PetId } from "./types";
 
 /**
  * Everything Kordi can wear. Mirrors the server's CharacterCatalog — add an
@@ -19,6 +19,8 @@ export const BODY_IDS = Object.keys(BODY_COLORS) as BodyColor[];
 export const HAT_IDS: HatId[] = ["crown", "star-crown", "flame-crown", "ribbon", "beret", "headphones", "flower"];
 export const FACE_IDS: FaceId[] = ["default", "smile", "sparkle", "sleepy"];
 export const ACCESSORY_IDS: AccessoryId[] = ["scarf", "bowtie", "glasses"];
+/** Every pet is a reward: only the ones you've earned show in the wardrobe */
+export const PET_IDS: PetId[] = ["moon-whale"];
 
 /** Hats you earn by finishing a jump course (the world region it's in). */
 export const REWARD_HATS: Partial<Record<HatId, "clouds" | "night" | "ruins">> = {
@@ -34,4 +36,5 @@ export const DEFAULT_APPEARANCE: Appearance = {
   hat: null,
   face: "default",
   accessory: null,
+  pet: null,
 };

@@ -50,9 +50,11 @@ export function useWorldPresence(
   signedIn: boolean,
   onRecord: (record: CourseRecordMessage) => void,
   onBell: (leftMs: number, rung: boolean) => void,
+  onPet: (item: string) => void,
 ) {
   const reportRecord = useEffectEvent(onRecord);
   const reportBell = useEffectEvent(onBell);
+  const reportPet = useEffectEvent(onPet);
   const remotes = useRef(new Map<string, RemotePlayer>());
   const [info, setInfo] = useState<PresenceInfo>({
     status: "connecting",
@@ -145,6 +147,9 @@ export function useWorldPresence(
           case "bell":
             reportBell(message.left, true);
             break;
+          case "pet":
+            reportPet(message.item);
+            break;
           case "join":
             if (message.p.id !== myId.current) {
               remotes.current.set(message.p.id, message.p);
@@ -223,5 +228,11 @@ export function useWorldPresence(
     if (socket?.readyState === WebSocket.OPEN && myId.current) socket.send(encodeClientMessage({ t: "bell" }));
   }, []);
 
-  return { remotes, info, sendPosition, sendBell };
+  /** Tell the server the whale sang for me (members get their pet from it). */
+  const sendWhale = useCallback(() => {
+    const socket = socketRef.current;
+    if (socket?.readyState === WebSocket.OPEN && myId.current) socket.send(encodeClientMessage({ t: "whale" }));
+  }, []);
+
+  return { remotes, info, sendPosition, sendBell, sendWhale };
 }

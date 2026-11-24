@@ -25,6 +25,9 @@ import { aimSunLight, applySky, createSunAim } from "./sun-light";
 import { quality } from "./quality";
 import { ISLAND_TERRAIN } from "../engine/nature";
 import { SKY_OPEN_SECONDS, openSky, skyNow, stepSkyPads, tickSky, type SkyEvent } from "../engine/sky-island";
+import { DREAM_TERRAIN, startDream, stepDream, type DreamEvent } from "../engine/dream-sea";
+import { sitOnSpot } from "../engine/cat-walk";
+import { DreamSea } from "./dream-sea";
 import { BALL_RADIUS, ballSpawns, newBall, stepBall, type Ball } from "../engine/ball";
 import { NoteBall } from "./note-ball";
 import {
@@ -45,7 +48,7 @@ import { CourseScene } from "./course-scene";
 import { EmoteBubble } from "./emote-bubble";
 import { IslandScene } from "./island-scene";
 import { debugSeam } from "../lib/debug-seam";
-import { KordiModel, type Appearance, type HatId, type KordiMotion } from "@/entities/character";
+import { KordiModel, type Appearance, type KordiMotion, type RewardId } from "@/entities/character";
 import { PianoFloor } from "./piano-floor";
 import { Portal } from "./portal";
 import { RegionDecor } from "./region-decor";
@@ -100,7 +103,16 @@ export interface WorldEvents {
   onBell: (midnight: boolean, opened: boolean) => void;
   /** up on the sky island: a star pad, a constellation, or the whole sky */
   onSky: (event: SkyEvent) => void;
+  /** in the dream sea: a lost note found, or the whale come down to sing */
+  onDream: (event: DreamEvent) => void;
+  /** the cat sat down on its secret spot (you can hear it from here) */
+  onCatSignal: () => void;
 }
+
+/** You hear the cat settle on its spot from this far */
+const CAT_SIGNAL_EARSHOT = 22;
+/** How often my pet echoes a key I step on, an octave up */
+const PET_ECHO_CHANCE = 0.3;
 
 /** It counts as night for the midnight bell from this far into dusk (day-night.ts: 0 day … 1 night) */
 const MIDNIGHT = 0.6;
@@ -130,8 +142,8 @@ export interface WorldDisplay {
   target: number | null;
   /** how my Kordi is dressed */
   appearance: Appearance;
-  /** course reward items I own (their treasure no longer shows the crown) */
-  rewards: readonly HatId[];
+  /** reward items I own (a course's treasure no longer shows its crown) */
+  rewards: readonly RewardId[];
   interaction: InteractionScene;
   /** bump to fire confetti over Kordi */
   celebrate: number;
@@ -139,6 +151,8 @@ export interface WorldDisplay {
   awake: ReadonlySet<WarpStoneId>;
   /** you've lit the whole sky over the island (its constellation stays up) */
   skyFound: boolean;
+  /** you've found the cat's way into the dream sea (its spot shows pawprints) */
+  dreamFound: boolean;
 }
 
 interface WorldProps {
@@ -161,7 +175,7 @@ interface WorldProps {
  */
 export function World({ region, arrival, input, takeJump, presence, display, events }: WorldProps) {
   const { remotes, others, sendPosition } = presence;
-  const { emote, target, appearance, rewards, interaction, celebrate, awake, skyFound } = display;
+  const { emote, target, appearance, rewards, interaction, celebrate, awake, skyFound, dreamFound } = display;
   const camera = useThree((state) => state.camera);
   const scene = useThree((state) => state.scene);
   const hemi = useRef<THREE.HemisphereLight>(null);
@@ -210,12 +224,18 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     [items, region],
   );
   const course = region.course ?? null;
+  /** how dark it is here, for a pet's glow: the dream is always night; the island follows the clock (set per frame) */
+  const petGlow = useRef(0);
   const island = region.island ? ISLAND_TERRAIN : null;
+  /** solid ground beyond the keys: the island's, or the dream sea's */
+  const terrain = island ?? (region.dream ? DREAM_TERRAIN : null);
+  /** sitting on the cat's secret spot (seconds so far) */
+  const secretSit = useRef({ held: 0 });
   /** what you walk among this frame (other players move, so it's built per frame) */
   const walkEnv = (): WalkEnv => ({
     bounds: course ? course.bounds : (region.bounds ?? BOUNDS),
     course,
-    island,
+    island: terrain,
     props: solids,
     players: remotes.current.values(),
   });
@@ -253,6 +273,8 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
         fx.current?.notes(s.pos.x, s.pos.y, s.pos.z, "#7fd8ff");
       }
       portalArmed.current = false;
+      secretSit.current.held = 0;
+      if (region.dream) startDream();
       camera.position.copy(s.pos).add(cameraOffset);
       lookTarget.current.set(s.pos.x, s.pos.y + 0.6, s.pos.z - 1.2);
       balls.current = spawns.map((spot) => newBall(spot.x, spot.z));
@@ -310,7 +332,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       dt,
       ground,
       { pressed: takeJump(), held: keys.jumpHeld, buffer: JUMP_BUFFER },
-      { course, island },
+      { course, island: terrain },
     );
     if (landing && landing.impact > HARD_LANDING) fx.current?.dust(s.pos.x, s.pos.y, s.pos.z);
     // island drums: every landing is a beat
@@ -319,6 +341,18 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       if (drum.sound) events.onVoice(drum.sound.voice, drum.sound.midi, Math.min(1, 0.45 + landing!.impact / 18));
       if (drum.tag) islandHits.set(drum.tag, now);
       fx.current?.notes(s.pos.x, s.pos.y, s.pos.z, region.theme.accent);
+    }
+    if (region.dream) {
+      for (const event of stepDream(s.pos.x, s.pos.y, s.pos.z, now)) {
+        fx.current?.confetti(s.pos.x, s.pos.y, s.pos.z);
+        events.onDream(event);
+      }
+    }
+    // the cat's secret: sit where it sits, and you're through
+    if (island && sitOnSpot(secretSit.current, s.pos.x, s.pos.z, emote === "sit", !s.airborne, dt)) {
+      secretSit.current.held = 0;
+      fx.current?.ripple(s.pos.x, s.pos.y, s.pos.z, "#9fb8ff");
+      events.onPortal("whale");
     }
     if (island) {
       for (const event of stepSkyPads(s.pos.x, s.pos.y, s.pos.z, skyClock, !s.airborne)) {
@@ -340,9 +374,9 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     if (course && !s.airborne && s.platform !== null) touchCrumble(course, s.platform, now);
     // island terrain you walk onto plays its own instrument (drums sound on landing, above)
     const solidUnder = s.airborne ? null : ground.solid;
-    if (island && solidUnder !== s.solid) {
+    if (terrain && solidUnder !== s.solid) {
       s.solid = solidUnder;
-      const piece = solidUnder === null ? null : island.solids[solidUnder];
+      const piece = solidUnder === null ? null : terrain.solids[solidUnder];
       if (piece?.sound && !piece.bounce) {
         events.onVoice(piece.sound.voice, piece.sound.midi, 0.75);
         if (piece.tag) islandHits.set(piece.tag, now);
@@ -352,6 +386,8 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     if (midi !== s.midi) {
       s.midi = midi;
       events.onStep(midi);
+      // my whale sings along now and then, an octave up
+      if (midi !== null && appearance.pet && Math.random() < PET_ECHO_CHANCE) events.onVoice("crystal", midi + 12, 0.3);
       if (midi !== null) {
         const accent = region.theme.accent;
         fx.current?.notes(s.pos.x, s.pos.y, s.pos.z, accent);
@@ -451,6 +487,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     // --- portals
     const inside = region.portals.find(
       (portal) =>
+        !portal.secret &&
         Math.hypot(s.pos.x - portal.x, s.pos.z - portal.z) < PORTAL_RADIUS &&
         Math.abs(s.pos.y - (portal.y ?? 0)) < PORTAL_HEIGHT_TOLERANCE,
     );
@@ -491,10 +528,12 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     if (island && now - view.current.skyAt > SKY_INTERVAL) {
       view.current.skyAt = now;
       const sky = skyAt(Date.now());
+      petGlow.current = sky.night;
       applySky(scene, light.current, hemi.current, sky);
       sunAim.current.dir.set(...sky.lightDir);
     } else if (!island) {
       sunAim.current.dir.set(0.4, 0.8, 0.45).normalize();
+      petGlow.current = region.dream ? 1 : region.theme.dark ? 0.6 : 0;
     }
     if (light.current) {
       aimSunLight(light.current, sunAim.current, s.pos, { extent: SHADOW_EXTENT, mapSize: quality.shadowMap, distance: SHADOW_DISTANCE });
@@ -502,7 +541,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
 
     // The camera follows the ground you stand on (not your jumps); the course climbs with you
     const follow = 1 - Math.exp(-dt * 4);
-    const cameraY = course ? s.pos.y : island ? s.restY : 0;
+    const cameraY = course ? s.pos.y : terrain ? s.restY : 0;
     const { camera: wantCamera, look } = scratch.current;
     camera.position.lerp(wantCamera.set(s.pos.x, cameraY, s.pos.z).add(cameraOffset), follow);
     lookTarget.current.lerp(look.set(s.pos.x, cameraY + 0.6, s.pos.z - 1.2), follow);
@@ -537,10 +576,12 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
           pressed={pressed}
           rewardOwned={rewards.includes(REWARD_OF[course.id])}
         />
+      ) : region.dream ? (
+        <DreamSea player={playerPos} />
       ) : (
         <PianoFloor pressed={pressed} theme={region.theme} ground={!region.island} keys={region.keys} />
       )}
-      {region.island ? <IslandScene player={playerPos} awake={awake} skyFound={skyFound} /> : null}
+      {region.island ? <IslandScene player={playerPos} awake={awake} skyFound={skyFound} dreamFound={dreamFound} /> : null}
       <RegionDecor region={region.id} party={interaction.party} />
       {items.map((item) => {
         switch (item.id) {
@@ -553,6 +594,9 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
                   cat.current.key = midi;
                 }}
                 onPosition={(position) => cat.current.pos.copy(position)}
+                onSignal={(position) => {
+                  if (playerPos.distanceTo(position) < CAT_SIGNAL_EARSHOT) events.onCatSignal();
+                }}
               />
             );
           case "chordCard":
@@ -567,9 +611,11 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
             return <DiscoBall key={item.id} item={item} party={interaction.party} />;
         }
       })}
-      {region.portals.map((portal) => (
-        <Portal key={`${portal.to}-${portal.x}`} portal={portal} glow={region.theme.dark} />
-      ))}
+      {region.portals
+        .filter((portal) => !portal.secret)
+        .map((portal) => (
+          <Portal key={`${portal.to}-${portal.x}`} portal={portal} glow={region.theme.dark} />
+        ))}
       {target !== null ? <TargetBeam midi={target} color={region.theme.accent} /> : null}
       <StepEffects ref={fx} />
       {spawns.map((_, i) => (
@@ -583,7 +629,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       ))}
 
       {/* scaled up so the character reads at a glance against the giant keys */}
-      <KordiModel ref={kordi} motion={motion} scale={KORDI_SCALE} appearance={appearance} />
+      <KordiModel ref={kordi} motion={motion} scale={KORDI_SCALE} appearance={appearance} glow={petGlow} />
       {course?.beams ? (
         // a small lantern Kordi carries through the dark
         <group ref={lantern}>
@@ -592,7 +638,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       ) : null}
       <group ref={bubble}>{emote ? <EmoteBubble emote={emote} /> : null}</group>
       {others.map((other) => (
-        <RemoteKordi key={other.id} id={other.id} name={other.name} remotes={remotes} course={course !== null} keys={region.keys} />
+        <RemoteKordi key={other.id} id={other.id} name={other.name} remotes={remotes} course={course !== null} keys={region.keys} glow={petGlow} />
       ))}
     </>
   );
