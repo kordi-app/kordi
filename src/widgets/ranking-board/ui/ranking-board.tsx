@@ -5,7 +5,7 @@ import { useQueryErrorResetBoundary, useSuspenseQuery } from "@tanstack/react-qu
 import { ErrorBoundary, Suspense } from "@suspensive/react";
 import { useTranslations } from "next-intl";
 import { Trophy } from "lucide-react";
-import { rankingQueries, type RankingDifficulty } from "@/entities/ranking";
+import { rankingQueries, type RankingDifficulty, type RankingScope } from "@/entities/ranking";
 import { adventureQueries } from "@/entities/chord-adventure";
 import { Avatar, AvatarImage, AvatarFallback } from "@/shared/ui/avatar";
 import { MonoPill } from "@/shared/ui/mono-button";
@@ -13,30 +13,44 @@ import { LoadingState } from "@/shared/ui/empty-state";
 import { cn } from "@/shared/lib/utils";
 
 const DIFFICULTIES: RankingDifficulty[] = ["EASY", "MEDIUM", "HARD"];
+const SCOPES: RankingScope[] = ["ALL", "FRIENDS"];
 /** The quiz's three difficulties, plus Chord Adventure's endless run */
 type Board = RankingDifficulty | "ADVENTURE";
 
 export function RankingBoard() {
   const t = useTranslations("ranking");
   const [board, setBoard] = useState<Board>("EASY");
+  const [scope, setScope] = useState<RankingScope>("ALL");
   const { reset: resetQueryErrors } = useQueryErrorResetBoundary();
 
   return (
     <div className="w-full">
-      <div className="mb-6 flex gap-2">
-        {DIFFICULTIES.map((d) => (
-          <MonoPill key={d} active={board === d} onClick={() => setBoard(d)}>
-            {t(d.toLowerCase())}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-2">
+          {DIFFICULTIES.map((d) => (
+            <MonoPill key={d} active={board === d} onClick={() => setBoard(d)}>
+              {t(d.toLowerCase())}
+            </MonoPill>
+          ))}
+          <MonoPill active={board === "ADVENTURE"} onClick={() => setBoard("ADVENTURE")}>
+            {t("adventure")}
           </MonoPill>
-        ))}
-        <MonoPill active={board === "ADVENTURE"} onClick={() => setBoard("ADVENTURE")}>
-          {t("adventure")}
-        </MonoPill>
+        </div>
+        {/* the adventure board has no friends view */}
+        {board === "ADVENTURE" ? null : (
+          <div role="group" aria-label={t("scope")} className="flex gap-2">
+            {SCOPES.map((s) => (
+              <MonoPill key={s} active={scope === s} onClick={() => setScope(s)}>
+                {t(s === "ALL" ? "scopeAll" : "scopeFriends")}
+              </MonoPill>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* a failed board must not stick to the other tabs, and must not read as "no records" */}
       <ErrorBoundary
-        resetKeys={[board]}
+        resetKeys={[board, scope]}
         onReset={resetQueryErrors}
         fallback={({ reset }) => (
           <div className="flex flex-col items-center gap-3 py-12 text-center text-sm">
@@ -46,19 +60,29 @@ export function RankingBoard() {
         )}
       >
         <Suspense fallback={<LoadingState label={t("loading")} />}>
-          {board === "ADVENTURE" ? <AdventureList /> : <RankingList difficulty={board} />}
+          {board === "ADVENTURE" ? <AdventureList /> : <RankingList difficulty={board} scope={scope} />}
         </Suspense>
       </ErrorBoundary>
     </div>
   );
 }
 
-function RankingList({ difficulty }: { difficulty: RankingDifficulty }) {
+function RankingList({
+  difficulty,
+  scope,
+}: {
+  difficulty: RankingDifficulty;
+  scope: RankingScope;
+}) {
   const t = useTranslations("ranking");
-  const { data: rankings } = useSuspenseQuery(rankingQueries.list(difficulty));
+  const { data: rankings } = useSuspenseQuery(rankingQueries.list(difficulty, scope));
 
   if (rankings.length === 0) {
-    return <p className="py-12 text-center text-sm opacity-60">{t("empty")}</p>;
+    return (
+      <p className="py-12 text-center text-sm opacity-60">
+        {t(scope === "FRIENDS" ? "emptyFriends" : "empty")}
+      </p>
+    );
   }
 
   return (
