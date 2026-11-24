@@ -1,6 +1,6 @@
 /**
  * A read-only window into the world for automated playtests (Playwright etc.),
- * available in development builds only: `window.__kordi`. Scripts read where
+ * available in development builds (and e2e builds, below): `window.__kordi`. Scripts read where
  * Kordi is and which sounds fired instead of guessing from pixels.
  * In production this is null and every write is skipped.
  */
@@ -24,7 +24,14 @@ declare global {
   }
 }
 
+/**
+ * On in development, and in a build made for the e2e playtests
+ * (NEXT_PUBLIC_DEBUG_SEAM=1 at build time, see playwright.config.ts). Never in
+ * a production deploy: nothing sets the flag there.
+ */
+const SEAM_ON = process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_DEBUG_SEAM === "1";
+
 export const debugSeam: KordiDebugSeam | null =
-  process.env.NODE_ENV === "development" && typeof window !== "undefined"
+  SEAM_ON && typeof window !== "undefined"
     ? (window.__kordi ??= { region: "", pos: { x: 0, y: 0, z: 0 }, airborne: false, voices: [], steps: [] })
     : null;

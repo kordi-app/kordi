@@ -38,7 +38,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
 
-  # Playtests of the 3D world in a real (CPU-rendered) browser against a dev server
+  # Playtests of the 3D world in a real (CPU-rendered) browser, against a build of the app
   e2e:
     runs-on: ubuntu-latest
     steps:
@@ -54,7 +54,29 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
+
+      # the browser is ~100 MB: keep it between runs, per Playwright version
+      - id: playwright
+        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - id: browser-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - if: steps.browser-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+      # a cached browser still needs the system libraries it links against
+      - if: steps.browser-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
+
+      # Next's build cache: an unchanged module isn't compiled again
+      - uses: actions/cache@v6
+        with:
+          path: .next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**', 'next.config.ts') }}
+          restore-keys: |
+            next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+
       - run: pnpm e2e
 
       - if: failure()

@@ -29,9 +29,9 @@ export function collectErrors(page: Page) {
   return errors;
 }
 
-/** Open the world in a region and wait until Kordi is in it */
+/** Open the world in a region (at the lowest graphics quality) and wait until Kordi is in it */
 export async function openWorld(page: Page, region: string) {
-  await page.goto(`/?region=${region}`);
+  await page.goto(`/?region=${region}&quality=minimal`);
   await page.waitForFunction((r) => window.__kordi?.region === r, region, { timeout: 150_000 });
 }
 
