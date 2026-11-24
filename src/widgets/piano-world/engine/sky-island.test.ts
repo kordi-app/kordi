@@ -14,6 +14,7 @@ import {
   openGates,
   openSky,
   skyRuntime,
+  syncSky,
   stepSkyPads,
   tickSky,
 } from "./sky-island";
@@ -109,6 +110,17 @@ describe("the midnight bell", () => {
     expect(openSky(130, 60, true)).toBe(false);
     expect(openGates(131)).toBe(ISLAND_GATE + 1);
     expect(skyRuntime.until).toBe(190);
+  });
+});
+
+describe("joining a channel", () => {
+  it("shuts a sky opened elsewhere, and takes the channel's time when it's open", () => {
+    openSky(100, 600, true);
+    syncSky(110, 0);
+    expect(openGates(110)).toBe(0);
+    syncSky(120, 30);
+    expect(openGates(120)).toBe(ISLAND_GATE + 1);
+    expect(skyRuntime.until).toBe(150);
   });
 });
 

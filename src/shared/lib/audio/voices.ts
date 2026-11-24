@@ -187,10 +187,14 @@ const BELL_PARTIALS: readonly { ratio: number; level: number; ring: number }[] =
   { ratio: 3.2, level: 0.07, ring: 1.2 },
 ];
 
+/** The distinct decay lengths: one synth each (a PolySynth's voices share their envelope) */
+const BELL_RINGS = [...new Set(BELL_PARTIALS.map((p) => p.ring))];
+
 interface TowerBell {
   room: Tone.Freeverb;
   partials: Tone.PolySynth[];
   clank: Tone.NoiseSynth;
+  bright: Tone.Filter;
 }
 
 let towerBell: TowerBell | null = null;
@@ -198,8 +202,7 @@ let towerBell: TowerBell | null = null;
 function towerBellVoice(): TowerBell {
   if (towerBell) return towerBell;
   const room = new Tone.Freeverb({ roomSize: 0.86, dampening: 2600, wet: 0.38 }).toDestination();
-  // one synth per decay length: a PolySynth's voices share their envelope
-  const partials = [...new Set(BELL_PARTIALS.map((p) => p.ring))].map((ring) => {
+  const partials = BELL_RINGS.map((ring) => {
     const s = new Tone.PolySynth(Tone.Synth);
     s.maxPolyphony = 32; // twelve strokes ringing over each other
     s.set({ oscillator: { type: "sine" }, envelope: { attack: 0.004, decay: 0.05, sustain: 1, release: ring, releaseCurve: "exponential" } });
@@ -211,7 +214,7 @@ function towerBellVoice(): TowerBell {
   const bright = new Tone.Filter({ type: "bandpass", frequency: 3200, Q: 2.5 });
   clank.volume.value = -22;
   clank.chain(bright, room);
-  towerBell = { room, partials, clank };
+  towerBell = { room, partials, clank, bright };
   return towerBell;
 }
 
@@ -219,10 +222,9 @@ function towerBellVoice(): TowerBell {
 function strikeTowerBell(midi: number, velocity: number, delay: number) {
   const bell = towerBellVoice();
   const at = Tone.now() + delay;
-  const rings = [...new Set(BELL_PARTIALS.map((p) => p.ring))];
   const base = Tone.Frequency(midi, "midi").toFrequency();
   for (const p of BELL_PARTIALS) {
-    bell.partials[rings.indexOf(p.ring)].triggerAttackRelease(base * p.ratio, 0.06, at, p.level * velocity);
+    bell.partials[BELL_RINGS.indexOf(p.ring)].triggerAttackRelease(base * p.ratio, 0.06, at, p.level * velocity);
   }
   bell.clank.triggerAttackRelease(0.05, at, velocity);
 }
@@ -258,6 +260,7 @@ export function disposeVoices(): void {
   if (towerBell) {
     towerBell.partials.forEach((s) => s.dispose());
     towerBell.clank.dispose();
+    towerBell.bright.dispose();
     towerBell.room.dispose();
     towerBell = null;
   }

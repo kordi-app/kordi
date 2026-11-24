@@ -385,7 +385,8 @@ export const PORTAL_RADIUS = 0.95;
 export function arrivalPoint(to: RegionId, from: RegionId | null): { x: number; z: number } {
   const course = REGIONS[to].course;
   if (course) return { ...course.start };
-  if (from === null) return { x: SPAWN.x, z: SPAWN.z };
+  // a direct link: the keyboard's spawn, or (no keyboard there) the dream sea's landing spot
+  if (from === null) return REGIONS[to].dream ? { ...DREAM_ARRIVAL } : { x: SPAWN.x, z: SPAWN.z };
   // Prefer a floor-level portal back to where you came from
   const portal =
     REGIONS[to].portals.find((p) => p.to === from && !p.y) ?? REGIONS[to].portals[0];

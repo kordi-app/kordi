@@ -458,7 +458,7 @@ function Whale() {
   const root = useRef<THREE.Group>(null);
   const tail = useRef<THREE.Group>(null);
   const song = useRef<THREE.Group>(null);
-  const state = useRef({ pos: new THREE.Vector3(30, 2, -10), look: new THREE.Vector3() });
+  const state = useRef({ pos: new THREE.Vector3(30, 2, -10), look: new THREE.Vector3(), before: new THREE.Vector3() });
   useFrame(({ clock }, rawDelta) => {
     const dt = Math.min(rawDelta, 0.05);
     const t = clock.getElapsedTime();
@@ -467,7 +467,7 @@ function Whale() {
     const want = singing
       ? SING_AT
       : s.look.set(Math.cos(t * 0.07) * 34, 2.5 + Math.sin(t * 0.21) * 3.5, Math.sin(t * 0.07) * 26 - 12);
-    const before = s.pos.clone();
+    const before = s.before.copy(s.pos);
     s.pos.lerp(want, 1 - Math.exp(-dt * (singing ? 0.8 : 3)));
     if (root.current) {
       root.current.position.copy(s.pos);

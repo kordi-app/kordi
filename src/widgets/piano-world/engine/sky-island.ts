@@ -192,6 +192,20 @@ function resetPuzzle() {
   skyRuntime.finishedAt = -Infinity;
 }
 
+/**
+ * What the server says on joining a channel: the stars are out there for
+ * exactly `seconds` more (0: shut). Unlike {@link openSky} this can also shut
+ * the sky — the steps you opened in another channel aren't there in this one,
+ * and you'd seem to float to everyone here.
+ */
+export function syncSky(now: number, seconds: number) {
+  if (seconds <= 0) {
+    skyRuntime.until = Math.min(skyRuntime.until, now);
+    return;
+  }
+  if (!openSky(now, seconds, false)) skyRuntime.until = now + seconds;
+}
+
 /** How many gates are open: star i after stroke i, the island after the last. */
 export function openGates(now: number) {
   if (!isSkyOpen(now)) return 0;

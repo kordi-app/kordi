@@ -79,7 +79,8 @@ export const JELLIES: readonly Jelly[] = JELLY_CHAINS.flat();
 export const TEACUP = { x: -17, z: -6.5, saucer: { r: 2.4, top: 1.85 }, cup: { r: 1.5, top: 2.7 } };
 
 export interface LostNote {
-  thing: Exclude<DreamThing, "summit">;
+  /** where it hides: in one of the dream things, or out on the open sea */
+  thing: Exclude<DreamThing, "summit"> | "sea";
   midi: number;
   x: number;
   y: number;
@@ -100,11 +101,18 @@ export const LOST_NOTES: readonly LostNote[] = [
   { thing: "teacup", midi: 72, x: TEACUP.x, y: TEACUP.cup.top + 1.1, z: TEACUP.z },
   { thing: "tree", midi: 74, x: isle("tree").x + 1.2, y: isle("tree").top + 2.1, z: isle("tree").z },
   { thing: "moon", midi: 69, x: isle("moon").x, y: isle("moon").top + 0.9, z: isle("moon").z },
-  { thing: "shell", midi: 64, x: 9, y: 0.9, z: 8 },
+  { thing: "sea", midi: 64, x: 9, y: 0.9, z: 8 },
 ];
 
 /** The whale's song, once it has its notes back (all five, then home) */
 export const WHALE_SONG: readonly number[] = [67, 69, 72, 74, 72, 69, 64, 67];
+
+/**
+ * The server only believes the whale sang for someone who has been in the
+ * dream sea this long (WorldSocketHandler.WHALE_MIN_STAY_MS): a member who's
+ * quicker than that waits before telling it, so their pet isn't lost.
+ */
+export const SERVER_MIN_STAY_SECONDS = 60;
 
 /** Stand this close to the summit's centre, with every note, and the whale comes */
 export const SUMMIT_REACH = 2.5;

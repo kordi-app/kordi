@@ -120,7 +120,8 @@ export function useWorldPresence(
               regionCounts: message.regions ?? {},
             });
             syncOthers();
-            if (message.sky) reportBell(message.sky, false);
+            // always, even 0: the sky I opened elsewhere isn't open in this channel
+            if (message.sky !== undefined) reportBell(message.sky, false);
             if (signedIn) {
               // the auth cookie is httpOnly: trade it (via the BFF) for a ticket the socket can carry
               bffClient

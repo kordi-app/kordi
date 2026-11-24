@@ -304,10 +304,7 @@ const CAT_LEGS = [
 /**
  * A little cat that wanders the keys near the spawn point, playing them as it
  * walks. Reports its live position every frame so the scene can offer "pet
- * the cat" when you're close. Freezes while being petted.
- */
-/**
- * The plaza cat. It pads about the keys near the spawn — and every so often
+ * the cat" when you're close. Freezes while being petted. Every so often it
  * goes for a walk out to its secret spot in the meadow (cat-walk.ts), sits
  * there gazing up at the sky for a while (`onSignal` as it sits down), then
  * trots back.
@@ -335,6 +332,8 @@ export function PianoCat({
     walking: 0,
     position: new THREE.Vector3(SPAWN.x, 0, 1.2),
     target: new THREE.Vector3(SPAWN.x, 0, 1.2),
+    /** scratch for the step towards the target (no per-frame allocation) */
+    toTarget: new THREE.Vector3(),
     wait: 1,
     heading: 0,
     key: null as number | null,
@@ -370,7 +369,7 @@ export function PianoCat({
     s.sitting = sitting;
 
     if (!petting && !sitting) {
-      const toTarget = new THREE.Vector3().subVectors(s.target, p).setY(0);
+      const toTarget = s.toTarget.subVectors(s.target, p).setY(0);
       const distance = toTarget.length();
       if (s.outing && plan.kind === "home" && distance < 0.1) s.outing = false;
       if (distance < 0.1 && !s.outing) {

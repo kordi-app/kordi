@@ -21,9 +21,9 @@ import { useWorldPresence } from "../net/use-world-presence";
 import { useWarpStones } from "./hooks/use-warp-stones";
 import { useSkyFound } from "./hooks/use-sky-found";
 import { useDreamSea } from "./hooks/use-dream-sea";
-import { LOST_NOTES, WHALE_SONG, dreamRuntime, type DreamEvent } from "../engine/dream-sea";
+import { LOST_NOTES, SERVER_MIN_STAY_SECONDS, WHALE_SONG, dreamRuntime, type DreamEvent } from "../engine/dream-sea";
 import { midiToNoteName } from "@/shared/lib/music";
-import { PROGRESSION, openSky, skyNow, skyRuntime, type SkyEvent } from "../engine/sky-island";
+import { PROGRESSION, openSky, skyNow, skyRuntime, syncSky, type SkyEvent } from "../engine/sky-island";
 import { quality } from "./quality";
 import { CourseCard, DreamCard, MelodyCard } from "./hud/progress-cards";
 import { EmoteBar, InteractPrompt, SpeechBubble, WarpPrompt } from "./hud/interaction-hud";
@@ -102,8 +102,11 @@ export default function PianoWorldScene({
   /** Someone in the channel rang the midnight bell (or I joined while the stars were out). */
   const handleRemoteBell = useCallback(
     (leftMs: number, rung: boolean) => {
-      const opened = openSky(skyNow(), leftMs / 1000, rung);
-      if (!rung) return;
+      if (!rung) {
+        syncSky(skyNow(), leftMs / 1000);
+        return;
+      }
+      const opened = openSky(skyNow(), leftMs / 1000, true);
       towerBell(opened ? 12 : 1);
       if (opened) say(copy.skyOpened);
     },
@@ -206,9 +209,27 @@ export default function PianoWorldScene({
   });
 
   const { handlePlatform: handleCoursePlatform, enter: enterCourse } = course;
+  /** the whale carrying you home from the dream sea (cancelled by any trip, so it can't fire on a later visit) */
+  const homeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  /** telling the server the whale sang, held back until it will believe it */
+  const whaleTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(
+    () => () => {
+      clearTimeout(homeTimer.current);
+      clearTimeout(whaleTimer.current);
+    },
+    [],
+  );
+  /** when I reached the dream sea (its socket opens with the region) */
+  const dreamArrivedAt = useRef(0);
+  useEffect(() => {
+    if (region.dream) dreamArrivedAt.current = performance.now();
+  }, [region.dream]);
   const handlePortal = useCallback(
     (to: RegionId) =>
       travel(to, (next) => {
+        clearTimeout(homeTimer.current);
+        clearTimeout(whaleTimer.current);
         silence();
         resetInteractions();
         if (next.course) enterCourse(next.course);
@@ -224,8 +245,6 @@ export default function PianoWorldScene({
   );
 
   /** In the dream sea: a lost note found, or the whale come to sing (and carry you home). */
-  const homeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  useEffect(() => () => clearTimeout(homeTimer.current), []);
   const handleDream = useCallback(
     (event: DreamEvent) => {
       if (event.kind === "note") {
@@ -238,17 +257,23 @@ export default function PianoWorldScene({
       // the whale sings its song whole again, low and slow
       progression(WHALE_SONG.map((midi) => [midi - 24, midi]));
       bumpCelebrate();
-      sendWhale();
       if (isGuest) adoptGuestWhale();
       say(isGuest ? `${copy.whaleSings} · ${copy.petGuestNote}` : copy.whaleSings);
-      // then it carries you home
+      // members: the server only believes it after a minute here (plus a margin for lag)
+      const wait = Math.max(0, SERVER_MIN_STAY_SECONDS * 1000 + 1500 - (performance.now() - dreamArrivedAt.current));
+      clearTimeout(whaleTimer.current);
+      whaleTimer.current = setTimeout(sendWhale, wait);
+      // then it carries you home (never before the server has heard)
       clearTimeout(homeTimer.current);
-      homeTimer.current = setTimeout(() => {
-        if (regionRef.current.dream) {
-          warpEffect("depart");
-          handlePortal("hall");
-        }
-      }, 11_000);
+      homeTimer.current = setTimeout(
+        () => {
+          if (regionRef.current.dream) {
+            warpEffect("depart");
+            handlePortal("hall");
+          }
+        },
+        Math.max(11_000, wait + 1500),
+      );
     },
     [voice, say, copy, progression, bumpCelebrate, sendWhale, isGuest, adoptGuestWhale, regionRef, warpEffect, handlePortal],
   );
