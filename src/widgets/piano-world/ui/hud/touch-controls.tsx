@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ChevronsUp } from "lucide-react";
 import type { Direction } from "../../engine/physics";
 
@@ -16,10 +17,11 @@ function DirectionButton({
   onPress: (direction: Direction, pressed: boolean) => void;
   children: ReactNode;
 }) {
+  const t = useTranslations("a11y");
   return (
     <button
       type="button"
-      aria-label={direction}
+      aria-label={t(direction)}
       onPointerDown={(e) => {
         e.currentTarget.setPointerCapture(e.pointerId);
         onPress(direction, true);
@@ -42,11 +44,12 @@ export function TouchControls({
   onDirection: (direction: Direction, pressed: boolean) => void;
   onJump: (pressed: boolean) => void;
 }) {
+  const t = useTranslations("a11y");
   return (
     <>
       <button
         type="button"
-        aria-label="jump"
+        aria-label={t("jump")}
         onPointerDown={(e) => {
           e.currentTarget.setPointerCapture(e.pointerId);
           onJump(true);

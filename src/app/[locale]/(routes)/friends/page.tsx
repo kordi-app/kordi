@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import { localizedMetadata } from "@/shared/config/i18n/metadata";
 import {
   dehydrate,
   HydrationBoundary,
@@ -13,9 +13,7 @@ import {
 } from "@/entities/friendship/server";
 import { FriendsPage } from "@/views/friends";
 
-export const metadata: Metadata = {
-  title: "Friends | Kordi",
-};
+export const generateMetadata = localizedMetadata("friends");
 
 export default async function Page() {
   const queryClient = new QueryClient();

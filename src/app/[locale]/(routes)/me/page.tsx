@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import { localizedMetadata } from "@/shared/config/i18n/metadata";
 import {
   dehydrate,
   HydrationBoundary,
@@ -9,9 +9,7 @@ import { getMyScores } from "@/entities/chord-quiz/server";
 import type { ScoreRecord } from "@/entities/chord-quiz";
 import { MePage } from "@/views/me";
 
-export const metadata: Metadata = {
-  title: "My Profile | Kordi",
-};
+export const generateMetadata = localizedMetadata("me");
 
 export default async function Page() {
   const queryClient = new QueryClient();

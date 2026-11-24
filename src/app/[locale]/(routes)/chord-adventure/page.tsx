@@ -1,10 +1,7 @@
-import type { Metadata } from "next";
+import { localizedMetadata } from "@/shared/config/i18n/metadata";
 import { ChordAdventureView } from "../client-only-views";
 
-export const metadata: Metadata = {
-  title: "Chord Adventure | Kordi",
-  description: "Beat monsters by playing chords on the piano",
-};
+export const generateMetadata = localizedMetadata("chordAdventure", "chordAdventureDescription");
 
 export default function Page() {
   return <ChordAdventureView />;

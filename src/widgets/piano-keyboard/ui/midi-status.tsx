@@ -1,6 +1,12 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { cn } from "@/shared/lib/utils";
+
+/** Web MIDI exists only in Chromium browsers (Safari and Firefox on most setups lack it). */
+function midiSupported(): boolean {
+  return typeof navigator === "undefined" || "requestMIDIAccess" in navigator;
+}
 
 interface MidiDeviceOption {
   id: string;
@@ -32,6 +38,9 @@ export function MidiStatus({
   onSelectDevice,
   inline = false,
 }: MidiStatusProps) {
+  const t = useTranslations();
+  // "no device" would send people hunting for a cable when the browser is the problem
+  const idleLabel = midiSupported() ? fallback : t("midi.unsupported");
   const showSelector =
     devices && devices.length > 1 && onSelectDevice !== undefined;
   const connected = Boolean(midiName) || Boolean(showSelector);
@@ -52,7 +61,7 @@ export function MidiStatus({
         value={selectedDeviceId ?? ""}
         onChange={(e) => onSelectDevice(e.target.value)}
         className="cursor-pointer appearance-none bg-transparent font-medium outline-none"
-        aria-label="MIDI device"
+        aria-label={t("a11y.midiDevice")}
       >
         {devices.map((d) => (
           <option key={d.id} value={d.id}>
@@ -65,7 +74,7 @@ export function MidiStatus({
     <span className={cn(PILL, !connected && "text-muted-foreground")}>
       {dot}
       <span className={connected ? "font-medium" : undefined}>
-        {midiName ?? fallback}
+        {midiName ?? idleLabel}
       </span>
     </span>
   );
