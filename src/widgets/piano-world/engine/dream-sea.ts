@@ -1,4 +1,5 @@
 import { buildTerrain, type Solid } from "./terrain";
+import { WORLD_CONTRACT } from "./world-contract";
 
 /**
  * The moon-whale's sea: the cat's dream, reached only through a portal no one
@@ -112,7 +113,7 @@ export const WHALE_SONG: readonly number[] = [67, 69, 72, 74, 72, 69, 64, 67];
  * dream sea this long (WorldSocketHandler.WHALE_MIN_STAY_MS): a member who's
  * quicker than that waits before telling it, so their pet isn't lost.
  */
-export const SERVER_MIN_STAY_SECONDS = 60;
+export const SERVER_MIN_STAY_SECONDS = WORLD_CONTRACT.whale.minStayMs / 1000;
 
 /** Stand this close to the summit's centre, with every note, and the whale comes */
 export const SUMMIT_REACH = 2.5;

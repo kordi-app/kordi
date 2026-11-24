@@ -13,6 +13,7 @@ import {
   DAIS_TOP,
   ILLUSORY_ARRIVAL,
   ILLUSORY_WALL,
+  REST_REACH,
   STAR_RESTS,
   caveCell,
   caveRuntime,
@@ -26,11 +27,22 @@ import {
 import { CLIFF } from "./island";
 import { BODY_RADIUS, groundAt } from "./physics";
 import { PORTAL_RADIUS, REGIONS, arrivalPoint } from "./regions";
+import { WORLD_CONTRACT } from "./world-contract";
 
-// kordi server src/main/java/com/kordi_api/world/WorldLobby.java and WorldSocketHandler.java
-const SERVER_CAVE = { ALTAR_X: 0, ALTAR_Z: -52, ALTAR_REACH: 3, ALTAR_MIN_Y: 1, MIN_STAY_MS: 20_000 };
+/** What the server checks (world-contract.json, shared with the server) */
+const SERVER_CAVE = WORLD_CONTRACT.cave;
 
 const cave = REGIONS.cave;
+
+/** One frame's circumstances: standing, crowned, without the necklace, long enough in (override any) */
+const step = (over: Partial<CaveStep> = {}): CaveStep => ({
+  grounded: true,
+  crowned: true,
+  hasNecklace: false,
+  stayed: NECKLACE_READY_SECONDS,
+  ...over,
+});
+
 const STEP_UP = 0.35;
 
 describe("the cave's map", () => {
@@ -119,13 +131,6 @@ describe("the way in", () => {
 
 describe("stepping through the cave", () => {
   beforeEach(startCave);
-  const step = (over: Partial<CaveStep> = {}): CaveStep => ({
-    grounded: true,
-    crowned: true,
-    hasNecklace: false,
-    stayed: NECKLACE_READY_SECONDS,
-    ...over,
-  });
   const onAltar = { x: ALTAR.x, y: DAIS_TOP, z: ALTAR.z + 1.1 };
 
   it("gives the necklace only in the crown's light, once", () => {
@@ -161,11 +166,33 @@ describe("stepping through the cave", () => {
 
 describe("matches the server", () => {
   it("altar and stay", () => {
-    expect(ALTAR.x).toBe(SERVER_CAVE.ALTAR_X);
-    expect(ALTAR.z).toBe(SERVER_CAVE.ALTAR_Z);
+    expect(ALTAR.x).toBe(SERVER_CAVE.altar.x);
+    expect(ALTAR.z).toBe(SERVER_CAVE.altar.z);
     // wherever you can take it, the server believes you
-    expect(DAIS_STEPS[DAIS_STEPS.length - 1].half * Math.SQRT2).toBeLessThanOrEqual(SERVER_CAVE.ALTAR_REACH);
-    expect(DAIS_TOP - 0.15).toBeGreaterThanOrEqual(SERVER_CAVE.ALTAR_MIN_Y);
-    expect(CAVE_SERVER_MIN_STAY_SECONDS * 1000).toBe(SERVER_CAVE.MIN_STAY_MS);
+    expect(DAIS_STEPS[DAIS_STEPS.length - 1].half * Math.SQRT2).toBeLessThanOrEqual(SERVER_CAVE.altar.reach);
+    expect(DAIS_TOP - 0.15).toBeGreaterThanOrEqual(SERVER_CAVE.altar.minY);
+    expect(CAVE_SERVER_MIN_STAY_SECONDS * 1000).toBe(SERVER_CAVE.minStayMs);
+  });
+
+  it("the checkpoint is the star rest past the chasm", () => {
+    const { checkpoint } = SERVER_CAVE;
+    const rest = STAR_RESTS.find((r) => Math.hypot(r.x - checkpoint.x, r.z - checkpoint.z) < 0.01);
+    expect(rest).toBeDefined();
+    // past the chasm: between the bridge and the altar
+    expect(checkpoint.z).toBeLessThan(cellZ(13));
+    expect(checkpoint.z).toBeGreaterThan(ALTAR.z);
+  });
+
+  it("star rests, their reach and where a fall puts you are what the server expects", () => {
+    expect(STAR_RESTS).toEqual(SERVER_CAVE.rests);
+    expect(REST_REACH).toBe(SERVER_CAVE.restReach);
+    expect(CAVE_ARRIVAL).toEqual(SERVER_CAVE.arrival);
+    STAR_RESTS.forEach((rest, i) => {
+      startCave();
+      stepCave(rest.x, 0, rest.z, step({ crowned: false }));
+      expect(stepCave(0, ABYSS_CATCH - 1, 0, step({ grounded: false }))).toEqual([
+        { kind: "fell", to: { x: SERVER_CAVE.rests[i].x, z: SERVER_CAVE.rests[i].z + SERVER_CAVE.respawnOffsetZ } },
+      ]);
+    });
   });
 });

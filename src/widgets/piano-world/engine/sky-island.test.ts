@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { WORLD_CONTRACT } from "./world-contract";
 import { ISLAND_BOUNDS, ISLAND_SOLIDS, TOWER } from "./island";
 import type { KordiMotion } from "@/entities/character";
 import { JUMP_SPEED, GRAVITY, HARD_LANDING, SPEED, lerpAngle, wrapAngle, type Ground } from "./physics";
@@ -24,7 +25,7 @@ import {
 import type { Footprint } from "./terrain";
 
 /** WorldLobby.MAX_Y: the server drops moves above this */
-const SERVER_MAX_Y = 40;
+const SERVER_MAX_Y = WORLD_CONTRACT.bounds.maxY;
 const JUMP_APEX = (JUMP_SPEED * JUMP_SPEED) / (2 * GRAVITY);
 const BODY_HEIGHT = 1.9;
 const BODY_RADIUS = 0.42; // terrain.ts

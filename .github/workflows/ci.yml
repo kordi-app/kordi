@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 12
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+
+      # The server enforces these rules; both repos keep the same file (see engine/world-contract.ts)
+      - name: World contract matches the server's
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/kordi-app/kordi-server/main/src/main/resources/world-contract.json -o "$RUNNER_TEMP/server-contract.json"
+          diff -u "$RUNNER_TEMP/server-contract.json" src/widgets/piano-world/engine/world-contract.json

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { WORLD_CONTRACT } from "./world-contract";
 import { GRAVITY, JUMP_SPEED, SPEED } from "./physics";
 import {
   DREAM_ARRIVAL,
@@ -17,7 +18,7 @@ import {
 
 const JUMP_APEX = (JUMP_SPEED * JUMP_SPEED) / (2 * GRAVITY);
 /** WorldLobby.MAX_Y */
-const SERVER_MAX_Y = 40;
+const SERVER_MAX_Y = WORLD_CONTRACT.bounds.maxY;
 
 interface Hop {
   x: number;

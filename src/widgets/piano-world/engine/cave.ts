@@ -1,5 +1,6 @@
 import { CLIFF } from "./island";
 import { buildTerrain, type Solid } from "./terrain";
+import { WORLD_CONTRACT } from "./world-contract";
 
 /**
  * The cave of sleeping stars: behind an illusory stretch of the island's cliff
@@ -132,7 +133,7 @@ export const ABYSS_FLOOR = -14;
 export const ABYSS_CATCH = -5;
 
 /** The server only believes the necklace was taken after this long in the cave (WorldSocketHandler.CAVE_MIN_STAY_MS) */
-export const CAVE_SERVER_MIN_STAY_SECONDS = 20;
+export const CAVE_SERVER_MIN_STAY_SECONDS = WORLD_CONTRACT.cave.minStayMs / 1000;
 
 /** How tall the rock walls stand */
 export const WALL_TOP = 6;
