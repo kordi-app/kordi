@@ -11,6 +11,13 @@ interface ChordPromptProps {
   nextChordName?: string | null;
   showNext?: boolean;
   feedbackState: AnswerFeedback;
+  /** a line over the chord, e.g. the key and the chord's numeral in a progression */
+  caption?: string | null;
+  /**
+   * the chord's tones, spelled, shown under it as a hint (needs a `hint` message in `ns`).
+   * null keeps the line's space while no hint is showing; leave it out where there are no hints.
+   */
+  hintNotes?: readonly string[] | null;
 }
 
 export function ChordPrompt({
@@ -19,12 +26,17 @@ export function ChordPrompt({
   nextChordName = null,
   showNext = false,
   feedbackState,
+  caption = null,
+  hintNotes,
 }: ChordPromptProps) {
   const t = useTranslations(ns);
   const isInvert = feedbackState === "correct";
 
   return (
     <div className="flex flex-col items-center gap-3">
+      {caption ? (
+        <div className="text-xs font-semibold uppercase tracking-widest opacity-60">{caption}</div>
+      ) : null}
       <div
         className={cn(
           "flex h-28 min-w-48 items-center justify-center rounded-lg border border-border px-8 transition-all duration-200",
@@ -37,6 +49,17 @@ export function ChordPrompt({
           {chordName ?? "-"}
         </span>
       </div>
+
+      {hintNotes !== undefined ? (
+        <div aria-live="polite" className="min-h-5 text-sm text-foreground">
+          {hintNotes && hintNotes.length > 0 ? (
+            <span>
+              <span className="text-xs font-semibold uppercase tracking-widest opacity-60">{t("hint")}</span>{" "}
+              <span className="font-semibold tracking-wide">{hintNotes.join(" · ")}</span>
+            </span>
+          ) : null}
+        </div>
+      ) : null}
 
       {showNext && nextChordName && (
         <div className="text-xs font-semibold uppercase tracking-widest opacity-60">
