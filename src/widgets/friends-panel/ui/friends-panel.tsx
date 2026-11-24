@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQueries } from "@tanstack/react-query";
 import { ErrorBoundary, Suspense } from "@suspensive/react";
 import { useTranslations } from "next-intl";
 import { friendshipQueries, type Friendship } from "@/entities/friendship";
@@ -70,9 +70,10 @@ function FriendsPanelContent({
   adding,
 }: FriendsPanelProps & { onAdd: () => void; adding: boolean }) {
   const t = useTranslations("friends");
-  const { data: friends } = useSuspenseQuery(friendshipQueries.friends());
-  const { data: received } = useSuspenseQuery(friendshipQueries.received());
-  const { data: sent } = useSuspenseQuery(friendshipQueries.sent());
+  // fetched together: three useSuspenseQuery calls would suspend on each in turn (a waterfall)
+  const [{ data: friends }, { data: received }, { data: sent }] = useSuspenseQueries({
+    queries: [friendshipQueries.friends(), friendshipQueries.received(), friendshipQueries.sent()],
+  });
   const [filter, setFilter] = useState("");
 
   const otherName = (f: Friendship) => (f.senderId === currentUserId ? f.receiverNickname : f.senderNickname);
