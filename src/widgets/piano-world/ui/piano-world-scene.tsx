@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { DEFAULT_APPEARANCE, characterQueries, type Appearance } from "@/entities/character";
+import { DEFAULT_APPEARANCE, characterQueries, type Appearance, type RewardId } from "@/entities/character";
 import { cn } from "@/shared/lib/utils";
 import type { PianoWorldCopy } from "./copy";
 import { EMOTES } from "../engine/interactables";
@@ -31,6 +31,9 @@ import { NameChip, NoteDisplay, RegionLabel, StatusStack } from "./hud/status";
 import { TouchControls } from "./hud/touch-controls";
 import { ChordCardPanel, WarpPanel, WishPanel } from "./interaction-panels";
 import { World, type WorldDisplay, type WorldEvents } from "./world";
+
+/** stable while a member's character loads, so the memoized display doesn't churn */
+const NO_REWARDS: readonly RewardId[] = [];
 
 /**
  * Kordi's piano world: walk the keys, hop between regions through portals,
@@ -341,32 +344,53 @@ export default function PianoWorldScene({
   // Members wear what they chose (and earned) on the server; guests wear the best crown
   // they've earned in this browser, put on automatically
   const { data: character } = useQuery({ ...characterQueries.me(), enabled: !isGuest });
-  const rewards = isGuest ? course.localRewards : (character?.unlocked ?? []);
-  const appearance: Appearance = isGuest
-    ? {
-        ...DEFAULT_APPEARANCE,
-        // the best crown earned: the storm temple's, then the night's, then the clouds'
-        hat: (["flame-crown", "star-crown", "crown"] as const).find((hat) => rewards.includes(hat)) ?? null,
-        pet: dreamSea.guestWhale ? "moon-whale" : null,
-      }
-    : (character?.appearance ?? DEFAULT_APPEARANCE);
+  const rewards = isGuest ? course.localRewards : (character?.unlocked ?? NO_REWARDS);
+  const guestWhale = dreamSea.guestWhale;
+  const memberAppearance = character?.appearance;
+  const appearance = useMemo<Appearance>(
+    () =>
+      isGuest
+        ? {
+            ...DEFAULT_APPEARANCE,
+            // the best crown earned: the storm temple's, then the night's, then the clouds'
+            hat: (["flame-crown", "star-crown", "crown"] as const).find((hat) => rewards.includes(hat)) ?? null,
+            pet: guestWhale ? "moon-whale" : null,
+          }
+        : (memberAppearance ?? DEFAULT_APPEARANCE),
+    [isGuest, rewards, guestWhale, memberAppearance],
+  );
 
-  const display: WorldDisplay = {
-    emote,
-    target: region.feature === "melody" ? melody.target : null,
-    appearance,
-    rewards,
-    interaction: interactions.scene,
-    celebrate,
-    awake,
-    skyFound,
-    dreamFound: dreamSea.found,
-  };
+  const target = region.feature === "melody" ? melody.target : null;
+  const interactionScene = interactions.scene;
+  const dreamFound = dreamSea.found;
+  // memoized so a HUD-only re-render doesn't hand the 3D world a new object
+  const display = useMemo<WorldDisplay>(
+    () => ({
+      emote,
+      target,
+      appearance,
+      rewards,
+      interaction: interactionScene,
+      celebrate,
+      awake,
+      skyFound,
+      dreamFound,
+    }),
+    [emote, target, appearance, rewards, interactionScene, celebrate, awake, skyFound, dreamFound],
+  );
 
   const { panel } = interactions;
 
   return (
-    <div ref={containerRef} className="relative h-full w-full" onPointerDown={startAudio}>
+    <div
+      ref={containerRef}
+      className="relative h-full w-full"
+      // a touch pointerdown is not a user activation on iOS: unlock on the release/click too
+      onPointerDown={startAudio}
+      onPointerUp={startAudio}
+      onTouchEnd={startAudio}
+      onClick={startAudio}
+    >
       <Canvas
         shadows="percentage"
         dpr={quality.dpr}
@@ -401,7 +425,7 @@ export default function PianoWorldScene({
       ) : null}
       {region.feature === "course" ? <CourseCard run={course.run} isGuest={isGuest} copy={copy} /> : null}
       {region.dream ? <DreamCard found={dreamNotes} total={LOST_NOTES.length} sung={whaleSang} copy={copy} /> : null}
-      <NoteDisplay note={audio.note} />
+      <NoteDisplay store={audio.noteStore} />
       <NameChip name={name} isGuest={isGuest} onReroll={rerollName} copy={copy} />
       <EmoteBar emote={emote} onToggle={toggleEmote} copy={copy} />
       <StatusStack info={presenceInfo} audio={audio.audio} copy={copy} />

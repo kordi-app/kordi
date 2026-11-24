@@ -1,5 +1,6 @@
 "use client";
 
+import { useStoreValue, type ValueStore } from "@/shared/lib/react/value-store";
 import { cn } from "@/shared/lib/utils";
 import type { PianoWorldCopy } from "../copy";
 import type { RegionDef } from "../../engine/regions";
@@ -21,7 +22,8 @@ export function RegionLabel({ region, copy }: { region: RegionDef; copy: PianoWo
 }
 
 /** Top-right: the note you're standing on (or, where a band plays, the chord you just played). */
-export function NoteDisplay({ note }: { note: string | null }) {
+export function NoteDisplay({ store }: { store: ValueStore<string | null> }) {
+  const note = useStoreValue(store);
   return (
     <div className="pointer-events-none absolute right-0 top-0 p-5 md:p-6">
       <div
