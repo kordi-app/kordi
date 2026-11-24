@@ -41,6 +41,8 @@ export type NoteSink = (midi: number, time: number, duration: number) => void;
 
 /** A press this close (seconds) to a note's time counts as playing it, in tempo mode. */
 export const HIT_WINDOW = 0.2;
+/** Accompaniment notes this late (seconds) are skipped rather than played in a burst. */
+const LATE_DROP = 0.15;
 /** Notes are handed to the audio clock this far ahead (seconds), so they land exactly on time. */
 const LOOKAHEAD = 0.25;
 /** A short breath before the first note. */
@@ -153,7 +155,11 @@ export class PracticeEngine {
       if (mode === "wait" && this.block >= 0 && this.scheduled >= this.block) break;
       const group = this.groups[this.scheduled];
       for (const note of group.notes) {
-        if (!this.isPlayers(note)) this.sink(note.midi, this.timeAt(note.beat), note.length * this.secondsPerBeat());
+        if (this.isPlayers(note)) continue;
+        const at = this.timeAt(note.beat);
+        // a stalled clock (a hidden tab, a long frame) must not fire every missed note at once
+        if (at < now - LATE_DROP) continue;
+        this.sink(note.midi, at, note.length * this.secondsPerBeat());
       }
       this.scheduled += 1;
     }

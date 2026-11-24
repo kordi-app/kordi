@@ -96,6 +96,16 @@ export function useScorePractice(timeline: ScoreTimeline | null, activeNotes: Ac
     publish(IDLE);
   }, [publish]);
 
+  // A hidden tab stops animation frames but not the audio clock: on return the engine would
+  // catch up by playing every missed note at once. Pause instead (Play picks up where it was).
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden && engine.current?.isRunning) pause();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [pause]);
+
   const setMode = useCallback((m: PracticeMode) => { pause(); setModeState(m); }, [pause]);
   const setHands = useCallback((h: Hands) => { pause(); setHandsState(h); }, [pause]);
   const setSpeed = useCallback((s: number) => { pause(); setSpeedState(s); }, [pause]);
