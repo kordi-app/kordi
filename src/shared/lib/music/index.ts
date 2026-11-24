@@ -49,6 +49,20 @@ export {
 
 export { isPartialChord, validateChord, type AnswerFeedback } from "./chord-validator";
 
+export { getChordHint, type ChordHint } from "./chord-hint";
+
+export {
+  PROGRESSION_IDS,
+  KEY_CYCLE,
+  majorKeyName,
+  buildProgression,
+  progressionSequence,
+  createProgressionDeck,
+  type ProgressionId,
+  type ProgressionKey,
+  type ProgressionChord,
+} from "./progressions";
+
 export { toPitchClasses, pitchClassesEqual } from "./pitch-class";
 
 export {

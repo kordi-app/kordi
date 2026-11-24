@@ -5,8 +5,9 @@ import type { ActiveNote } from "@/entities/note";
 import type { DrillSettings } from "@/entities/chord-practice";
 import { useDrillState } from "../model/use-drill-state";
 import { useMetronome } from "./use-metronome";
-import { getChordTypes, useChordGenerator } from "./use-chord-generator";
+import { useChordGenerator } from "./use-chord-generator";
 import { useChordValidator } from "./use-chord-validator";
+import { useDrillHint } from "./use-drill-hint";
 
 export function useDrillGame(
   settings: DrillSettings,
@@ -25,9 +26,8 @@ export function useDrillGame(
     markTimeout,
   } = useDrillState();
 
-  const { generateNext } = useChordGenerator(settings);
-  // the chord types in play: a voicing that makes another of them answers that one
-  const poolTypes = getChordTypes(settings);
+  // poolTypes: the chord types in play — a voicing that makes another of them answers that one
+  const { generateNext, restart, types: poolTypes } = useChordGenerator(settings);
   const barCountRef = useRef(0);
   // Bar at which the current chord appeared — early correct answers move this
   // anchor so the next chord gets its full barsPerChord instead of inheriting
@@ -40,13 +40,14 @@ export function useDrillGame(
       if (isPractice) return; // No timeout in practice mode
 
       barCountRef.current = barCount;
+      if (settings.waitForMe) return; // the metronome keeps time, the chord waits to be played
       if (barCount - chordStartBarRef.current >= settings.barsPerChord) {
         chordStartBarRef.current = barCount;
         const next = generateNext(state.nextChord?.name ?? null);
         markTimeout({ ...next });
       }
     },
-    [state.status, state.nextChord, settings.barsPerChord, isPractice, generateNext, markTimeout]
+    [state.status, state.nextChord, settings.barsPerChord, settings.waitForMe, isPractice, generateNext, markTimeout]
   );
 
   const metronome = useMetronome({
@@ -62,10 +63,19 @@ export function useDrillGame(
     markCorrect({ ...next });
   }, [generateNext, state.nextChord, markCorrect]);
 
-  // a wrong chord breaks the streak and counts against accuracy, but stays on the same question
+  const { hint, reveal: revealHint, clear: clearHint } = useDrillHint({
+    chordName: state.currentChord?.name ?? null,
+    questionKey: state.totalAttempted,
+    active: state.status === "playing",
+    enabled: settings.showHints,
+  });
+
+  // a wrong chord breaks the streak and counts against accuracy, but stays on the same
+  // question — now with its tones shown, if hints are on
   const handleIncorrect = useCallback(() => {
     markIncorrect();
-  }, [markIncorrect]);
+    revealHint();
+  }, [markIncorrect, revealHint]);
 
   const { feedbackState } = useChordValidator({
     activeNotes,
@@ -78,6 +88,8 @@ export function useDrillGame(
   });
 
   const start = useCallback(() => {
+    restart();
+    clearHint();
     const first = generateNext(null);
     const second = generateNext(first.name);
     startDrill({ ...first }, { ...second });
@@ -86,7 +98,7 @@ export function useDrillGame(
     if (!isPractice) {
       metronome.start();
     }
-  }, [generateNext, startDrill, metronome, isPractice]);
+  }, [restart, clearHint, generateNext, startDrill, metronome, isPractice]);
 
   const stop = useCallback(() => {
     metronome.stop();
@@ -111,6 +123,8 @@ export function useDrillGame(
   return {
     state,
     feedbackState,
+    /** the current chord's tones, while a hint is showing */
+    hint,
     metronome: {
       currentBeat: metronome.currentBeat,
       beatsPerBar: metronome.beatsPerBar,

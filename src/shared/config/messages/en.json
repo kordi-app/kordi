@@ -379,7 +379,20 @@
     "metronomeAudio": "Metronome Audio",
     "metronomeVisual": "Metronome Visual",
     "showNextChord": "Show Next Chord",
-    "upNext": "Up next"
+    "upNext": "Up next",
+    "hint": "Hint",
+    "showHints": "Show Hints",
+    "chordSource": "Chords",
+    "source_random": "Random",
+    "source_progression": "Progression",
+    "progression": "Progression",
+    "progression_ii-V-I": "ii–V–I",
+    "progression_I-V-vi-IV": "I–V–vi–IV",
+    "progression_I-vi-IV-V": "I–vi–IV–V",
+    "progression_canon": "Canon (I–V–vi–iii–IV–I–IV–V)",
+    "progression_blues": "12-Bar Blues",
+    "rotateKeys": "All 12 Keys in Turn",
+    "waitForMe": "Wait for Me (next chord only once you play this one)"
   },
   "chordQuiz": {
     "title": "Chord Quiz",
@@ -411,7 +424,12 @@
     "provisional": "Checking your answers — these numbers aren't final yet",
     "newBest": "New best!",
     "best": "Best {best}",
-    "rank": "Rank #{rank}"
+    "rank": "Rank #{rank}",
+    "reviewTip": "Tap a missed chord to compare the right notes with yours",
+    "answerNotes": "Answer",
+    "yourNotes": "You played",
+    "noNotes": "Nothing played",
+    "listen": "Listen"
   },
   "character": {
     "title": "Dress up my Kordi",

@@ -19,6 +19,8 @@ interface PracticeKeyboardProps {
   endMidi?: number;
   /** notes to show as "should be ringing" (score practice) */
   ringingNotes?: number[];
+  /** a chord's tones shown as a hint (chord practice, after a miss or a long wait) */
+  hintNotes?: number[];
 }
 
 /**
@@ -32,6 +34,7 @@ export function PracticeKeyboard({
   startMidi,
   endMidi,
   ringingNotes,
+  hintNotes,
 }: PracticeKeyboardProps) {
   const { activeNotes, isAudioStarted, isLoaded, keyboard, mouse, sound } = input;
 
@@ -57,6 +60,7 @@ export function PracticeKeyboard({
           endMidi={endMidi}
           activeNotes={activeNotes}
           ringingNotes={ringingNotes}
+          hintNotes={hintNotes}
           onNoteOn={mouse.onNoteOn}
           onNoteOff={mouse.onNoteOff}
           showShortcuts

@@ -11,4 +11,9 @@ export const DEFAULT_DRILL_SETTINGS: DrillSettings = {
   metronomeAudioEnabled: true,
   metronomeVisualEnabled: true,
   showNextChord: true,
+  chordSource: "random",
+  progression: "ii-V-I",
+  progressionKey: 0,
+  waitForMe: false,
+  showHints: true,
 };

@@ -2,13 +2,23 @@
 
 import { ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { CHORD_TEMPLATES, ALL_KEYS, displaySuffix, type ChordType } from "@/shared/lib/music";
+import {
+  CHORD_TEMPLATES,
+  ALL_KEYS,
+  KEY_CYCLE,
+  PROGRESSION_IDS,
+  displaySuffix,
+  majorKeyName,
+  type ChordType,
+  type ProgressionKey,
+} from "@/shared/lib/music";
 import {
   DIFFICULTY_CHORD_TYPES,
   type DrillSettings,
   type Difficulty,
   type TimeSignature,
   type GameMode,
+  type ChordSource,
 } from "@/entities/chord-practice";
 import { MonoPill } from "@/shared/ui/mono-button";
 import {
@@ -26,6 +36,8 @@ const TIME_SIGNATURES: readonly TimeSignature[] = ["4/4", "3/4", "2/4", "6/8"];
 const BARS_PER_CHORD = [1, 2, 3, 4] as const;
 const ALL_CHORD_TYPES = Object.keys(CHORD_TEMPLATES) as ChordType[];
 const ANY_KEY = "any";
+const CHORD_SOURCES: readonly ChordSource[] = ["random", "progression"];
+const ROTATE = "rotate";
 
 type TFn = (key: string) => string;
 
@@ -44,6 +56,7 @@ export function DrillSettingsContent({
   const update = (partial: Partial<DrillSettings>) =>
     onChange({ ...settings, ...partial });
   const isPractice = settings.gameMode === "practice";
+  const isProgression = settings.chordSource === "progression";
 
   const changeDifficulty = (difficulty: Difficulty) =>
     update({
@@ -65,32 +78,65 @@ export function DrillSettingsContent({
         />
       </SettingsSection>
 
-      <SettingsSection label={t("difficulty")}>
+      <SettingsSection label={t("chordSource")}>
         <PillGroup
-          wrap
-          options={DIFFICULTIES}
-          value={settings.difficulty}
-          onChange={changeDifficulty}
-          renderLabel={(difficulty) => t(`difficulty_${difficulty}`)}
+          options={CHORD_SOURCES}
+          value={settings.chordSource}
+          onChange={(chordSource) => update({ chordSource })}
+          renderLabel={(source) => t(`source_${source}`)}
         />
       </SettingsSection>
 
-      {settings.difficulty === "custom" ? (
-        <SettingsSection label={t("chordTypes")}>
-          <CustomChordTypes
-            selected={settings.customChordTypes}
-            onChange={(customChordTypes) => update({ customChordTypes })}
-          />
-        </SettingsSection>
-      ) : null}
+      {isProgression ? (
+        <>
+          <SettingsSection label={t("progression")}>
+            <PillGroup
+              wrap
+              options={PROGRESSION_IDS}
+              value={settings.progression}
+              onChange={(progression) => update({ progression })}
+              renderLabel={(id) => t(`progression_${id}`)}
+            />
+          </SettingsSection>
 
-      <SettingsSection label={t("key")}>
-        <KeySelect
-          t={t}
-          value={settings.keyFilter ?? ANY_KEY}
-          onChange={(key) => update({ keyFilter: key === ANY_KEY ? null : key })}
-        />
-      </SettingsSection>
+          <SettingsSection label={t("key")}>
+            <ProgressionKeySelect
+              t={t}
+              value={settings.progressionKey}
+              onChange={(progressionKey) => update({ progressionKey })}
+            />
+          </SettingsSection>
+        </>
+      ) : (
+        <>
+          <SettingsSection label={t("difficulty")}>
+            <PillGroup
+              wrap
+              options={DIFFICULTIES}
+              value={settings.difficulty}
+              onChange={changeDifficulty}
+              renderLabel={(difficulty) => t(`difficulty_${difficulty}`)}
+            />
+          </SettingsSection>
+
+          {settings.difficulty === "custom" ? (
+            <SettingsSection label={t("chordTypes")}>
+              <CustomChordTypes
+                selected={settings.customChordTypes}
+                onChange={(customChordTypes) => update({ customChordTypes })}
+              />
+            </SettingsSection>
+          ) : null}
+
+          <SettingsSection label={t("key")}>
+            <KeySelect
+              t={t}
+              value={settings.keyFilter ?? ANY_KEY}
+              onChange={(key) => update({ keyFilter: key === ANY_KEY ? null : key })}
+            />
+          </SettingsSection>
+        </>
+      )}
 
       {!isPractice ? (
         <>
@@ -146,12 +192,22 @@ export function DrillSettingsContent({
               checked={settings.metronomeVisualEnabled}
               onChange={(metronomeVisualEnabled) => update({ metronomeVisualEnabled })}
             />
+            <Toggle
+              label={t("waitForMe")}
+              checked={settings.waitForMe}
+              onChange={(waitForMe) => update({ waitForMe })}
+            />
           </>
         ) : null}
         <Toggle
           label={t("showNextChord")}
           checked={settings.showNextChord}
           onChange={(showNextChord) => update({ showNextChord })}
+        />
+        <Toggle
+          label={t("showHints")}
+          checked={settings.showHints}
+          onChange={(showHints) => update({ showHints })}
         />
       </div>
     </div>
@@ -211,6 +267,40 @@ function KeySelect({
           {ALL_KEYS.map((k) => (
             <DropdownMenuRadioItem key={k.name} value={k.name}>
               {k.name}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/** A major key for the progression (round the cycle of fourths), or all twelve in turn. */
+function ProgressionKeySelect({
+  t,
+  value,
+  onChange,
+}: {
+  t: TFn;
+  value: ProgressionKey;
+  onChange: (value: ProgressionKey) => void;
+}) {
+  const label = (key: ProgressionKey) => (key === ROTATE ? t("rotateKeys") : majorKeyName(key));
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted data-[popup-open]:bg-primary data-[popup-open]:text-primary-foreground">
+        <span>{label(value)}</span>
+        <ChevronDown className="size-4 shrink-0" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="max-h-72 w-(--anchor-width) overflow-y-auto">
+        <DropdownMenuRadioGroup
+          value={String(value)}
+          onValueChange={(key: string) => onChange(key === ROTATE ? ROTATE : Number(key))}
+        >
+          <DropdownMenuRadioItem value={ROTATE}>{t("rotateKeys")}</DropdownMenuRadioItem>
+          {KEY_CYCLE.map((tonic) => (
+            <DropdownMenuRadioItem key={tonic} value={String(tonic)}>
+              {majorKeyName(tonic)}
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>

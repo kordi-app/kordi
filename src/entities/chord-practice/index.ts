@@ -1,6 +1,7 @@
 export type {
   Difficulty,
   GameMode,
+  ChordSource,
   DrillSettings,
   DrillChord,
   DrillStatus,

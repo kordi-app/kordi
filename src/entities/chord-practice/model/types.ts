@@ -1,7 +1,15 @@
-import type { AnswerFeedback, ChordType, TimeSignature } from "@/shared/lib/music";
+import type {
+  AnswerFeedback,
+  ChordType,
+  ProgressionId,
+  ProgressionKey,
+  TimeSignature,
+} from "@/shared/lib/music";
 
 export type Difficulty = "beginner" | "intermediate" | "advanced" | "expert" | "custom";
 export type GameMode = "practice" | "timeattack";
+/** Where the chords come from: shuffled from a pool, or a progression in order. */
+export type ChordSource = "random" | "progression";
 
 export interface DrillSettings {
   gameMode: GameMode;
@@ -14,6 +22,14 @@ export interface DrillSettings {
   metronomeAudioEnabled: boolean;
   metronomeVisualEnabled: boolean;
   showNextChord: boolean;
+  chordSource: ChordSource;
+  progression: ProgressionId;
+  /** the progression's major key, or every key in turn */
+  progressionKey: ProgressionKey;
+  /** timed mode: the metronome keeps going, but a chord waits until it is played */
+  waitForMe: boolean;
+  /** after a wrong chord or a long wait, show the chord's tones */
+  showHints: boolean;
 }
 
 export interface DrillChord {
@@ -21,6 +37,9 @@ export interface DrillChord {
   rootIndex: number;
   type: ChordType;
   pitchClasses: number[];
+  /** in a progression: the chord's numeral ("ii7") and key ("Bb Major") */
+  numeral?: string;
+  keyName?: string;
 }
 
 export type DrillStatus = "idle" | "countdown" | "playing" | "paused";
