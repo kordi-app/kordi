@@ -31,8 +31,9 @@ export function ChordPracticePage() {
   const piano = usePianoInput();
   const { activeNotes, isAudioStarted, startAudio, midi } = piano;
 
-  const { state, feedbackState, metronome, start, stop, pause, resume } =
+  const { state, feedbackState, hint, metronome, start, stop, pause, resume } =
     useDrillGame(settings, activeNotes);
+  const current = state.currentChord;
 
   // the start button is the gesture that unlocks sound (no separate prompt)
   const startWithSound = () => {
@@ -64,7 +65,9 @@ export function ChordPracticePage() {
           <div className="flex flex-col items-center gap-6">
             <ChordPrompt
               ns="chordPractice"
-              chordName={practiceChordLabel(state.currentChord?.name)}
+              chordName={practiceChordLabel(current?.name)}
+              caption={current?.numeral ? `${current.keyName} · ${current.numeral}` : null}
+              hintNotes={settings.showHints ? (hint?.labels ?? null) : undefined}
               nextChordName={practiceChordLabel(state.nextChord?.name)}
               showNext={settings.showNextChord}
               feedbackState={feedbackState}
@@ -93,7 +96,7 @@ export function ChordPracticePage() {
           />
         </div>
 
-        <PracticeKeyboard input={piano} feedback={feedbackState} />
+        <PracticeKeyboard input={piano} feedback={feedbackState} hintNotes={isIdle ? undefined : hint?.midi} />
       </div>
     </div>
   );
