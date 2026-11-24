@@ -59,6 +59,7 @@ export default function PianoWorldScene({
   const { markFound: markDreamFound, adoptGuestWhale } = dreamSea;
   /** notes found on this visit to the dream sea (for the card) */
   const [dreamNotes, setDreamNotes] = useState(0);
+  const [whaleSang, setWhaleSang] = useState(false);
   /** the warp stone in reach, if any (the island only) */
   const [warpNearby, setWarpNearbyState] = useState<WarpStoneId | null>(null);
   /** the melody card only shows on the keyboard plaza */
@@ -237,6 +238,7 @@ export default function PianoWorldScene({
           // you found the cat's way in: from now on a link (or the pawprints) can bring you back
           markDreamFound();
           setDreamNotes(0);
+          setWhaleSang(false);
           warpEffect("arrive");
         }
         if (isOn()) switchInstrument(next.instrument);
@@ -254,6 +256,7 @@ export default function PianoWorldScene({
         say(found >= LOST_NOTES.length ? copy.dreamReady : copy.dreamNote.replace("{note}", midiToNoteName(event.midi)));
         return;
       }
+      setWhaleSang(true);
       // the whale sings its song whole again, low and slow
       progression(WHALE_SONG.map((midi) => [midi - 24, midi]));
       bumpCelebrate();
@@ -397,7 +400,7 @@ export default function PianoWorldScene({
         <MelodyCard melody={melody.melody} progress={melody.progress} copy={copy} />
       ) : null}
       {region.feature === "course" ? <CourseCard run={course.run} isGuest={isGuest} copy={copy} /> : null}
-      {region.dream ? <DreamCard found={dreamNotes} total={LOST_NOTES.length} copy={copy} /> : null}
+      {region.dream ? <DreamCard found={dreamNotes} total={LOST_NOTES.length} sung={whaleSang} copy={copy} /> : null}
       <NoteDisplay note={audio.note} />
       <NameChip name={name} isGuest={isGuest} onReroll={rerollName} copy={copy} />
       <EmoteBar emote={emote} onToggle={toggleEmote} copy={copy} />

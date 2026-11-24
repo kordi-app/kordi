@@ -300,9 +300,9 @@ function UpsideDownTree() {
           </mesh>
         </group>
       ))}
-      {/* the branch the note hangs from */}
-      <mesh position={[1.05, 2.6, 0]} rotation={[0, 0, -1.2]}>
-        <cylinderGeometry args={[0.03, 0.06, 1.3, 6]} />
+      {/* the branch the note hangs from: out from the trunk to just above it */}
+      <mesh position={[1.05, 2.75, 0]} rotation={[0, 0, -Math.PI / 2]}>
+        <cylinderGeometry args={[0.03, 0.07, 2.1, 6]} />
         <meshStandardMaterial color="#6b5a8c" roughness={0.9} />
       </mesh>
     </group>
@@ -447,7 +447,8 @@ function LostNotes() {
 // ── the whale ────────────────────────────────────────────────────────────────
 
 /** Where the whale hovers to sing, beside the summit */
-const SING_AT = new THREE.Vector3(isle("summit").x + 7, isle("summit").top + 2.5, isle("summit").z - 4);
+/** behind the summit (away from the camera), so it faces you across the stones without filling the view */
+const SING_AT = new THREE.Vector3(isle("summit").x + 5, isle("summit").top + 0.5, isle("summit").z - 10);
 
 /**
  * The whale: swims a wide loop through the sea of stars, rising out of it and
@@ -466,7 +467,7 @@ function Whale() {
     const singing = dreamRuntime.sungAt > -Infinity;
     const want = singing
       ? SING_AT
-      : s.look.set(Math.cos(t * 0.07) * 34, 2.5 + Math.sin(t * 0.21) * 3.5, Math.sin(t * 0.07) * 26 - 12);
+      : s.look.set(Math.cos(t * 0.09) * 24, 2.5 + Math.sin(t * 0.21) * 3, Math.sin(t * 0.09) * 18 - 10);
     const before = s.before.copy(s.pos);
     s.pos.lerp(want, 1 - Math.exp(-dt * (singing ? 0.8 : 3)));
     if (root.current) {
@@ -474,7 +475,8 @@ function Whale() {
       const vx = s.pos.x - before.x;
       const vz = s.pos.z - before.z;
       if (!singing && Math.hypot(vx, vz) > 1e-4) root.current.rotation.y = Math.atan2(vx, vz);
-      if (singing) root.current.rotation.y += (Math.atan2(-1, -0.5) - root.current.rotation.y) * (1 - Math.exp(-dt * 1.5));
+      // singing: turn side-on to you, so you see the whole of it
+      if (singing) root.current.rotation.y += (-Math.PI / 2 - root.current.rotation.y) * (1 - Math.exp(-dt * 1.5));
       root.current.rotation.x = Math.sin(t * 0.21) * 0.15;
     }
     if (tail.current) tail.current.rotation.x = Math.sin(t * (singing ? 1.6 : 1.1)) * 0.35;
@@ -488,7 +490,7 @@ function Whale() {
     }
   });
   return (
-    <group ref={root} scale={2.4}>
+    <group ref={root} scale={1.9}>
       <mesh scale={[1.2, 1, 2.6]}>
         <sphereGeometry args={[1, 32, 20]} />
         <meshStandardMaterial color="#3c4fa8" emissive="#4a63d8" emissiveIntensity={0.45} roughness={0.35} />

@@ -230,7 +230,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
   /** solid ground beyond the keys: the island's, or the dream sea's */
   const terrain = island ?? (region.dream ? DREAM_TERRAIN : null);
   /** sitting on the cat's secret spot (seconds so far) */
-  const secretSit = useRef({ held: 0 });
+  const secretSit = useRef<{ since: number | null }>({ since: null });
   /** what you walk among this frame (other players move, so it's built per frame) */
   const walkEnv = (): WalkEnv => ({
     bounds: course ? course.bounds : (region.bounds ?? BOUNDS),
@@ -273,11 +273,18 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
         fx.current?.notes(s.pos.x, s.pos.y, s.pos.z, "#7fd8ff");
       }
       portalArmed.current = false;
-      secretSit.current.held = 0;
+      secretSit.current.since = null;
       if (region.dream) startDream();
       camera.position.copy(s.pos).add(cameraOffset);
       lookTarget.current.set(s.pos.x, s.pos.y + 0.6, s.pos.z - 1.2);
       balls.current = spawns.map((spot) => newBall(spot.x, spot.z));
+    }
+
+    // playtests (development only): jump straight to a spot
+    if (debugSeam?.teleport) {
+      const { x, y, z } = debugSeam.teleport;
+      debugSeam.teleport = null;
+      placePlayer(s, x, y, z);
     }
 
     // the sky's star steps come and go: settle what's solid before anything moves
@@ -349,8 +356,8 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       }
     }
     // the cat's secret: sit where it sits, and you're through
-    if (island && sitOnSpot(secretSit.current, s.pos.x, s.pos.z, emote === "sit", !s.airborne, dt)) {
-      secretSit.current.held = 0;
+    if (island && sitOnSpot(secretSit.current, s.pos.x, s.pos.z, emote === "sit", !s.airborne, now)) {
+      secretSit.current.since = null;
       fx.current?.ripple(s.pos.x, s.pos.y, s.pos.z, "#9fb8ff");
       events.onPortal("whale");
     }

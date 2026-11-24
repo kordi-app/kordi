@@ -63,8 +63,8 @@ export function MoonWhale({
     let swim = 3;
     switch (m.emote) {
       case "sit":
-        // nestles into Kordi's arms
-        s.want.set(0, 0.72 + Math.sin(t * 1.5) * 0.02, 0.62);
+        // nestles into Kordi's arms, below the face
+        s.want.set(0, 0.4 + Math.sin(t * 1.5) * 0.02, 0.62);
         swim = 1.2;
         break;
       case "dance":

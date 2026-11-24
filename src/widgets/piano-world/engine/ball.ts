@@ -133,7 +133,8 @@ export function stepBall(ball: Ball, dt: number, world: BallWorld): BallNote | n
 
 /** Where the balls start in each region (none on the jump course). */
 export function ballSpawns(region: string, spawn: { x: number; z: number }): { x: number; z: number }[] {
-  if (region === "clouds" || region === "night") return [];
+  // none on the jump courses (no keyboard floor) or in the dream sea (nothing to play)
+  if (region === "clouds" || region === "night" || region === "ruins" || region === "whale") return [];
   if (region === "hall") {
     return [
       { x: spawn.x + 3, z: spawn.z + 1.2 },

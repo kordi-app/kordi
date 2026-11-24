@@ -28,10 +28,14 @@ describe("the cat's secret spot", () => {
   });
 
   it("opens only for sitting, on the spot, long enough", () => {
-    const timer = { held: 0 };
-    expect(sitOnSpot(timer, SECRET_SPOT.x, SECRET_SPOT.z, false, true, SECRET_SIT_SECONDS + 1)).toBe(false);
-    expect(sitOnSpot(timer, SECRET_SPOT.x + 3, SECRET_SPOT.z, true, true, SECRET_SIT_SECONDS + 1)).toBe(false);
-    expect(sitOnSpot(timer, SECRET_SPOT.x, SECRET_SPOT.z, true, true, SECRET_SIT_SECONDS / 2)).toBe(false);
-    expect(sitOnSpot(timer, SECRET_SPOT.x, SECRET_SPOT.z, true, true, SECRET_SIT_SECONDS / 2 + 0.01)).toBe(true);
+    const timer: { since: number | null } = { since: null };
+    const at = (x: number, sitting: boolean, now: number) => sitOnSpot(timer, x, SECRET_SPOT.z, sitting, true, now);
+    expect(at(SECRET_SPOT.x, false, 10)).toBe(false);
+    expect(at(SECRET_SPOT.x + 3, true, 20)).toBe(false);
+    expect(at(SECRET_SPOT.x, true, 30)).toBe(false); // sat down
+    expect(at(SECRET_SPOT.x, true, 30 + SECRET_SIT_SECONDS / 2)).toBe(false);
+    expect(at(SECRET_SPOT.x, true, 30 + SECRET_SIT_SECONDS)).toBe(true);
+    expect(at(SECRET_SPOT.x, false, 40)).toBe(false); // stood up: starts over
+    expect(at(SECRET_SPOT.x, true, 41)).toBe(false);
   });
 });

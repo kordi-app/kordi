@@ -159,7 +159,7 @@ export function CourseCard({ run, isGuest, copy }: { run: CourseRun; isGuest: bo
 }
 
 /** The dream sea: the whale's notes you've found so far. */
-export function DreamCard({ found, total, copy }: { found: number; total: number; copy: PianoWorldCopy }) {
+export function DreamCard({ found, total, sung, copy }: { found: number; total: number; sung: boolean; copy: PianoWorldCopy }) {
   return (
     <ProgressCard
       title={copy.dreamTitle}
@@ -170,7 +170,7 @@ export function DreamCard({ found, total, copy }: { found: number; total: number
       }
       ratio={found / total}
       barClass="bg-palette-purple-500"
-      hint={found >= total ? copy.dreamReady : copy.dreamHint}
+      hint={sung ? copy.whaleSings : found >= total ? copy.dreamReady : copy.dreamHint}
     />
   );
 }

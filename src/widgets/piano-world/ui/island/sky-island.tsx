@@ -152,7 +152,7 @@ function Constellations() {
       const done = skyRuntime.done[pad.group];
       const lit = skyRuntime.lit[i] > -Infinity;
       // a lit star breathes until its constellation is done, then holds steady
-      const level = done ? 1 : lit ? 0.75 + 0.25 * Math.sin(now * 5 + i) : 0.35 + 0.1 * Math.sin(now * 1.3 + i * 1.7);
+      const level = done ? 1 : lit ? 0.75 + 0.25 * Math.sin(now * 5 + i) : 0.55 + 0.1 * Math.sin(now * 1.3 + i * 1.7);
       material.color.set(lit || done ? STAR_GOLD : STAR_DIM).multiplyScalar(level);
     });
     lines.current.forEach((group, k) => {
@@ -299,7 +299,7 @@ export function SkyIsland({ found }: { found: boolean }) {
       mesh.scale.setScalar(Math.max(0.01, t));
       mesh.rotation.y = now * 0.3 + i * 0.9;
       const material = stepMaterials.current[i];
-      if (material) material.emissiveIntensity = 1.4 * flicker;
+      if (material) material.emissiveIntensity = 0.55 * flicker;
     });
     if (isle.current) {
       isle.current.visible = gates > ISLAND_GATE;
@@ -324,11 +324,11 @@ export function SkyIsland({ found }: { found: boolean }) {
             ref={(m) => {
               stepMaterials.current[i] = m;
             }}
-            color={STAR_GOLD}
-            emissive={STAR_GOLD}
-            emissiveIntensity={1.4}
-            roughness={0.4}
-            toneMapped={false}
+            color="#f2c45a"
+            emissive="#ffb22e"
+            emissiveIntensity={0.55}
+            roughness={0.35}
+            metalness={0.2}
           />
         </mesh>
       ))}

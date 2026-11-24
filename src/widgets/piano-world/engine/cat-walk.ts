@@ -48,9 +48,17 @@ export function catPlan(nowMs: number): CatPlan {
   return { kind: "home" };
 }
 
-/** Sitting on the spot (feet on the ground) for this frame: advances the timer; true once it's long enough. */
-export function sitOnSpot(timer: { held: number }, x: number, z: number, sitting: boolean, grounded: boolean, dt: number) {
+/**
+ * Sitting on the spot (feet on the ground) at clock time `now` (seconds): true
+ * once you've sat there long enough. Timed by the clock, not summed frame
+ * deltas — those are capped per frame, so a slow device would wait far longer.
+ */
+export function sitOnSpot(timer: { since: number | null }, x: number, z: number, sitting: boolean, grounded: boolean, now: number) {
   const on = sitting && grounded && Math.hypot(x - SECRET_SPOT.x, z - SECRET_SPOT.z) < SECRET_REACH;
-  timer.held = on ? timer.held + dt : 0;
-  return timer.held >= SECRET_SIT_SECONDS;
+  if (!on) {
+    timer.since = null;
+    return false;
+  }
+  timer.since ??= now;
+  return now - timer.since >= SECRET_SIT_SECONDS;
 }

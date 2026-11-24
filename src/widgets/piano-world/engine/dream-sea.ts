@@ -99,7 +99,7 @@ export const NOTE_REACH = 1.1;
 export const LOST_NOTES: readonly LostNote[] = [
   { thing: "shell", midi: 67, x: isle("shell").x, y: isle("shell").top + 0.9, z: isle("shell").z },
   { thing: "teacup", midi: 72, x: TEACUP.x, y: TEACUP.cup.top + 1.1, z: TEACUP.z },
-  { thing: "tree", midi: 74, x: isle("tree").x + 1.2, y: isle("tree").top + 2.1, z: isle("tree").z },
+  { thing: "tree", midi: 74, x: isle("tree").x + 1.2, y: isle("tree").top + 2.3, z: isle("tree").z },
   { thing: "moon", midi: 69, x: isle("moon").x, y: isle("moon").top + 0.9, z: isle("moon").z },
   { thing: "sea", midi: 64, x: 9, y: 0.9, z: 8 },
 ];
