@@ -202,7 +202,7 @@ export function Water({
       vertexShader: VERTEX,
       fragmentShader: FRAGMENT,
       // phones skip the caustics, sparkles and lacy foam (three fewer noise lookups per pixel)
-      defines: quality.tier === "low" ? { LOW_QUALITY: "" } : {},
+      defines: quality.tier === "high" ? {} : { LOW_QUALITY: "" },
       fog: true,
       transparent: opacity < 1,
       depthWrite: opacity >= 1,

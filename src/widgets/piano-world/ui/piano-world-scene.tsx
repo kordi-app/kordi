@@ -361,7 +361,7 @@ export default function PianoWorldScene({
       onClick={startAudio}
     >
       <Canvas
-        shadows="percentage"
+        shadows={quality.shadows ? "percentage" : false}
         dpr={quality.dpr}
         frameloop={visible ? "always" : "never"}
         camera={{ position: [0, 12, 18], fov: 45, near: 0.1, far: 150 }}
