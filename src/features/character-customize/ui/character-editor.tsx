@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import dynamic from "next/dynamic";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -20,7 +21,12 @@ import { Button } from "@/shared/ui/button";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { cn } from "@/shared/lib/utils";
 import { updateCharacter } from "../api/update-character";
-import { CharacterPreview } from "./character-preview";
+
+// three.js and WebGL: load on the client only, after the editor, like the home world
+const CharacterPreview = dynamic(() => import("./character-preview").then((m) => m.CharacterPreview), {
+  ssr: false,
+  loading: () => <Skeleton className="aspect-square w-full rounded-2xl" />,
+});
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
