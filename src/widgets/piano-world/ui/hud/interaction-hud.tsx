@@ -15,7 +15,9 @@ export function EmoteBar({
   copy: PianoWorldCopy;
 }) {
   return (
-    <div className="absolute right-5 top-1/2 flex -translate-y-1/2 flex-col gap-1.5">
+    // touch + landscape: the screen is too short for a column beside the D-pad, so the
+    // emotes become a row along the top, left of the note display
+    <div className="absolute right-5 top-1/2 flex -translate-y-1/2 flex-col gap-1.5 pointer-coarse:landscape:right-28 pointer-coarse:landscape:top-5 pointer-coarse:landscape:translate-y-0 pointer-coarse:landscape:flex-row">
       {EMOTES.map((id, i) => (
         <button
           key={id}

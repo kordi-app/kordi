@@ -103,7 +103,7 @@ export function NameChip({
   copy: PianoWorldCopy;
 }) {
   return (
-    <div className="absolute right-5 top-24 hidden md:block">
+    <div className="absolute right-4 top-20 md:right-5 md:top-24">
       <button
         type="button"
         disabled={!isGuest}

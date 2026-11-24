@@ -31,6 +31,7 @@ import { NameChip, NoteDisplay, RegionLabel, StatusStack } from "./hud/status";
 import { TouchControls } from "./hud/touch-controls";
 import { ChordCardPanel, WarpPanel, WishPanel } from "./interaction-panels";
 import { World, type WorldDisplay, type WorldEvents } from "./world";
+import { rememberGuestName, saveGuestName } from "./hooks/guest-name";
 
 /** stable while a member's character loads, so the memoized display doesn't churn */
 const NO_REWARDS: readonly RewardId[] = [];
@@ -51,7 +52,8 @@ export default function PianoWorldScene({
   /** guests get a random musical name they can re-roll */
   isGuest: boolean;
 }) {
-  const [name, setName] = useState(playerName);
+  // the world renders on the client only (ssr: false), so storage is there on first render
+  const [name, setName] = useState(() => (isGuest ? rememberGuestName(playerName) : playerName));
   const [celebrate, setCelebrate] = useState(0);
   const bumpCelebrate = useCallback(() => setCelebrate((n) => n + 1), []);
 
@@ -300,7 +302,9 @@ export default function PianoWorldScene({
 
   const rerollName = useCallback(() => {
     const pick = (list: string[]) => list[Math.floor(Math.random() * list.length)];
-    setName(`${pick(copy.nameAdjectives)} ${pick(copy.nameNouns)}`);
+    const next = `${pick(copy.nameAdjectives)} ${pick(copy.nameNouns)}`;
+    setName(next);
+    saveGuestName(next);
   }, [copy]);
 
   const events: WorldEvents = useMemo(
