@@ -7,5 +7,11 @@ describe("isPublicPath", () => {
     expect(isPublicPath("/chord-practice/review")).toBe(false);
     expect(isPublicPath("/chord-quiz")).toBe(false);
     expect(isPublicPath("/")).toBe(true);
+    expect(isPublicPath("/score")).toBe(true);
+    expect(isPublicPath("/friends")).toBe(false);
+  });
+
+  it("lets unknown paths through, so they reach the 404 page", () => {
+    expect(isPublicPath("/does-not-exist")).toBe(true);
   });
 });

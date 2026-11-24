@@ -31,23 +31,25 @@ export const TOKEN_TTL = {
   REFRESH_TOKEN: 14 * 24 * 60 * 60, // 14 days (seconds)
 } as const;
 
-export const PUBLIC_ROUTES = [
-  ROUTES.HOME,
-  ROUTES.LOGIN,
-  ROUTES.PIANO,
-  ROUTES.SCORE,
-  // practice runs entirely in the browser (no API calls); guests can try it
-  ROUTES.CHORD_PRACTICE,
+/**
+ * Pages that need an account (they read or write your records). Everything
+ * else is open to guests — including paths that don't exist, so those reach
+ * the 404 page instead of a login wall. Chord practice is open (it runs in the
+ * browser), but today's review under it needs your quiz history.
+ */
+export const MEMBER_ROUTES = [
+  ROUTES.CHORD_REVIEW,
+  ROUTES.CHORD_QUIZ,
+  ROUTES.CHORD_ADVENTURE,
+  ROUTES.ME,
+  ROUTES.RANKING,
+  ROUTES.FRIENDS,
+  ROUTES.CHARACTER,
 ] as const;
-
-/** Members-only pages under a public section (today's review needs your quiz history). */
-const PRIVATE_SUBROUTES = [ROUTES.CHORD_REVIEW] as const;
 
 /** Whether a path (without the locale prefix) is open to guests. */
 export function isPublicPath(pathnameWithoutLocale: string): boolean {
-  const under = (route: string) => pathnameWithoutLocale === route || pathnameWithoutLocale.startsWith(route + "/");
-  if (PRIVATE_SUBROUTES.some(under)) return false;
-  return PUBLIC_ROUTES.some(
+  return !MEMBER_ROUTES.some(
     (route) => pathnameWithoutLocale === route || pathnameWithoutLocale.startsWith(route + "/"),
   );
 }
