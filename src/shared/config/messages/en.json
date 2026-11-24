@@ -13,6 +13,50 @@
     "navRanking": "Ranking",
     "navFriends": "Friends"
   },
+  "meta": {
+    "description": "Walk the keys, learn chords and play piano together",
+    "home": "Piano World",
+    "piano": "Free Play",
+    "pianoDescription": "Play piano with your keyboard or MIDI device",
+    "chordPractice": "Chord Practice",
+    "chordPracticeDescription": "Practice chords with random chord flash cards",
+    "chordQuiz": "Chord Quiz",
+    "chordQuizDescription": "Name the chords before the time runs out",
+    "chordAdventure": "Chord Adventure",
+    "chordAdventureDescription": "Beat monsters by playing chords on the piano",
+    "score": "Score practice",
+    "scoreDescription": "Practise a piece from its score, one hand or both",
+    "ranking": "Ranking",
+    "friends": "Friends",
+    "me": "My Profile",
+    "character": "My Kordi",
+    "login": "Sign in",
+    "notFound": "Page not found"
+  },
+  "errors": {
+    "title": "Something went wrong",
+    "description": "Please try again in a moment. If it keeps happening, reload the page.",
+    "retry": "Try again",
+    "home": "Go home",
+    "notFoundTitle": "Page not found",
+    "notFoundDescription": "The address may have changed, or the page doesn't exist.",
+    "worldTitle": "The piano world couldn't load",
+    "worldDescription": "This device can't show the 3D world. Play in one of the practice pages instead."
+  },
+  "a11y": {
+    "loading": "Loading",
+    "pianoKeyboard": "Piano keyboard",
+    "midiDevice": "MIDI device",
+    "up": "Up",
+    "down": "Down",
+    "left": "Left",
+    "right": "Right",
+    "jump": "Jump",
+    "loginRequired": "Sign-in required"
+  },
+  "midi": {
+    "unsupported": "MIDI works in Chrome or Edge"
+  },
   "sidebar": {
     "groups": {
       "practice": "Practice",
@@ -28,7 +72,8 @@
       "profile": "My Profile",
       "character": "My Kordi",
       "adventure": "Chord Adventure",
-      "score": "Score practice"
+      "score": "Score practice",
+      "login": "Log in"
     }
   },
   "me": {
@@ -120,7 +165,10 @@
     "title": "Sign in",
     "subtitle": "Sign in to save scores, join the ranking and add friends.",
     "googleLogin": "Continue with Google",
-    "tryWithoutLogin": "Try free play without signing in"
+    "tryWithoutLogin": "Try free play without signing in",
+    "errorLoginFailed": "Sign-in failed. Please try again.",
+    "errorSessionExpired": "Your session expired. Please sign in again.",
+    "errorGeneric": "Something went wrong while signing in. Please try again."
   },
   "instruments": {
     "piano": "Piano",

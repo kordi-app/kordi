@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
 import { routing } from "@/shared/config/i18n/routing";
-import { AUTH_COOKIES, PUBLIC_ROUTES } from "@/shared/config/auth";
+import { AUTH_COOKIES, isPublicPath } from "@/shared/config/auth";
 import { ROUTES } from "@/shared/config/routes";
+import { withNextParam } from "@/shared/lib/safe-next-path";
 import {
   clearAuthCookies,
   reissueWithRefreshToken,
@@ -25,11 +26,7 @@ export default async function proxy(request: NextRequest) {
   const response = intlMiddleware(request);
 
   const pathnameWithoutLocale = stripLocale(pathname);
-  const isPublicRoute = PUBLIC_ROUTES.some(
-    (route) =>
-      pathnameWithoutLocale === route ||
-      pathnameWithoutLocale.startsWith(route + "/"),
-  );
+  const isPublicRoute = isPublicPath(pathnameWithoutLocale);
 
   const accessToken = request.cookies.get(AUTH_COOKIES.ACCESS_TOKEN)?.value;
   const refreshToken = request.cookies.get(AUTH_COOKIES.REFRESH_TOKEN)?.value;
@@ -54,7 +51,11 @@ export default async function proxy(request: NextRequest) {
 
   // keep the visitor's language on the way to the login page
   const locale = pathname.match(localePattern)?.[1] ?? routing.defaultLocale;
-  const loginUrl = new URL(`/${locale}${ROUTES.LOGIN}`, request.url);
+  // …and bring them back here once they've signed in
+  const loginUrl = new URL(
+    withNextParam(`/${locale}${ROUTES.LOGIN}`, `${pathname}${request.nextUrl.search}`),
+    request.url,
+  );
 
   if (!accessToken && !refreshToken) {
     return NextResponse.redirect(loginUrl);

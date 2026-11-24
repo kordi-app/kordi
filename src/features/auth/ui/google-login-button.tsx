@@ -4,13 +4,16 @@ import { GOOGLE_LOGIN_URL } from "../model/constants";
 
 interface GoogleLoginButtonProps {
   label: string;
+  /** same-site path to come back to after sign-in (validated by the login route) */
+  next?: string | null;
 }
 
-export function GoogleLoginButton({ label }: GoogleLoginButtonProps) {
+export function GoogleLoginButton({ label, next }: GoogleLoginButtonProps) {
   return (
     <button
+      type="button"
       onClick={() => {
-        window.location.href = GOOGLE_LOGIN_URL;
+        window.location.href = next ? `${GOOGLE_LOGIN_URL}?next=${encodeURIComponent(next)}` : GOOGLE_LOGIN_URL;
       }}
       className="flex w-full items-center justify-center gap-3 whitespace-nowrap rounded-lg border border-border bg-card px-6 py-4 text-sm font-semibold text-foreground transition-all hover:bg-muted"
     >

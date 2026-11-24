@@ -3,6 +3,7 @@ import ky from "ky";
 import { API_BASE_URL } from "@/shared/config/api";
 import { AUTH_COOKIES } from "@/shared/config/auth";
 import { ROUTES } from "@/shared/config/routes";
+import { safeNextPath, withNextParam } from "@/shared/lib/safe-next-path";
 import { unwrap, type ApiEnvelope, type ApiSchema } from "@/shared/api";
 import {
   clearLoginNonceCookie,
@@ -37,9 +38,11 @@ export async function GET(request: NextRequest) {
   const nonce = request.cookies.get(AUTH_COOKIES.LOGIN_NONCE)?.value;
   const tokens = code && nonce ? await exchange(code, nonce) : null;
 
-  const response = NextResponse.redirect(
-    new URL(tokens ? ROUTES.HOME : ROUTES.LOGIN, request.url),
-  );
+  // where sign-in started (validated again: a cookie is still input)
+  const next = safeNextPath(request.cookies.get(AUTH_COOKIES.LOGIN_NEXT)?.value);
+  const failed = `${withNextParam(ROUTES.LOGIN, next)}${next ? "&" : "?"}error=login_failed`;
+
+  const response = NextResponse.redirect(new URL(tokens ? (next ?? ROUTES.HOME) : failed, request.url));
   clearLoginNonceCookie(response);
   if (tokens) setAuthCookies(response, tokens);
   return response;

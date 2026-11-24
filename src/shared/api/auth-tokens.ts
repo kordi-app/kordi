@@ -65,4 +65,13 @@ export function setLoginNonceCookie(response: NextResponse, nonce: string) {
 
 export function clearLoginNonceCookie(response: NextResponse) {
   response.cookies.delete(AUTH_COOKIES.LOGIN_NONCE);
+  response.cookies.delete(AUTH_COOKIES.LOGIN_NEXT);
+}
+
+/** Remembers where sign-in started, next to the nonce (the path is validated by the caller). */
+export function setLoginNextCookie(response: NextResponse, next: string) {
+  response.cookies.set(AUTH_COOKIES.LOGIN_NEXT, next, {
+    ...COOKIE_OPTIONS,
+    maxAge: LOGIN_NONCE_TTL,
+  });
 }

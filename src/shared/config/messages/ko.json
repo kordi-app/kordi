@@ -13,6 +13,50 @@
     "navRanking": "랭킹",
     "navFriends": "친구"
   },
+  "meta": {
+    "description": "건반을 걷고, 코드를 배우고, 친구와 함께 치는 피아노 놀이터",
+    "home": "피아노 월드",
+    "piano": "자유 연주",
+    "pianoDescription": "키보드나 MIDI 피아노로 연주해 보세요",
+    "chordPractice": "코드 연습",
+    "chordPracticeDescription": "무작위 코드 카드로 코드를 연습해요",
+    "chordQuiz": "코드 퀴즈",
+    "chordQuizDescription": "제한 시간 안에 코드를 맞혀 보세요",
+    "chordAdventure": "코드 어드벤처",
+    "chordAdventureDescription": "피아노로 코드를 쳐서 몬스터를 물리쳐요",
+    "score": "악보 연습",
+    "scoreDescription": "악보를 한 손씩, 또는 양손으로 연습해요",
+    "ranking": "랭킹",
+    "friends": "친구",
+    "me": "내 프로필",
+    "character": "내 코디",
+    "login": "로그인",
+    "notFound": "페이지를 찾을 수 없어요"
+  },
+  "errors": {
+    "title": "문제가 생겼어요",
+    "description": "잠시 후 다시 시도해 주세요. 계속되면 새로고침해 보세요.",
+    "retry": "다시 시도",
+    "home": "홈으로",
+    "notFoundTitle": "페이지를 찾을 수 없어요",
+    "notFoundDescription": "주소가 바뀌었거나 없는 페이지예요.",
+    "worldTitle": "피아노 월드를 불러오지 못했어요",
+    "worldDescription": "이 기기에서는 3D 월드를 띄울 수 없어요. 대신 연습 페이지에서 연주해 보세요."
+  },
+  "a11y": {
+    "loading": "불러오는 중",
+    "pianoKeyboard": "피아노 건반",
+    "midiDevice": "MIDI 장치",
+    "up": "위로",
+    "down": "아래로",
+    "left": "왼쪽으로",
+    "right": "오른쪽으로",
+    "jump": "점프",
+    "loginRequired": "로그인 필요"
+  },
+  "midi": {
+    "unsupported": "MIDI는 Chrome/Edge에서 지원돼요"
+  },
   "sidebar": {
     "groups": {
       "practice": "연습",
@@ -28,7 +72,8 @@
       "profile": "내 프로필",
       "character": "내 캐릭터",
       "adventure": "코드 모험",
-      "score": "악보 연습"
+      "score": "악보 연습",
+      "login": "로그인"
     }
   },
   "me": {
@@ -120,7 +165,10 @@
     "title": "로그인",
     "subtitle": "점수 기록과 랭킹, 친구 기능을 쓰려면 로그인하세요.",
     "googleLogin": "Google로 계속하기",
-    "tryWithoutLogin": "로그인 없이 자유 연주 해보기"
+    "tryWithoutLogin": "로그인 없이 자유 연주 해보기",
+    "errorLoginFailed": "로그인에 실패했어요. 다시 시도해 주세요.",
+    "errorSessionExpired": "로그인이 만료됐어요. 다시 로그인해 주세요.",
+    "errorGeneric": "로그인 중 문제가 생겼어요. 다시 시도해 주세요."
   },
   "instruments": {
     "piano": "피아노",
