@@ -35,7 +35,8 @@ export function ChordPrompt({
   return (
     <div className="flex flex-col items-center gap-3">
       {caption ? (
-        <div className="text-xs font-semibold uppercase tracking-widest opacity-60">{caption}</div>
+        // not uppercased: the numeral's case is its meaning (ii7 is minor, II7 is not)
+        <div className="text-xs font-semibold tracking-widest opacity-60">{caption}</div>
       ) : null}
       <div
         className={cn(
@@ -64,7 +65,8 @@ export function ChordPrompt({
       {showNext && nextChordName && (
         <div className="text-xs font-semibold uppercase tracking-widest opacity-60">
           {t("upNext")}:{" "}
-          <span className="font-semibold text-foreground">{nextChordName}</span>
+          {/* chord names keep their case: Bb, not BB */}
+          <span className="font-semibold normal-case text-foreground">{nextChordName}</span>
         </div>
       )}
     </div>
