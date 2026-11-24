@@ -25,7 +25,7 @@ import { ReviewEntryLink } from "./review-entry-link";
  */
 const practiceChordLabel = (name: string | undefined) => (name ? displaySuffix(name) : null);
 
-export function ChordPracticePage() {
+export function ChordPracticePage({ signedIn = true }: { signedIn?: boolean }) {
   const t = useTranslations("chordPractice");
   const [settings, setSettings] = useState<DrillSettings>(DEFAULT_DRILL_SETTINGS);
 
@@ -48,7 +48,7 @@ export function ChordPracticePage() {
     <div className="w-full px-page-x pt-4 pb-page-y md:px-page-x-wide md:pt-5">
       <div className="mx-auto w-full max-w-[44rem] space-y-10">
         <div className="flex items-center justify-end gap-3">
-          {isIdle ? <ReviewEntryLink /> : null}
+          {isIdle ? <ReviewEntryLink signedIn={signedIn} /> : null}
           <MidiStatus inline midiName={midi.selectedDevice?.name} fallback={t("noMidiDevice")} />
         </div>
 

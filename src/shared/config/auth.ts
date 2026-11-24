@@ -40,8 +40,13 @@ export const PUBLIC_ROUTES = [
   ROUTES.CHORD_PRACTICE,
 ] as const;
 
+/** Members-only pages under a public section (today's review needs your quiz history). */
+const PRIVATE_SUBROUTES = [ROUTES.CHORD_REVIEW] as const;
+
 /** Whether a path (without the locale prefix) is open to guests. */
 export function isPublicPath(pathnameWithoutLocale: string): boolean {
+  const under = (route: string) => pathnameWithoutLocale === route || pathnameWithoutLocale.startsWith(route + "/");
+  if (PRIVATE_SUBROUTES.some(under)) return false;
   return PUBLIC_ROUTES.some(
     (route) => pathnameWithoutLocale === route || pathnameWithoutLocale.startsWith(route + "/"),
   );
