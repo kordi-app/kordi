@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import type { PianoWorldCopy } from "./copy";
+import { WorldErrorBoundary } from "./world-error-boundary";
 
 // three.js is ~600 KB and needs WebGL — load it on the client only, after the page shell
 const PianoWorldScene = dynamic(() => import("./piano-world-scene"), {
@@ -18,5 +19,9 @@ export function PianoWorld({
   playerName: string;
   isGuest: boolean;
 }) {
-  return <PianoWorldScene copy={copy} playerName={playerName} isGuest={isGuest} />;
+  return (
+    <WorldErrorBoundary>
+      <PianoWorldScene copy={copy} playerName={playerName} isGuest={isGuest} />
+    </WorldErrorBoundary>
+  );
 }
