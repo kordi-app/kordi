@@ -3,6 +3,7 @@ export const ROUTES = {
   LOGIN: "/login",
   PIANO: "/piano",
   CHORD_PRACTICE: "/chord-practice",
+  CHORD_REVIEW: "/chord-practice/review",
   CHORD_QUIZ: "/chord-quiz",
   CHORD_ADVENTURE: "/chord-adventure",
   ME: "/me",

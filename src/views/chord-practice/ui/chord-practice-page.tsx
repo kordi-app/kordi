@@ -17,6 +17,7 @@ import {
   DrillSettingsPanel,
 } from "@/widgets/chord-practice-game";
 import { displaySuffix } from "@/shared/lib/music";
+import { ReviewEntryLink } from "./review-entry-link";
 
 /**
  * Practice names are already spelled for the chosen key (Bbmaj7 in F major),
@@ -45,7 +46,8 @@ export function ChordPracticePage() {
   return (
     <div className="w-full px-page-x pt-4 pb-page-y md:px-page-x-wide md:pt-5">
       <div className="mx-auto w-full max-w-[44rem] space-y-10">
-        <div className="flex justify-end">
+        <div className="flex items-center justify-end gap-3">
+          {isIdle ? <ReviewEntryLink /> : null}
           <MidiStatus inline midiName={midi.selectedDevice?.name} fallback={t("noMidiDevice")} />
         </div>
 

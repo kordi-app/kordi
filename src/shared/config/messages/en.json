@@ -65,7 +65,11 @@
     "error": "Couldn't load the rankings",
     "retry": "Try again",
     "adventure": "Chord Adventure",
-    "monsters": "{count, plural, one {# monster} other {# monsters}}"
+    "monsters": "{count, plural, one {# monster} other {# monsters}}",
+    "scope": "Ranking scope",
+    "scopeAll": "Everyone",
+    "scopeFriends": "Friends",
+    "emptyFriends": "No records from you or your friends yet. Add friends or set the first score!"
   },
   "friends": {
     "title": "Friends",
@@ -331,7 +335,9 @@
     "metronomeAudio": "Metronome Audio",
     "metronomeVisual": "Metronome Visual",
     "showNextChord": "Show Next Chord",
-    "upNext": "Up next"
+    "upNext": "Up next",
+    "reviewEntry": "Today's review",
+    "reviewEntryDue": "Today's review {count}"
   },
   "chordQuiz": {
     "title": "Chord Quiz",
@@ -363,7 +369,34 @@
     "provisional": "Checking your answers — these numbers aren't final yet",
     "newBest": "New best!",
     "best": "Best {best}",
-    "rank": "Rank #{rank}"
+    "rank": "Rank #{rank}",
+    "reviewMissed": "Review missed chords"
+  },
+  "chordReview": {
+    "title": "Today's review",
+    "backToPractice": "Back to practice",
+    "noMidiDevice": "No MIDI Device",
+    "loading": "Loading chords to review...",
+    "loadError": "Couldn't load your review",
+    "retry": "Try again",
+    "emptyTitle": "Nothing to review right now",
+    "emptyHint": "Take a quiz and your weak chords will gather here",
+    "goQuiz": "Take a quiz",
+    "dueCount": "{count, plural, one {# chord} other {# chords}} due for review",
+    "nothingDue": "You're done for today. Here are your most-missed chords for one more pass",
+    "record": "Right {correct} · Wrong {wrong}",
+    "start": "Start review",
+    "progress": "{done} / {total}",
+    "skip": "Skip",
+    "stop": "Stop",
+    "doneTitle": "Review complete",
+    "firstTry": "right on the first try",
+    "saving": "Saving your review...",
+    "saveError": "Couldn't save your review",
+    "retrySave": "Save again",
+    "dueLeft": "{count, plural, one {# chord} other {# chords}} still due",
+    "allDone": "All done for today!",
+    "again": "Review again"
   },
   "character": {
     "title": "Dress up my Kordi",

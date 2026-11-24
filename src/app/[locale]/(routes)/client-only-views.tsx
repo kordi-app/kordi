@@ -13,6 +13,11 @@ export const ChordPracticeView = dynamic(
   { ssr: false },
 );
 
+export const ChordReviewView = dynamic(
+  () => import("@/views/chord-review").then((m) => m.ChordReviewPage),
+  { ssr: false },
+);
+
 export const ChordQuizView = dynamic(
   () => import("@/views/chord-quiz").then((m) => m.ChordQuizPage),
   { ssr: false },
