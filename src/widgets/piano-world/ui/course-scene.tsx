@@ -27,7 +27,7 @@ import {
   type CourseDef,
   type Platform,
 } from "../engine/course";
-import { CrownMesh } from "@/entities/character";
+import { CrownMesh } from "@/entities/character/three";
 import { useKeySprings } from "./hooks/use-key-springs";
 import { StormTemple } from "./storm-temple";
 

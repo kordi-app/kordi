@@ -7,17 +7,20 @@ const LAYERS = ["app", "views", "widgets", "features", "entities", "shared"];
 
 // Public API contract: reach a slice through its index.ts, never its
 // internals. entities/*/server.ts is a second, server-only entry point —
-// see the header comment in entities/user/index.ts.
+// see the header comment in entities/user/index.ts. entities/*/three.ts is a
+// client entry for three.js models, kept out of index.ts so it isn't bundled
+// into pages that only need the slice's data (see entities/character/index.ts).
 const PUBLIC_API = {
   group: [
     "@/entities/*/**",
     "!@/entities/*/server",
+    "!@/entities/*/three",
     "@/features/*/**",
     "@/widgets/*/**",
     "@/views/*/**",
   ],
   message:
-    'FSD: import a slice through its public API ("@/entities/user"), not its internals. Server-only entities APIs are the exception: "@/entities/user/server".',
+    'FSD: import a slice through its public API ("@/entities/user"), not its internals. Server-only entities APIs ("@/entities/user/server") and three.js models ("@/entities/character/three") are the exceptions.',
 };
 
 // A layer may import only from layers below it, and never from a sibling

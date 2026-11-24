@@ -3,7 +3,8 @@
 import { useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import type * as THREE from "three";
-import { KordiModel, type Appearance, type KordiMotion } from "@/entities/character";
+import type { Appearance, KordiMotion } from "@/entities/character";
+import { KordiModel } from "@/entities/character/three";
 
 const IDLE: KordiMotion = { phase: 0, amount: 0, emote: null, land: 0, stretch: 0, lean: 0, bank: 0 };
 

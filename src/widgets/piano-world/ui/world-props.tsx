@@ -3,7 +3,7 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { KordiModel, type KordiMotion } from "@/entities/character";
+import { KordiModel, type KordiMotion } from "@/entities/character/three";
 import { CASE_H, KEYS, SPAWN, keyAt } from "../engine/layout";
 import type { InteractableDef } from "../engine/interactables";
 import { CAT_HOME, CAT_WALK_SPEED, catPlan } from "../engine/cat-walk";

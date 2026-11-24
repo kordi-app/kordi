@@ -22,5 +22,7 @@ export {
 } from "./model/catalog";
 export { characterQueries } from "./api/queries";
 export { getMyCharacter } from "./api/get-my-character";
-export { KordiModel, type KordiMotion } from "./ui/kordi-model";
-export { CrownMesh } from "./ui/crown-mesh";
+// The 3D models (three.js, ~900 KB) are a separate entry, "@/entities/character/three":
+// the model files build geometry at module scope, so re-exporting them here would pull
+// three.js into every page that only needs the catalog or the queries.
+export type { KordiMotion } from "./ui/kordi-model";
