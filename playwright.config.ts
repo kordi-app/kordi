@@ -11,12 +11,14 @@ import { defineConfig, devices } from "@playwright/test";
  */
 const PORT = 3456;
 const DEV = process.env.E2E_DEV === "1";
+/** CI runners are a few times slower than a laptop at rendering on the CPU */
+const SLOWER = process.env.CI ? 3 : 1;
 
 export default defineConfig({
   testDir: "e2e",
   // a 3D scene compiling and rendering on the CPU is slow: be patient, one at a time
-  timeout: 180_000,
-  expect: { timeout: 30_000 },
+  timeout: 180_000 * SLOWER,
+  expect: { timeout: 30_000 * SLOWER },
   workers: 1,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",

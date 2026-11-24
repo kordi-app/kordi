@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 // the dev build's debug seam: window.__kordi (its declaration lives with the app)
 import type {} from "../src/widgets/piano-world/lib/debug-seam";
@@ -32,7 +32,8 @@ export function collectErrors(page: Page) {
 /** Open the world in a region (at the lowest graphics quality) and wait until Kordi is in it */
 export async function openWorld(page: Page, region: string) {
   await page.goto(`/?region=${region}&quality=minimal`);
-  await page.waitForFunction((r) => window.__kordi?.region === r, region, { timeout: 150_000 });
+  // the first frame compiles every shader in the region: on a CPU renderer, the island's takes about a minute
+  await page.waitForFunction((r) => window.__kordi?.region === r, region, { timeout: test.info().timeout });
 }
 
 export const where = (page: Page) => page.evaluate(() => ({ ...window.__kordi!.pos, region: window.__kordi!.region }));
