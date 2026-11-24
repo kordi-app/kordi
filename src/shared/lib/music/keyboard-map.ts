@@ -34,7 +34,8 @@ export const CONTROL_KEYS = {
   OCTAVE_UP: "KeyX",
   VELOCITY_DOWN: "KeyC",
   VELOCITY_UP: "KeyV",
-  SUSTAIN: "Tab",
+  // not Tab: Tab moves keyboard focus, and taking it would trap keyboard users
+  SUSTAIN: "Space",
 } as const;
 
 export const DEFAULT_OCTAVE = 3; // C3 = MIDI 48

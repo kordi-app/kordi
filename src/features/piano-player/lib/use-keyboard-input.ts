@@ -11,6 +11,7 @@ import {
   DEFAULT_VELOCITY,
   offsetToMidi,
 } from "@/shared/lib/music";
+import { shouldIgnoreKey } from "@/shared/lib/dom/should-ignore-key";
 
 interface UseKeyboardInputOptions {
   onNoteOn: (midi: number, velocity: number) => void;
@@ -50,9 +51,9 @@ export function useKeyboardInput({
 
     function handleKeyDown(e: KeyboardEvent) {
       if (e.repeat) return;
-      // browser and OS shortcuts (Cmd+C, Ctrl+S, Alt+…) are not notes
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (isTypingTarget(e.target)) return;
+      // browser/OS shortcuts (Cmd+C, Ctrl+S, Alt+…), typing in a field, and Space/Enter on a
+      // focused button or link are not notes
+      if (shouldIgnoreKey(e)) return;
 
       const { code } = e;
 
@@ -125,13 +126,4 @@ export function useKeyboardInput({
   }, [enabled]);
 
   return { octave, velocity, sustain };
-}
-
-function isTypingTarget(target: EventTarget | null): boolean {
-  return (
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement ||
-    target instanceof HTMLSelectElement ||
-    (target instanceof HTMLElement && target.isContentEditable)
-  );
 }

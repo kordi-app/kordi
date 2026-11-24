@@ -47,7 +47,7 @@ export function KeyboardBar({ loading, octave, velocity, sustain, isMuted, onTog
       {sustain !== undefined ? (
         <span className={cn(CHIP, "transition-colors", sustain && "border-foreground/30 bg-foreground text-background")}>
           {t("sustain")}
-          <Kbd>Tab</Kbd>
+          <Kbd>Space</Kbd>
         </span>
       ) : null}
       <button

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
+import { shouldIgnoreKey } from "@/shared/lib/dom/should-ignore-key";
 import { KEY_TO_DIRECTION, idleInput, type Direction, type InputState } from "../../engine/physics";
 
 const EMOTE_KEYS = ["Digit1", "Digit2", "Digit3", "Digit4"];
@@ -16,14 +17,11 @@ interface ControlHandlers {
   onEscape: () => boolean;
 }
 
-const isTyping = (target: EventTarget | null) =>
-  target instanceof HTMLElement &&
-  (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
-
 /**
  * Keyboard and touch input for the world. Movement keys are only captured
- * while the world is on screen (so arrows still scroll the page otherwise)
- * and never while you're typing in a field.
+ * while the world is on screen (so arrows still scroll the page otherwise),
+ * never while you're typing in a field, and Space/Enter never while a button
+ * or link has focus.
  */
 export function useWorldControls(handlers: ControlHandlers) {
   const input = useRef<InputState>(idleInput());
@@ -48,7 +46,8 @@ export function useWorldControls(handlers: ControlHandlers) {
 
   const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
     if (e.code === "Escape" && handlers.onEscape()) return;
-    if (isTyping(e.target) || !visibleRef.current || e.metaKey || e.ctrlKey) return;
+    // fields keep their keys, and Space/Enter on a focused button or link activate it
+    if (shouldIgnoreKey(e) || !visibleRef.current) return;
 
     if (e.code === "KeyE" || e.code === "Enter") {
       if (handlers.onInteract()) e.preventDefault();
