@@ -1,12 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { fn } from "storybook/test";
 import { PianoKey } from "./piano-key";
 
 const meta = {
   title: "Shared/PianoKey",
   component: PianoKey,
   tags: ["autodocs"],
-  args: { midi: 60, isBlack: false, isActive: false, noteName: "C4", keyboardShortcut: "a", onNoteOn: fn(), onNoteOff: fn() },
+  args: { midi: 60, isBlack: false, isActive: false, noteName: "C4", keyboardShortcut: "a" },
   decorators: [(Story) => <div className="relative flex h-48"><Story /></div>],
 } satisfies Meta<typeof PianoKey>;
 

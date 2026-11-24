@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { PianoKey } from "@/shared/ui/piano-key";
 import { cn } from "@/shared/lib/utils";
 import {
@@ -85,6 +86,9 @@ export function PianoKeyboard({
     return { whiteKeys: whites, blackKeys: blacks, whiteKeyCount: wIndex };
   }, [startMidi, endMidi]);
 
+  const t = useTranslations("a11y");
+  const pointerInput = useKeyGlide(onNoteOn, onNoteOff);
+
   // wider than the screen: start centred (around middle C)
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -120,8 +124,9 @@ export function PianoKeyboard({
         </div>
         <div
           role="group"
-          aria-label="Piano keyboard"
-          className="relative flex w-full select-none"
+          aria-label={t("pianoKeyboard")}
+          className="relative flex w-full touch-none select-none"
+          {...pointerInput}
           style={{ height: WHITE_KEY_PX * KEY_LENGTH_RATIO }}
         >
           {/* White keys */}
@@ -136,8 +141,6 @@ export function PianoKeyboard({
               keyboardShortcut={
                 showShortcuts ? keyboardLabelMap.get(midi) : undefined
               }
-              onNoteOn={onNoteOn}
-              onNoteOff={onNoteOff}
             />
           ))}
 
@@ -167,8 +170,6 @@ export function PianoKeyboard({
                   keyboardShortcut={
                     showShortcuts ? keyboardLabelMap.get(midi) : undefined
                   }
-                  onNoteOn={onNoteOn}
-                  onNoteOff={onNoteOff}
                 />
               </div>
             );
@@ -177,4 +178,75 @@ export function PianoKeyboard({
       </div>
     </div>
   );
+}
+
+/** The key under a point on screen (black keys sit on top, so they win). */
+function keyAt(x: number, y: number): number | null {
+  const el = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-midi]");
+  const midi = el ? Number(el.dataset.midi) : NaN;
+  return Number.isNaN(midi) ? null : midi;
+}
+
+/**
+ * Pointer input for the whole keyboard: each pointer (mouse, pen, every finger) holds
+ * the key under it, and dragging hands the note over from key to key — a glissando.
+ * The keyboard captures the pointer and hit-tests the keys itself, since a key that
+ * captured it would keep the note to itself.
+ */
+function useKeyGlide(onNoteOn: (midi: number) => void, onNoteOff: (midi: number) => void) {
+  const held = useRef(new Map<number, number | null>());
+
+  const moveTo = useCallback(
+    (pointerId: number, midi: number | null) => {
+      const previous = held.current.get(pointerId) ?? null;
+      if (previous === midi) return;
+      held.current.set(pointerId, midi);
+      // another finger may still be holding the key this one left
+      const stillHeld = (m: number) => [...held.current.values()].includes(m);
+      if (previous !== null && !stillHeld(previous)) onNoteOff(previous);
+      if (midi !== null && [...held.current.values()].filter((m) => m === midi).length === 1) onNoteOn(midi);
+    },
+    [onNoteOn, onNoteOff],
+  );
+
+  const release = useCallback(
+    (e: React.PointerEvent) => {
+      if (!held.current.has(e.pointerId)) return;
+      moveTo(e.pointerId, null);
+      held.current.delete(e.pointerId);
+    },
+    [moveTo],
+  );
+
+  // leaving the page mid-press: let every note go
+  useEffect(() => {
+    const pointers = held.current;
+    return () => {
+      for (const midi of new Set(pointers.values())) if (midi !== null) onNoteOff(midi);
+      pointers.clear();
+    };
+  }, [onNoteOff]);
+
+  return {
+    onPointerDown: useCallback(
+      (e: React.PointerEvent<HTMLElement>) => {
+        if (e.button !== 0) return;
+        const midi = keyAt(e.clientX, e.clientY);
+        if (midi === null) return;
+        e.preventDefault();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        moveTo(e.pointerId, midi);
+      },
+      [moveTo],
+    ),
+    onPointerMove: useCallback(
+      (e: React.PointerEvent) => {
+        if (held.current.has(e.pointerId)) moveTo(e.pointerId, keyAt(e.clientX, e.clientY));
+      },
+      [moveTo],
+    ),
+    onPointerUp: release,
+    onPointerCancel: release,
+    onLostPointerCapture: release,
+  };
 }

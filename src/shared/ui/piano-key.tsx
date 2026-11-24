@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback } from "react";
+import { memo } from "react";
 import { cn } from "@/shared/lib/utils";
 
 interface PianoKeyProps {
@@ -11,10 +11,13 @@ interface PianoKeyProps {
   isRinging?: boolean;
   keyboardShortcut?: string;
   noteName: string;
-  onNoteOn: (midi: number) => void;
-  onNoteOff: (midi: number) => void;
 }
 
+/**
+ * One key, drawn only: pointer input is handled by the keyboard around it, which
+ * hit-tests `data-midi` under the pointer — so a drag glides across keys (a
+ * glissando) instead of being captured by the key it started on.
+ */
 export const PianoKey = memo(function PianoKey({
   midi,
   isBlack,
@@ -22,45 +25,13 @@ export const PianoKey = memo(function PianoKey({
   isRinging = false,
   keyboardShortcut,
   noteName,
-  onNoteOn,
-  onNoteOff,
 }: PianoKeyProps) {
-  const handlePointerDown = useCallback(
-    (e: React.PointerEvent) => {
-      e.preventDefault();
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
-      onNoteOn(midi);
-    },
-    [midi, onNoteOn]
-  );
-
-  const handlePointerUp = useCallback(() => {
-    onNoteOff(midi);
-  }, [midi, onNoteOff]);
-
-  const handlePointerEnter = useCallback(
-    (e: React.PointerEvent) => {
-      if (e.buttons > 0) {
-        onNoteOn(midi);
-      }
-    },
-    [midi, onNoteOn]
-  );
-
-  const handlePointerLeave = useCallback(
-    (e: React.PointerEvent) => {
-      if (e.buttons > 0) {
-        onNoteOff(midi);
-      }
-    },
-    [midi, onNoteOff]
-  );
-
   if (isBlack) {
     return (
       <button
         role="button"
         aria-label={noteName}
+        data-midi={midi}
         data-active={isActive || undefined}
         data-ringing={isRinging || undefined}
         className={cn(
@@ -75,12 +46,6 @@ export const PianoKey = memo(function PianoKey({
           "data-[active]:shadow-[0_0_12px_var(--neon-glow)]",
           "touch-none select-none cursor-pointer"
         )}
-        onPointerDown={handlePointerDown}
-        onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      onLostPointerCapture={handlePointerUp}
-        onPointerEnter={handlePointerEnter}
-        onPointerLeave={handlePointerLeave}
       >
         {keyboardShortcut && (
           <span className="mb-1 text-t1 font-mono text-[oklch(0.4_0.02_75)]">
@@ -95,6 +60,7 @@ export const PianoKey = memo(function PianoKey({
     <button
       role="button"
       aria-label={noteName}
+      data-midi={midi}
       data-active={isActive || undefined}
       data-ringing={isRinging || undefined}
       className={cn(
@@ -109,12 +75,6 @@ export const PianoKey = memo(function PianoKey({
         "data-[active]:shadow-[0_0_16px_var(--neon-glow)]",
         "touch-none select-none cursor-pointer"
       )}
-      onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      onLostPointerCapture={handlePointerUp}
-      onPointerEnter={handlePointerEnter}
-      onPointerLeave={handlePointerLeave}
     >
       {keyboardShortcut && (
         <span className="mb-2 text-t1 font-mono text-[oklch(0.5_0.02_75)]">
