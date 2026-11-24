@@ -50,6 +50,8 @@ export interface WelcomeMessage {
   players: RemotePlayer[];
   online: number;
   regions?: RegionCounts;
+  /** ms the star steps stay open in this channel (0: shut; absent on older servers) */
+  sky?: number;
 }
 
 /** Someone entered my channel. */
@@ -104,6 +106,13 @@ export interface RecordMessage extends CourseRecordMessage {
   t: "record";
 }
 
+/** Someone in my channel rang the midnight bell (never sent back to the ringer). */
+export interface BellMessage {
+  t: "bell";
+  /** ms the star steps now stay open */
+  left: number;
+}
+
 export type ServerMessage =
   | WelcomeMessage
   | JoinMessage
@@ -111,11 +120,12 @@ export type ServerMessage =
   | MovesMessage
   | LookMessage
   | OnlineMessage
-  | RecordMessage;
+  | RecordMessage
+  | BellMessage;
 
 // ── client → server ──────────────────────────────────────────────────────────
 
-/** My position (WorldMove). Carries no "t": anything that isn't "auth" is a move. */
+/** My position (WorldMove). Carries no "t": anything that isn't "auth" or "bell" is a move. */
 export interface MoveMessage {
   x: number;
   y: number;
@@ -131,7 +141,12 @@ export interface AuthMessage {
   ticket: string;
 }
 
-export type ClientMessage = MoveMessage | AuthMessage;
+/** I rang the tower bell at night (WorldLobby.ringBell checks I'm beside it). */
+export interface RingMessage {
+  t: "bell";
+}
+
+export type ClientMessage = MoveMessage | AuthMessage | RingMessage;
 
 // ── connection ───────────────────────────────────────────────────────────────
 

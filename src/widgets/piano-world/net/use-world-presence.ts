@@ -41,14 +41,18 @@ const MAX_RETRY_MS = 30_000;
  * @param region joins that region's channels; reconnects when it changes
  * @param signedIn members prove who they are with a one-time ticket, so their course times rank
  * @param onRecord a jump-course finish the server timed
+ * @param onBell the star steps are open in my channel for `leftMs` more: `rung` when
+ *   someone just rang the bell, not when I joined a channel where it already was
  */
 export function useWorldPresence(
   name: string,
   region: string,
   signedIn: boolean,
   onRecord: (record: CourseRecordMessage) => void,
+  onBell: (leftMs: number, rung: boolean) => void,
 ) {
   const reportRecord = useEffectEvent(onRecord);
+  const reportBell = useEffectEvent(onBell);
   const remotes = useRef(new Map<string, RemotePlayer>());
   const [info, setInfo] = useState<PresenceInfo>({
     status: "connecting",
@@ -114,6 +118,7 @@ export function useWorldPresence(
               regionCounts: message.regions ?? {},
             });
             syncOthers();
+            if (message.sky) reportBell(message.sky, false);
             if (signedIn) {
               // the auth cookie is httpOnly: trade it (via the BFF) for a ticket the socket can carry
               bffClient
@@ -136,6 +141,9 @@ export function useWorldPresence(
           }
           case "record":
             reportRecord(message);
+            break;
+          case "bell":
+            reportBell(message.left, true);
             break;
           case "join":
             if (message.p.id !== myId.current) {
@@ -209,5 +217,11 @@ export function useWorldPresence(
     [],
   );
 
-  return { remotes, info, sendPosition };
+  /** Tell the channel I rang the bell at night. */
+  const sendBell = useCallback(() => {
+    const socket = socketRef.current;
+    if (socket?.readyState === WebSocket.OPEN && myId.current) socket.send(encodeClientMessage({ t: "bell" }));
+  }, []);
+
+  return { remotes, info, sendPosition, sendBell };
 }

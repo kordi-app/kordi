@@ -24,6 +24,7 @@ import { createAmbience, resetAmbience, stepAmbience, type AmbienceEvents } from
 import { aimSunLight, applySky, createSunAim } from "./sun-light";
 import { quality } from "./quality";
 import { ISLAND_TERRAIN } from "../engine/nature";
+import { SKY_OPEN_SECONDS, openSky, skyNow, stepSkyPads, tickSky, type SkyEvent } from "../engine/sky-island";
 import { BALL_RADIUS, ballSpawns, newBall, stepBall, type Ball } from "../engine/ball";
 import { NoteBall } from "./note-ball";
 import {
@@ -92,7 +93,17 @@ export interface WorldEvents {
   onNearKeys: (near: boolean) => void;
   /** the storm temple's dragon roared (an attack is coming) or its fire caught you */
   onDragon: (kind: "roar" | "burn") => void;
+  /**
+   * You rang the tower bell. `midnight`: it's night here, so it calls the
+   * stars (tell the channel); `opened`: the sky was shut and just opened.
+   */
+  onBell: (midnight: boolean, opened: boolean) => void;
+  /** up on the sky island: a star pad, a constellation, or the whole sky */
+  onSky: (event: SkyEvent) => void;
 }
+
+/** It counts as night for the midnight bell from this far into dusk (day-night.ts: 0 day … 1 night) */
+const MIDNIGHT = 0.6;
 
 /** Knocked back by dragon fire: this fast sideways (with the flames) and up. */
 const BURN_PUSH = 5.5;
@@ -126,6 +137,8 @@ export interface WorldDisplay {
   celebrate: number;
   /** warp stones you've woken (island) */
   awake: ReadonlySet<WarpStoneId>;
+  /** you've lit the whole sky over the island (its constellation stays up) */
+  skyFound: boolean;
 }
 
 interface WorldProps {
@@ -148,7 +161,7 @@ interface WorldProps {
  */
 export function World({ region, arrival, input, takeJump, presence, display, events }: WorldProps) {
   const { remotes, others, sendPosition } = presence;
-  const { emote, target, appearance, rewards, interaction, celebrate, awake } = display;
+  const { emote, target, appearance, rewards, interaction, celebrate, awake, skyFound } = display;
   const camera = useThree((state) => state.camera);
   const scene = useThree((state) => state.scene);
   const hemi = useRef<THREE.HemisphereLight>(null);
@@ -213,6 +226,10 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       bell: () => {
         const p = sim.current.pos;
         fx.current?.confetti(p.x, p.y, p.z);
+        // the island's sky follows the local clock, so "midnight" is the ringer's
+        const midnight = debugSeam?.night === true || skyAt(Date.now()).night > MIDNIGHT;
+        const opened = midnight && openSky(skyNow(), SKY_OPEN_SECONDS, true);
+        events.onBell(midnight, opened);
       },
     }),
     [events],
@@ -240,6 +257,10 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       lookTarget.current.set(s.pos.x, s.pos.y + 0.6, s.pos.z - 1.2);
       balls.current = spawns.map((spot) => newBall(spot.x, spot.z));
     }
+
+    // the sky's star steps come and go: settle what's solid before anything moves
+    const skyClock = skyNow();
+    if (island) tickSky(skyClock);
 
     // the course's moving and crumbling platforms run on the shared clock
     const now = state.clock.getElapsedTime();
@@ -298,6 +319,13 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       if (drum.sound) events.onVoice(drum.sound.voice, drum.sound.midi, Math.min(1, 0.45 + landing!.impact / 18));
       if (drum.tag) islandHits.set(drum.tag, now);
       fx.current?.notes(s.pos.x, s.pos.y, s.pos.z, region.theme.accent);
+    }
+    if (island) {
+      for (const event of stepSkyPads(s.pos.x, s.pos.y, s.pos.z, skyClock, !s.airborne)) {
+        if (event.kind === "pad") fx.current?.notes(s.pos.x, s.pos.y, s.pos.z, "#ffe9a8");
+        else fx.current?.confetti(s.pos.x, s.pos.y, s.pos.z);
+        events.onSky(event);
+      }
     }
     // squash on landing eases out; stretch while rising fast
     m.land = Math.max(0, m.land - dt * 4);
@@ -512,7 +540,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       ) : (
         <PianoFloor pressed={pressed} theme={region.theme} ground={!region.island} keys={region.keys} />
       )}
-      {region.island ? <IslandScene player={playerPos} awake={awake} /> : null}
+      {region.island ? <IslandScene player={playerPos} awake={awake} skyFound={skyFound} /> : null}
       <RegionDecor region={region.id} party={interaction.party} />
       {items.map((item) => {
         switch (item.id) {

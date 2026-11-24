@@ -16,15 +16,14 @@ import {
 
 /** Re-strike the same pipe / crystal no sooner than this (seconds) */
 const HUM_COOLDOWN = 1.4;
-const BELL_COOLDOWN = 2.5;
+/** long enough for midnight's twelve strokes to finish before it can be rung again */
+const BELL_COOLDOWN = 6;
 const HARP_COOLDOWN = 0.08;
-/** The bell's chord: a low tonic under a bright triad */
-const BELL_CHORD = [48, 72, 76, 79];
 
 /** What the island reports as you move through it. */
 export interface AmbienceEvents {
   voice: (id: VoiceId, midi: number, velocity: number) => void;
-  /** the bell was rung (for a celebration) */
+  /** the bell was rung: the world decides how it sounds (day, or midnight) */
   bell: () => void;
   /** the warp stone in reach changed */
   warpNearby: (id: WarpStoneId | null) => void;
@@ -87,10 +86,7 @@ export function stepAmbience(
     }
   });
   if (pos.y > BELL.y - 0.5 && Math.hypot(pos.x - BELL.x, pos.z - BELL.z) < BELL_REACH) {
-    strike("bell", BELL_COOLDOWN, () => {
-      BELL_CHORD.forEach((note, i) => events.voice("bell", note, i === 0 ? 0.9 : 0.55));
-      events.bell();
-    });
+    strike("bell", BELL_COOLDOWN, events.bell);
   }
 
   const stone = WARP_STONES.find((w) => Math.hypot(pos.x - w.x, pos.z - w.z) < WARP_REACH)?.id ?? null;

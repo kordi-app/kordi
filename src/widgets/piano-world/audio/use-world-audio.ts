@@ -12,6 +12,8 @@ import {
   playVoice,
   playWarpEffect,
   playDragonEffect,
+  playTowerBell,
+  playChordProgression,
   type InstrumentId,
   type VoiceId,
   type WarpEffect,
@@ -283,6 +285,18 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
     if (audioRef.current === "on") playDragonEffect(kind);
   }, []);
 
+  /** The bell tower's bell: one stroke, or midnight's twelve. */
+  const towerBell = useCallback((strokes: number) => {
+    debugSeam?.voices.push({ id: `tower-bell:${strokes}`, midi: 0, t: performance.now() });
+    if (audioRef.current === "on") playTowerBell(strokes);
+  }, []);
+
+  /** Chords in turn (the sky island's orrery). */
+  const progression = useCallback((chords: readonly (readonly number[])[]) => {
+    debugSeam?.voices.push({ id: "progression", midi: 0, t: performance.now() });
+    if (audioRef.current === "on") playChordProgression(chords);
+  }, []);
+
   /** The note ball hit (or rolled onto) a key. */
   const handleBallNote = useCallback(
     (midi: number, velocity: number) => chime([midi], velocity, 0, 450),
@@ -304,6 +318,8 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
     voice,
     warpEffect,
     dragonEffect,
+    towerBell,
+    progression,
     syncMusic,
   };
 }

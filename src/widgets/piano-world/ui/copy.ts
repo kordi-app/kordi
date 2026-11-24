@@ -62,6 +62,9 @@ export interface PianoWorldCopy {
   /** "{name}" is filled in */
   warpWoke: string;
   warpHere: string;
+  // the sky island
+  skyOpened: string;
+  skyFound: string;
   warpAsleep: string;
   // sound & presence status
   soundOff: string;

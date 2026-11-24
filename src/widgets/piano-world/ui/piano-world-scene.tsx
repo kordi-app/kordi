@@ -19,6 +19,8 @@ import { useWorldControls } from "./hooks/use-world-controls";
 import type { CourseRecordMessage } from "../net/protocol";
 import { useWorldPresence } from "../net/use-world-presence";
 import { useWarpStones } from "./hooks/use-warp-stones";
+import { useSkyFound } from "./hooks/use-sky-found";
+import { PROGRESSION, openSky, skyNow, skyRuntime, type SkyEvent } from "../engine/sky-island";
 import { quality } from "./quality";
 import { CourseCard, MelodyCard } from "./hud/progress-cards";
 import { EmoteBar, InteractPrompt, SpeechBubble, WarpPrompt } from "./hud/interaction-hud";
@@ -49,6 +51,7 @@ export default function PianoWorldScene({
 
   const { region, regionRef, arrival, fading, travel, warp } = useRegionTravel();
   const { awake, wake } = useWarpStones();
+  const { found: skyFound, markFound: markSkyFound } = useSkyFound();
   /** the warp stone in reach, if any (the island only) */
   const [warpNearby, setWarpNearbyState] = useState<WarpStoneId | null>(null);
   /** the melody card only shows on the keyboard plaza */
@@ -69,7 +72,6 @@ export default function PianoWorldScene({
     },
     [applyServerRecord, queryClient],
   );
-  const { remotes, info: presenceInfo, sendPosition } = useWorldPresence(name, region.id, !isGuest, handleRecord);
 
   const { advance } = melody;
   const onStep = useCallback(
@@ -79,7 +81,9 @@ export default function PianoWorldScene({
     [advance, regionRef],
   );
   const audio = useWorldAudio(regionRef, onStep);
-  const { startAudio, isOn, chime, switchInstrument, silence, warpEffect, dragonEffect, syncMusic } = audio;
+  const { handleStep, handleRemoteStep, handleCatStep, handleBallNote, voice } = audio;
+  const { startAudio, isOn, chime, switchInstrument, silence, warpEffect, dragonEffect, towerBell, progression, syncMusic } =
+    audio;
   // the region's background music follows the region and whether sound is on
   useEffect(() => {
     syncMusic(region.music);
@@ -87,6 +91,54 @@ export default function PianoWorldScene({
   const audioApi = useMemo(() => ({ startAudio, isOn, chime }), [startAudio, isOn, chime]);
   const interactions = useInteractions(copy, audioApi, bumpCelebrate);
   const { interact, nearbyRef, panelRef, setPanel, setNearby, say, reset: resetInteractions } = interactions;
+
+  /** Someone in the channel rang the midnight bell (or I joined while the stars were out). */
+  const handleRemoteBell = useCallback(
+    (leftMs: number, rung: boolean) => {
+      const opened = openSky(skyNow(), leftMs / 1000, rung);
+      if (!rung) return;
+      towerBell(opened ? 12 : 1);
+      if (opened) say(copy.skyOpened);
+    },
+    [towerBell, say, copy],
+  );
+  const {
+    remotes,
+    info: presenceInfo,
+    sendPosition,
+    sendBell,
+  } = useWorldPresence(name, region.id, !isGuest, handleRecord, handleRemoteBell);
+
+  /** I rang the bell: by day one stroke; at night midnight's twelve, and the channel hears it too. */
+  const handleBell = useCallback(
+    (midnight: boolean, opened: boolean) => {
+      towerBell(opened ? 12 : 1);
+      if (opened) say(copy.skyOpened);
+      if (midnight) sendBell();
+    },
+    [towerBell, say, copy, sendBell],
+  );
+
+  const handleSky = useCallback(
+    (event: SkyEvent) => {
+      switch (event.kind) {
+        case "pad":
+          voice("crystal", event.midi, 0.7);
+          break;
+        case "constellation":
+          // the last one's chord is the start of the orrery's progression instead
+          if (!skyRuntime.done.every(Boolean)) progression([PROGRESSION[event.index]]);
+          break;
+        case "finished":
+          progression(PROGRESSION);
+          markSkyFound();
+          bumpCelebrate();
+          say(copy.skyFound);
+          break;
+      }
+    },
+    [voice, progression, markSkyFound, bumpCelebrate, say, copy],
+  );
 
   const openWarp = useCallback(() => {
     const from = warpNearbyRef.current;
@@ -166,7 +218,6 @@ export default function PianoWorldScene({
     setName(`${pick(copy.nameAdjectives)} ${pick(copy.nameNouns)}`);
   }, [copy]);
 
-  const { handleStep, handleRemoteStep, handleCatStep, handleBallNote, voice } = audio;
   const events: WorldEvents = useMemo(
     () => ({
       onStep: handleStep,
@@ -181,6 +232,8 @@ export default function PianoWorldScene({
       onWarpNearby: handleWarpNearby,
       onNearKeys: setNearKeys,
       onDragon: dragonEffect,
+      onBell: handleBell,
+      onSky: handleSky,
     }),
     [
       handleStep,
@@ -194,6 +247,8 @@ export default function PianoWorldScene({
       voice,
       handleWarpNearby,
       dragonEffect,
+      handleBell,
+      handleSky,
     ],
   );
 
@@ -217,6 +272,7 @@ export default function PianoWorldScene({
     interaction: interactions.scene,
     celebrate,
     awake,
+    skyFound,
   };
 
   const { panel } = interactions;

@@ -10,6 +10,7 @@ import { HarpFalls } from "./island/harp-falls";
 import { NatureScene } from "./island/nature-scene";
 import { NightLights } from "./island/night-lights";
 import { PipeForest } from "./island/pipe-forest";
+import { SkyIsland } from "./island/sky-island";
 import { Zone } from "./island/shared";
 import { WarpStoneMesh } from "./island/warp-stones";
 import { XyloBridge } from "./island/xylo-bridge";
@@ -22,10 +23,12 @@ import { XyloBridge } from "./island/xylo-bridge";
 export const IslandScene = memo(function IslandScene({
   player,
   awake,
+  skyFound,
 }: {
   /** Kordi's live position (mutated in place), for drawing only what's near */
   player: THREE.Vector3;
   awake: ReadonlySet<WarpStoneId>;
+  skyFound: boolean;
 }) {
   return (
     <group>
@@ -40,6 +43,7 @@ export const IslandScene = memo(function IslandScene({
       </Zone>
       {/* the tower is the landmark: always drawn, so it's there on the horizon */}
       <BellTower player={player} />
+      <SkyIsland found={skyFound} />
       <Zone x={-60} z={0} player={player}>
         <PipeForest />
       </Zone>

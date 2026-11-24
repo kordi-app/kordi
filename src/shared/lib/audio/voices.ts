@@ -167,8 +167,98 @@ export function playDragonEffect(kind: DragonEffect): void {
   }
 }
 
+/**
+ * A church bell is several tones at once, each dying away at its own rate:
+ * the hum an octave below (the long "uwoong"), the strike note, a minor third
+ * above it (what makes a bell sound like a bell, a little sad), a fifth, the
+ * octave and a couple of bright upper partials that go first. Pairs a hair
+ * apart beat against each other, the slow swell of a big bell. Plus a short
+ * metallic clank for the clapper, all through a wide, distant room.
+ */
+const BELL_PARTIALS: readonly { ratio: number; level: number; ring: number }[] = [
+  { ratio: 0.5, level: 0.5, ring: 9 },
+  { ratio: 0.503, level: 0.35, ring: 9 },
+  { ratio: 1, level: 0.42, ring: 6.5 },
+  { ratio: 1.19, level: 0.3, ring: 5 },
+  { ratio: 1.5, level: 0.14, ring: 3.5 },
+  { ratio: 2, level: 0.26, ring: 3.5 },
+  { ratio: 2.005, level: 0.16, ring: 3.5 },
+  { ratio: 2.66, level: 0.1, ring: 1.8 },
+  { ratio: 3.2, level: 0.07, ring: 1.2 },
+];
+
+interface TowerBell {
+  room: Tone.Freeverb;
+  partials: Tone.PolySynth[];
+  clank: Tone.NoiseSynth;
+}
+
+let towerBell: TowerBell | null = null;
+
+function towerBellVoice(): TowerBell {
+  if (towerBell) return towerBell;
+  const room = new Tone.Freeverb({ roomSize: 0.86, dampening: 2600, wet: 0.38 }).toDestination();
+  // one synth per decay length: a PolySynth's voices share their envelope
+  const partials = [...new Set(BELL_PARTIALS.map((p) => p.ring))].map((ring) => {
+    const s = new Tone.PolySynth(Tone.Synth);
+    s.maxPolyphony = 32; // twelve strokes ringing over each other
+    s.set({ oscillator: { type: "sine" }, envelope: { attack: 0.004, decay: 0.05, sustain: 1, release: ring, releaseCurve: "exponential" } });
+    s.volume.value = -9;
+    s.connect(room);
+    return s;
+  });
+  const clank = new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.07, sustain: 0 } });
+  const bright = new Tone.Filter({ type: "bandpass", frequency: 3200, Q: 2.5 });
+  clank.volume.value = -22;
+  clank.chain(bright, room);
+  towerBell = { room, partials, clank };
+  return towerBell;
+}
+
+/** One stroke of the tower bell on `midi` (its strike note), `delay` seconds from now. */
+function strikeTowerBell(midi: number, velocity: number, delay: number) {
+  const bell = towerBellVoice();
+  const at = Tone.now() + delay;
+  const rings = [...new Set(BELL_PARTIALS.map((p) => p.ring))];
+  const base = Tone.Frequency(midi, "midi").toFrequency();
+  for (const p of BELL_PARTIALS) {
+    bell.partials[rings.indexOf(p.ring)].triggerAttackRelease(base * p.ratio, 0.06, at, p.level * velocity);
+  }
+  bell.clank.triggerAttackRelease(0.05, at, velocity);
+}
+
+/** The tower bell's strike note: a low D, big and heavy */
+const TOWER_BELL_NOTE = 50;
+
+/**
+ * The tower bell: one stroke by day; at midnight `strokes` of them, close
+ * enough that each still hangs in the air when the next comes, the last one
+ * deeper and fuller.
+ */
+export function playTowerBell(strokes = 1, gap = 0.45): void {
+  if (!running()) return;
+  for (let i = 0; i < strokes; i++) {
+    const last = strokes > 1 && i === strokes - 1;
+    strikeTowerBell(last ? TOWER_BELL_NOTE - 5 : TOWER_BELL_NOTE, last ? 1 : 0.75 + 0.1 * Math.sin(i * 2.3), i * gap);
+  }
+}
+
+/** Chords played in turn on the crystal voice, `beat` seconds apart (the sky island's orrery). */
+export function playChordProgression(chords: readonly (readonly number[])[], beat = 0.9): void {
+  if (!running()) return;
+  chords.forEach((chord, i) => {
+    chord.forEach((midi, j) => playVoice("crystal", midi, j === 0 ? 0.6 : 0.45, i * beat + j * 0.04));
+  });
+}
+
 /** Free every voice (e.g. when leaving the page that used them). */
 export function disposeVoices(): void {
   voices.forEach((voice) => voice.dispose());
   voices.clear();
+  if (towerBell) {
+    towerBell.partials.forEach((s) => s.dispose());
+    towerBell.clank.dispose();
+    towerBell.room.dispose();
+    towerBell = null;
+  }
 }

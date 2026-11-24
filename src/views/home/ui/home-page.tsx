@@ -53,6 +53,8 @@ export async function HomePage() {
           warpUse: t("warpUse"),
           warpWoke: t.raw("warpWoke") as string,
           warpHere: t("warpHere"),
+          skyOpened: t("skyOpened"),
+          skyFound: t("skyFound"),
           warpAsleep: t("warpAsleep"),
           melodies: {
             twinkle: t("melodies.twinkle"),

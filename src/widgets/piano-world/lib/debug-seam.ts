@@ -12,6 +12,8 @@ export interface KordiDebugSeam {
   voices: { id: string; midi: number; t: number }[];
   /** keys stepped on */
   steps: { midi: number; t: number }[];
+  /** the one thing a script may set: treat it as night for the midnight bell (`__kordi.night = true`) */
+  night?: boolean;
 }
 
 declare global {

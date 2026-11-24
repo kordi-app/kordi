@@ -12,6 +12,7 @@ import {
   hash,
 } from "./island";
 import { REGIONS } from "./regions";
+import { SKY_SOLIDS } from "./sky-island";
 import { buildTerrain, type Solid } from "./terrain";
 
 /**
@@ -166,5 +167,5 @@ export const NATURE_SOLIDS: readonly Solid[] = [
   ),
 ];
 
-/** Everything solid on the island (the musical zones plus nature), indexed for fast queries. */
-export const ISLAND_TERRAIN = buildTerrain([...ISLAND_SOLIDS, ...NATURE_SOLIDS]);
+/** Everything solid on the island (the musical zones, nature, and the gated sky), indexed for fast queries. */
+export const ISLAND_TERRAIN = buildTerrain([...ISLAND_SOLIDS, ...NATURE_SOLIDS, ...SKY_SOLIDS]);

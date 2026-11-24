@@ -20,6 +20,8 @@ export {
   playVoice,
   playWarpEffect,
   playDragonEffect,
+  playTowerBell,
+  playChordProgression,
   disposeVoices,
   type VoiceId,
   type WarpEffect,

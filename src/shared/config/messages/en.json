@@ -263,6 +263,8 @@
       "warpUse": "Warp",
       "warpWoke": "A warp stone woke up · {name}",
       "warpHere": "You are here",
+      "skyOpened": "The midnight bell called the stars down. Climb!",
+      "skyFound": "The whole sky is lit. Your constellation will be up every night now.",
       "warpAsleep": "Not found yet",
       "jukeboxStyle": "The band switches to {style}",
       "jukeboxStyleQuiet": "Turn the sound on and the band plays {style}",

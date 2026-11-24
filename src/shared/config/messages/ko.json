@@ -263,6 +263,8 @@
       "warpUse": "워프석으로 이동",
       "warpWoke": "워프석이 깨어났어요 · {name}",
       "warpHere": "지금 여기",
+      "skyOpened": "자정의 종이 별을 불러 내렸어요. 올라가 보세요!",
+      "skyFound": "하늘의 별자리를 모두 밝혔어요. 이제 밤마다 내 별자리가 떠요.",
       "warpAsleep": "아직 찾지 못했어요",
       "jukeboxStyle": "밴드가 {style} 연주해요",
       "jukeboxStyleQuiet": "소리를 켜면 밴드가 {style} 연주해요",

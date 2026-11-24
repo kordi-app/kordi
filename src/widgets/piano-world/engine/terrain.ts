@@ -26,7 +26,20 @@ export interface Solid {
   bounce?: number;
   /** renderer animation key (e.g. "drum:3"), echoed back in hit events */
   tag?: string;
+  /**
+   * Only there while its gate is open (see {@link terrainGates}): the star steps
+   * and the sky island appear one by one when the midnight bell tolls.
+   */
+  gate?: number;
 }
+
+/**
+ * How many gated solids exist right now: a solid with `gate` g is there when
+ * g < open. Written once a frame by the world (from the sky's state), read by
+ * every query below — the same shared-runtime pattern as the course's clock.
+ */
+export const terrainGates = { open: 0 };
+const absent = (s: Solid) => s.gate !== undefined && s.gate >= terrainGates.open;
 
 /** Same body as everywhere else in the world. */
 const BODY_RADIUS = 0.42;
@@ -108,6 +121,7 @@ export function terrainGround(t: Terrain, x: number, z: number, y: number): { he
   let index: number | null = null;
   for (const i of nearby(t, x, z, FOOT_RADIUS)) {
     const s = t.solids[i];
+    if (absent(s)) continue;
     if (s.top <= y + STEP_UP && s.top > height && overlaps(s.foot, x, z, FOOT_RADIUS)) {
       height = s.top;
       index = i;
@@ -116,7 +130,7 @@ export function terrainGround(t: Terrain, x: number, z: number, y: number): { he
   return { height, index };
 }
 
-const blocks = (s: Solid, y: number) => s.top > y + STEP_UP && y + BODY_HEIGHT > s.bottom;
+const blocks = (s: Solid, y: number) => !absent(s) && s.top > y + STEP_UP && y + BODY_HEIGHT > s.bottom;
 
 /** Would a body at (x, y, z) be inside something it can't step onto? */
 export function terrainBlocked(t: Terrain, x: number, z: number, y: number) {
@@ -132,7 +146,7 @@ export function terrainCeiling(t: Terrain, x: number, z: number, fromY: number, 
   let limit: number | null = null;
   for (const i of nearby(t, x, z, BODY_RADIUS)) {
     const s = t.solids[i];
-    if (!overlaps(s.foot, x, z, BODY_RADIUS * 0.8)) continue;
+    if (absent(s) || !overlaps(s.foot, x, z, BODY_RADIUS * 0.8)) continue;
     const headroom = s.bottom - BODY_HEIGHT;
     if (headroom >= fromY - 1e-3 && headroom < toY && (limit === null || headroom < limit)) limit = headroom;
   }
