@@ -10,7 +10,8 @@ const CHORD_TYPES_LONGEST_FIRST = Object.keys(CHORD_TEMPLATES).toSorted(
 /** Other spellings of a chord suffix the server data uses (e.g. "C69" for C6/9). */
 const SUFFIX_ALIASES: readonly [RegExp, string][] = [[/69$/, "6/9"]];
 
-function parseChordName(name: string): { rootIndex: number; type: ChordType } | null {
+/** A chord symbol's root (pitch class) and type ("Bbm7" → 10, "m7"); null if it isn't one. */
+export function parseChordName(name: string): { rootIndex: number; type: ChordType } | null {
   const direct = parseCanonical(name);
   if (direct) return direct;
   for (const [pattern, canonical] of SUFFIX_ALIASES) {
