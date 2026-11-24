@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   getCorrectCount,
@@ -8,11 +9,11 @@ import {
   type QuizGameState,
   type QuizResult as ServerQuizResult,
 } from "@/entities/chord-quiz";
-import { toDisplayChordName } from "@/shared/lib/music";
 import { MonoCard } from "@/shared/ui/mono-card";
 import { Button } from "@/shared/ui/button";
 import { SectionHeader } from "@/shared/ui/section-header";
 import { cn } from "@/shared/lib/utils";
+import { QuizReviewRow } from "./quiz-review-row";
 
 interface QuizResultProps {
   state: QuizGameState;
@@ -27,6 +28,8 @@ interface QuizResultProps {
   onRetrySave?: () => void;
   onRetry: () => void;
   onBackToSelect: () => void;
+  /** the keyboard is muted: reviewing a miss shows it but doesn't play it */
+  muted?: boolean;
 }
 
 export function QuizResult({
@@ -37,8 +40,11 @@ export function QuizResult({
   onRetrySave,
   onRetry,
   onBackToSelect,
+  muted = false,
 }: QuizResultProps) {
   const t = useTranslations("chordQuiz");
+  /** the missed question opened for review */
+  const [reviewing, setReviewing] = useState<number | null>(null);
   const judged = result !== undefined;
   const totalScore = result?.totalScore ?? getTotalScore(state.answers);
   const correctCount = result?.correctCount ?? getCorrectCount(state.answers);
@@ -89,33 +95,22 @@ export function QuizResult({
         {state.questions.map((q, i) => {
           const row = rowResult(i);
           return (
-          <div
-            key={q.id}
-            className="flex items-center justify-between border-b border-border px-4 py-2 last:border-b-0"
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-xs tabular-nums opacity-60">{i + 1}</span>
-              <span className="font-semibold text-foreground">
-                {toDisplayChordName(q.name)}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-t1 font-semibold uppercase tracking-widest opacity-70">
-                {t(row.label)}
-              </span>
-              <span
-                className={cn(
-                  "font-heading font-semibold tabular-nums text-foreground",
-                  !judged && "opacity-60",
-                )}
-              >
-                {row.score}
-              </span>
-            </div>
-          </div>
+            <QuizReviewRow
+              key={q.id}
+              index={i}
+              chordName={q.name}
+              label={row.label}
+              score={row.score}
+              judged={judged}
+              playedNotes={state.answers[i]?.notes ?? []}
+              expanded={reviewing === i}
+              onToggle={() => setReviewing((open) => (open === i ? null : i))}
+              muted={muted}
+            />
           );
         })}
       </div>
+      {incorrectCount > 0 ? <p className="-mt-3 text-xs opacity-60">{t("reviewTip")}</p> : null}
 
       {isSaving && <p className="text-sm opacity-60">{t("saving")}</p>}
       {judged && (

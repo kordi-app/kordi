@@ -81,6 +81,7 @@ export function ChordQuizPage() {
               onRetrySave={canRetrySubmit ? handleRetrySubmit : undefined}
               onRetry={handleRetry}
               onBackToSelect={handleBackToSelect}
+              muted={piano.sound.isMuted}
             />
           )}
         </div>
