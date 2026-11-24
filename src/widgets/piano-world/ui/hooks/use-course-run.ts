@@ -26,7 +26,7 @@ const freshRun = (course: CourseId, signedIn: boolean): CourseRun => ({
  * resets if you fall back to the floor, and finishing records that course's
  * best time. Topping the clouds earns the crown; the night, the star crown.
  *
- * Guests: bests and rewards are kept in localStorage. Members: nothing is
+ * Guests: bests and rewards are kept in this browser (course-record.ts). Members: nothing is
  * stored here — the server times the run and grants (and puts on) the reward.
  */
 export function useCourseRun(onFinish: () => void, initialCourse: CourseId = "clouds", signedIn = false) {

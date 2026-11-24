@@ -1,3 +1,4 @@
+import { readStored, writeStored } from "@/shared/lib/storage";
 import type { CourseId } from "../../engine/course";
 
 /** State of the current climb on a jump course. */
@@ -14,30 +15,16 @@ export interface CourseRun {
   server: { ms: number; rank: number; saved: boolean } | null;
 }
 
-// the cloud course keeps its original key so earlier records carry over
-const BEST_KEYS: Record<CourseId, string> = {
-  clouds: "kordi.world.course-best.v1",
-  night: "kordi.world.course-best.night.v1",
-  ruins: "kordi.world.course-best.ruins.v1",
-};
+const bestKey = (course: CourseId) => `world.course-best.${course}`;
 
-/** Best times live only in this browser; storage can be unavailable, so never throw. */
+/** A guest's best time on a course (kept in this browser), or null. */
 export function readCourseBest(course: CourseId): number | null {
-  try {
-    const raw = window.localStorage.getItem(BEST_KEYS[course]);
-    const value = raw === null ? NaN : Number(raw);
-    return Number.isFinite(value) && value > 0 ? value : null;
-  } catch {
-    return null;
-  }
+  const value = readStored<unknown>(bestKey(course), null);
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
 }
 
 export function writeCourseBest(course: CourseId, ms: number) {
-  try {
-    window.localStorage.setItem(BEST_KEYS[course], String(Math.round(ms)));
-  } catch {
-    // private mode etc. — the crown just won't persist
-  }
+  writeStored(bestKey(course), Math.round(ms));
 }
 
 export function formatTime(ms: number) {

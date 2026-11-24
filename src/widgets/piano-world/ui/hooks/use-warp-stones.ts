@@ -1,21 +1,18 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { readStored, writeStored } from "@/shared/lib/storage";
 import { WARP_STONES, type WarpStoneId } from "../../engine/island";
 
-const STORAGE_KEY = "kordi.world.warp-stones.v1";
+const STORAGE_KEY = "world.warp-stones";
 /** The plaza's stone is awake from the start, so there's always somewhere to warp back to. */
 const ALWAYS_AWAKE: WarpStoneId[] = ["plaza"];
 
 function readAwake(): Set<WarpStoneId> {
   const awake = new Set<WarpStoneId>(ALWAYS_AWAKE);
-  try {
-    const raw = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "[]") as unknown;
-    if (Array.isArray(raw)) {
-      for (const id of raw) if (WARP_STONES.some((s) => s.id === id)) awake.add(id as WarpStoneId);
-    }
-  } catch {
-    // unreadable or unavailable storage: start with just the plaza
+  const raw = readStored<unknown>(STORAGE_KEY, []);
+  if (Array.isArray(raw)) {
+    for (const id of raw) if (WARP_STONES.some((s) => s.id === id)) awake.add(id as WarpStoneId);
   }
   return awake;
 }
@@ -34,11 +31,7 @@ export function useWarpStones() {
     const next = new Set(awakeRef.current).add(id);
     awakeRef.current = next;
     setAwake(next);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify([...next]));
-    } catch {
-      // private mode etc. — it stays awake for this visit only
-    }
+    writeStored(STORAGE_KEY, [...next]);
     return true;
   }, []);
 
