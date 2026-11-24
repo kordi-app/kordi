@@ -1,11 +1,12 @@
 "use client";
 
-import { CircleUser } from "lucide-react";
+import { CircleUser, Lock, LogIn } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { LucideIcon } from "lucide-react";
 import { KordiLogo } from "@/shared/ui/illustrations/kordi-logo";
 import { Link, usePathname } from "@/shared/config/i18n/navigation";
 import { ROUTES } from "@/shared/config/routes";
+import { isPublicPath } from "@/shared/config/auth";
 import {
   Sidebar,
   SidebarContent,
@@ -26,8 +27,9 @@ import { NAV_GROUPS } from "../model/nav-config";
  * Cream-on-cream navigation: the sidebar sits one step darker than the page
  * (`--sidebar`), and the active item lifts back up to the card surface — so the
  * selection reads as "this sheet is on top" rather than as a grey highlight.
+ * Guests see a lock on members-only pages and a Log in button in place of the profile.
  */
-export function AppSidebar() {
+export function AppSidebar({ isSignedIn = true }: { isSignedIn?: boolean }) {
   const t = useTranslations();
   const pathname = usePathname();
 
@@ -59,6 +61,7 @@ export function AppSidebar() {
                     {...item}
                     label={t(item.labelKey)}
                     active={pathname === item.href}
+                    lockedLabel={!isSignedIn && !isPublicPath(item.href) ? t("a11y.loginRequired") : undefined}
                   />
                 ))}
               </SidebarMenu>
@@ -69,12 +72,21 @@ export function AppSidebar() {
 
       <SidebarFooter className="border-t border-sidebar-border p-2">
         <SidebarMenu>
-          <NavLink
-            href={ROUTES.ME}
-            icon={CircleUser}
-            label={t("sidebar.nav.profile")}
-            active={pathname === ROUTES.ME}
-          />
+          {isSignedIn ? (
+            <NavLink
+              href={ROUTES.ME}
+              icon={CircleUser}
+              label={t("sidebar.nav.profile")}
+              active={pathname === ROUTES.ME}
+            />
+          ) : (
+            <NavLink
+              href={ROUTES.LOGIN}
+              icon={LogIn}
+              label={t("sidebar.nav.login")}
+              active={pathname === ROUTES.LOGIN}
+            />
+          )}
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
@@ -86,11 +98,14 @@ function NavLink({
   icon: Icon,
   label,
   active,
+  lockedLabel,
 }: {
   href: string;
   icon: LucideIcon;
   label: string;
   active: boolean;
+  /** set for guests on a members-only page: a small lock, announced with this text */
+  lockedLabel?: string;
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
 
@@ -106,6 +121,13 @@ function NavLink({
       >
         <Icon className="size-[18px] shrink-0" />
         <span className="truncate">{label}</span>
+        {lockedLabel ? (
+          <Lock
+            role="img"
+            aria-label={lockedLabel}
+            className="ml-auto size-3 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden"
+          />
+        ) : null}
       </SidebarMenuButton>
     </SidebarMenuItem>
   );

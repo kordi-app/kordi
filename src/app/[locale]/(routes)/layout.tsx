@@ -8,6 +8,7 @@ import {
   SidebarTrigger,
 } from "@/shared/ui/sidebar";
 import { AppSidebar } from "@/widgets/app-sidebar";
+import { AUTH_COOKIES } from "@/shared/config/auth";
 
 export default async function RoutesLayout({
   children,
@@ -16,13 +17,16 @@ export default async function RoutesLayout({
 }) {
   const cookieStore = await cookies();
   const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false";
+  // a session cookie is enough to tell guests from members here (the proxy renews it)
+  const isSignedIn =
+    cookieStore.has(AUTH_COOKIES.ACCESS_TOKEN) || cookieStore.has(AUTH_COOKIES.REFRESH_TOKEN);
 
   return (
     <SidebarProvider
       defaultOpen={defaultOpen}
       style={{ "--sidebar-width": "14rem" } as React.CSSProperties}
     >
-      <AppSidebar />
+      <AppSidebar isSignedIn={isSignedIn} />
       <SidebarInset className="h-svh overflow-hidden bg-card">
         <div className="flex flex-1 flex-col overflow-y-auto">
           {/* No header on desktop: the sidebar carries its own collapse toggle.
