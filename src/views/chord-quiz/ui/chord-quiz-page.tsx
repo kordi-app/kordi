@@ -17,7 +17,7 @@ import { toDisplayChordName } from "@/shared/lib/music";
 import { Countdown } from "@/shared/ui/countdown";
 import { Link } from "@/shared/config/i18n/navigation";
 import { ROUTES } from "@/shared/config/routes";
-import { buttonVariants } from "@/shared/ui/button";
+import { buttonVariants } from "@/shared/ui/button-variants";
 import { useStoreValue, type ValueStore } from "@/shared/lib/react/value-store";
 
 export function ChordQuizPage() {

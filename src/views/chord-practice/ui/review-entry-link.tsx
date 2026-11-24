@@ -6,7 +6,7 @@ import { NotebookPen } from "lucide-react";
 import { reviewQueries } from "@/entities/chord-review";
 import { Link } from "@/shared/config/i18n/navigation";
 import { ROUTES } from "@/shared/config/routes";
-import { buttonVariants } from "@/shared/ui/button";
+import { buttonVariants } from "@/shared/ui/button-variants";
 
 /**
  * Entry to today's review, with how many chords are due (none shown while loading or on error).

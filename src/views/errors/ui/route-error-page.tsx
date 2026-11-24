@@ -4,7 +4,8 @@ import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/shared/config/i18n/navigation";
 import { ROUTES } from "@/shared/config/routes";
-import { Button, buttonVariants } from "@/shared/ui/button";
+import { Button } from "@/shared/ui/button";
+import { buttonVariants } from "@/shared/ui/button-variants";
 
 /** Fallback for a page that threw while rendering: say so, and offer a retry or the way home. */
 export function RouteErrorPage({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {

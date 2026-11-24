@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/shared/config/i18n/navigation";
 import { ROUTES } from "@/shared/config/routes";
-import { buttonVariants } from "@/shared/ui/button";
+import { buttonVariants } from "@/shared/ui/button-variants";
 
 export async function NotFoundPage() {
   const t = await getTranslations("errors");
