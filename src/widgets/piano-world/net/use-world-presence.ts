@@ -7,6 +7,7 @@ import type { EmoteId } from "../engine/interactables";
 import {
   CLOSE_FULL,
   encodeClientMessage,
+  PING_INTERVAL_MS,
   parseServerMessage,
   type CourseRecordMessage,
   type MoveMessage,
@@ -76,6 +77,8 @@ export function useWorldPresence(
     let disposed = false;
     let retryMs = 1_000;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    /** keeps an idle connection (standing still, a quiet tab) from timing out on the server */
+    let heartbeat: ReturnType<typeof setInterval> | undefined;
     /**
      * This effect's own socket. Cleanup must close *this* one: socketRef is
      * shared with the next effect run, and a closing socket's events arrive
@@ -108,6 +111,10 @@ export function useWorldPresence(
             }
             retryMs = 1_000;
             myId.current = message.id;
+            clearInterval(heartbeat);
+            heartbeat = setInterval(() => {
+              if (socket.readyState === WebSocket.OPEN) socket.send(encodeClientMessage({ t: "ping" }));
+            }, PING_INTERVAL_MS);
             remotes.current = new Map(
               message.players.filter((p) => p.id !== message.id).map((p) => [p.id, p]),
             );
@@ -139,7 +146,15 @@ export function useWorldPresence(
             break;
           case "look": {
             const remote = remotes.current.get(message.id);
-            if (remote) remotes.current.set(message.id, { ...remote, look: message.look });
+            if (!remote) break;
+            // signed-in members may come with their verified nickname
+            const renamed = typeof message.name === "string" && message.name !== remote.name;
+            remotes.current.set(message.id, {
+              ...remote,
+              look: message.look,
+              ...(renamed ? { name: message.name } : {}),
+            });
+            if (renamed) syncOthers();
             break;
           }
           case "record":
@@ -181,6 +196,7 @@ export function useWorldPresence(
         // (Clearing them here used to null out the *new* socket, so it was
         // never sent positions and never closed on the next hop — a leaked
         // connection that the server kept counting as a player.)
+        clearInterval(heartbeat);
         if (disposed) return;
         live = null;
         socketRef.current = null;
@@ -200,6 +216,7 @@ export function useWorldPresence(
     return () => {
       disposed = true;
       clearTimeout(retryTimer);
+      clearInterval(heartbeat);
       live?.close();
       if (socketRef.current === live) socketRef.current = null;
       myId.current = null;

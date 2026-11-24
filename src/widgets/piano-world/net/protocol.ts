@@ -77,6 +77,8 @@ export interface LookMessage {
   t: "look";
   id: string;
   look: Appearance;
+  /** their verified nickname (signed-in members, once authenticated; absent on older servers) */
+  name?: string;
 }
 
 /** Head counts (every ONLINE_MS, to every socket). */
@@ -132,7 +134,7 @@ export type ServerMessage =
 
 // ── client → server ──────────────────────────────────────────────────────────
 
-/** My position (WorldMove). Carries no "t": anything that isn't "auth" or "bell" is a move. */
+/** My position (WorldMove). Carries no "t": anything that isn't "auth", "bell", "whale" or "ping" is a move. */
 export interface MoveMessage {
   x: number;
   y: number;
@@ -158,7 +160,15 @@ export interface WhaleMessage {
   t: "whale";
 }
 
-export type ClientMessage = MoveMessage | AuthMessage | RingMessage | WhaleMessage;
+/** Keep-alive while connected (the server drops sockets that stay silent past its idle timeout). */
+export interface PingMessage {
+  t: "ping";
+}
+
+/** How often a connected socket pings (well inside the server's idle timeout). */
+export const PING_INTERVAL_MS = 25_000;
+
+export type ClientMessage = MoveMessage | AuthMessage | RingMessage | WhaleMessage | PingMessage;
 
 // ── connection ───────────────────────────────────────────────────────────────
 
