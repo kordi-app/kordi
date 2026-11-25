@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { quality } from "../quality";
 import { hash } from "../../engine/island";
-import { BUSHES, FLOWERS as ALL_FLOWERS, GRASS as ALL_GRASS, ROCKS, TREES, woodland, type Tree } from "../../engine/nature";
+import { BED_FLOWERS, BLOSSOMS, BUSHES, GRASS as ALL_GRASS, WILD_FLOWERS, ROCKS, TREES, woodland, type Tree } from "../../engine/nature";
 
 /**
  * Woods, bushes, rocks, grass and flowers: one instanced mesh per kind (a
@@ -17,7 +17,8 @@ import { BUSHES, FLOWERS as ALL_FLOWERS, GRASS as ALL_GRASS, ROCKS, TREES, woodl
 /** Lighter devices draw every n-th tuft and flower */
 const thin = <T,>(items: readonly T[]) => items.filter((_, i) => i % quality.undergrowthStride === 0);
 const GRASS = thin(ALL_GRASS);
-const FLOWERS = thin(ALL_FLOWERS);
+// the plaza's beds are planted to look full: a bed thinned like the meadow would be bare soil
+const FLOWERS = [...thin(WILD_FLOWERS), ...BED_FLOWERS.filter((_, i) => i % Math.min(2, quality.undergrowthStride) === 0)];
 
 /** Shared uniforms (module-level so every nature material reads the same values). */
 const wind = { value: 0 };
@@ -137,7 +138,8 @@ function grassTuft() {
 
 /* Palettes run dark → light, so a 0–1 tint blends smoothly between neighbours. */
 const OAK_GREENS = ["#6f9f52", "#7fae5a", "#8fbf63", "#9cc46e"].map((c) => new THREE.Color(c));
-const PINE_GREENS = ["#476f52", "#4f7f5a", "#5d8c62"].map((c) => new THREE.Color(c));
+const BLOSSOM_PINKS = ["#ee8fae", "#f5a6bf", "#fabfd0"].map((c) => new THREE.Color(c));
+const PINE_GREENS =["#476f52", "#4f7f5a", "#5d8c62"].map((c) => new THREE.Color(c));
 const BUSH_GREENS = ["#6c9a50", "#7aa85a", "#86b465"].map((c) => new THREE.Color(c));
 const GRASS_GREENS = ["#78a454", "#86b35f", "#9cc46b", "#a9cb79"].map((c) => new THREE.Color(c));
 const ROCK_GREYS = ["#938c84", "#a39d94", "#b3ada3"].map((c) => new THREE.Color(c));
@@ -205,7 +207,10 @@ const oaks = TREES.filter((t) => t.kind === "oak");
 const pines = TREES.filter((t) => t.kind === "pine");
 /** Deep in the woods the leaves run darker; lone trees in the open catch more light. */
 const treeTone = (t: Tree) => t.tint * 0.6 + (1 - woodland(t.x, t.z)) * 0.4;
-const oakColor = (i: number, out: THREE.Color) => wobble(blend(OAK_GREENS, treeTone(oaks[i]), out), i, 101, 1);
+/** The oaks in blossom wear pink instead (same mesh, same material: only the instance colour differs). */
+const inBlossom = new Set(BLOSSOMS);
+const oakColor = (i: number, out: THREE.Color) =>
+  wobble(blend(inBlossom.has(oaks[i]) ? BLOSSOM_PINKS : OAK_GREENS, treeTone(oaks[i]), out), i, 101, 1);
 const pineColor = (i: number, out: THREE.Color) => wobble(blend(PINE_GREENS, treeTone(pines[i]), out), i, 103, 1);
 const bushColor = (i: number, out: THREE.Color) => wobble(blend(BUSH_GREENS, BUSHES[i].tint, out), i, 105, 1);
 const grassColor = (i: number, out: THREE.Color) => {
@@ -302,7 +307,9 @@ function Undergrowth() {
       bloom: new THREE.IcosahedronGeometry(0.11, 0).scale(1, 0.6, 1).translate(0, 0.57, 0),
       bushMaterial: swaying({ roughness: 0.85, flatShading: true }, 0.03, false, [0, 1, 0.74, 1.08]),
       rockMaterial: swaying({ roughness: 0.95, flatShading: true }, 0, false, [0, 0.9, 0.8, 1.05]),
-      grassMaterial: swaying({ roughness: 0.9 }, 0.22, false, [0, 0.55, 0.62, 1.12]),
+      // roots only a little darker than the painted ground they grow from, so a tuft reads as
+      // part of the lawn rather than a dark weed on it
+      grassMaterial: swaying({ roughness: 0.9 }, 0.22, false, [0, 0.55, 0.8, 1.12]),
       stemMaterial: swaying({ color: "#6f9f52", roughness: 0.9 }, 0.2),
       petalMaterial: swaying({ roughness: 0.6, emissive: "#222222" }, 0.2),
     }),

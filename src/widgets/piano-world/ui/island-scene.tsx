@@ -8,6 +8,8 @@ import { BellTower } from "./island/bell-tower";
 import { DrumValley } from "./island/drum-valley";
 import { Ground } from "./island/ground";
 import { HarpFalls } from "./island/harp-falls";
+import { IslandDressing } from "./island/island-dressing";
+import { IslandLife } from "./island/island-life";
 import { NatureScene } from "./island/nature-scene";
 import { NightLights } from "./island/night-lights";
 import { PipeForest } from "./island/pipe-forest";
@@ -39,6 +41,8 @@ export const IslandScene = memo(function IslandScene({
     <group>
       <Ground />
       <NatureScene player={player} />
+      <IslandDressing />
+      <IslandLife />
       <NightLights />
       <Zone x={STREAM.x + 2} z={0} player={player}>
         <XyloBridge />

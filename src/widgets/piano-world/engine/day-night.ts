@@ -50,12 +50,15 @@ const smooth = (edge0: number, edge1: number, v: number) => {
 /*
  * Day: a faintly warm sun over a faintly cool sky fill, with a little green
  * bounce from the grass, so shaded sides read cool and lit sides warm.
- * Dawn is rosier and cooler than the amber dusk; night is moonlit blue.
+ * The day sky is a breath of blue rather than paper white: it is also the fog,
+ * so the far shore and the sea fade into haze, not into the page.
+ * Dawn is rosier and cooler than the amber dusk; night is moonlit blue, with
+ * the moon bright enough over a dimmer fill that shapes still have a lit side.
  */
-const DAY = { background: "#fcfbf8", sun: "#fff7ec", sky: "#f2f6ff", ground: "#e2e1cc", reflection: "#9fd0ee" };
+const DAY = { background: "#f2f8fb", sun: "#fff7ec", sky: "#f2f6ff", ground: "#e2e1cc", reflection: "#9fd0ee" };
 const DAWN = { background: "#fbe1d9", sun: "#ffc4a6", sky: "#f2d4de", ground: "#cbb0a6", reflection: "#e7b4c0" };
 const DUSK = { background: "#ffd9b8", sun: "#ffb27a", sky: "#ffd0a8", ground: "#c9a890", reflection: "#f2b48a" };
-const NIGHT = { background: "#0d1330", sun: "#a7b6ff", sky: "#3a4a8a", ground: "#18203a", reflection: "#1c2a55" };
+const NIGHT = { background: "#0d1330", sun: "#b6c4ff", sky: "#3a4a8a", ground: "#18203a", reflection: "#1c2a55" };
 
 /** The shadow light counts as the sun above this elevation (see skyAt: elevation = sin(2π·phase) + 0.25). */
 const DAY_ELEVATION = 0.05;
@@ -108,10 +111,10 @@ export function skyAt(nowMs: number): Sky {
     background: tint("background"),
     sunColor: tint("sun"),
     // the low sun is a little softer; the sky fill eases off with it
-    sunIntensity: 2.2 - night * 1.55 - golden * 0.2,
+    sunIntensity: 2.2 - night * 1.35 - golden * 0.2,
     hemiSky: tint("sky"),
     hemiGround: tint("ground"),
-    ambient: 1.9 - night * 1.0 - golden * 0.1,
+    ambient: 1.9 - night * 1.1 - golden * 0.1,
     reflection: tint("reflection"),
     lightDir: lightDirection(phase, elevation),
   };

@@ -53,8 +53,18 @@ const rect = (x: number, z: number, w: number, d: number, margin: number): Area 
   z1: z + d / 2 + margin,
 });
 
+/**
+ * Flower beds along the back of the keyboard plaza, either side of the path to
+ * the tower: they frame the plaza against the woods. Only planting (painted
+ * soil and flowers you walk through), nothing solid.
+ */
+export const FLOWER_BEDS: readonly { x: number; z: number; w: number; d: number }[] = [-27.5, -18.5, -9.5, 9.5, 18.5, 27.5].map(
+  (offset) => ({ x: 1.5 + offset, z: -11.1, w: 7, d: 1.9 }),
+);
+
 /** Places scenery never covers (water, paths, the plaza, the instruments). */
 const GROUND_CLEAR: Area[] = [
+  ...FLOWER_BEDS.map((b) => rect(b.x, b.z, b.w, b.d, 0.25)), // the beds have their own planting
   { x0: -36, x1: 36, z0: -9, z1: 15.5 }, // keyboard plaza
   { x0: STREAM.x - STREAM.width / 2 - 0.6, x1: STREAM.x + STREAM.width / 2 + 0.6, z0: -200, z1: 200 },
   ...PATHS.map((p) => rect(p.x, p.z, p.w, p.d, 0.3)),
@@ -127,6 +137,19 @@ export const TREES: readonly Tree[] = scatter(4.2, 31, (x, z, i) => {
   return { kind: pine ? "pine" : "oak", x, z, scale: 0.8 + hash(i, 35) * 0.7, tint: hash(i, 36), turn: hash(i, 37) * Math.PI * 2 };
 });
 
+/**
+ * Some of the oaks are in blossom: in a few groves across the island, and here
+ * and there round the plaza, so the first view has pink in it. (Which trees is
+ * all this decides: they're the same trees, drawn pink, shedding petals.)
+ */
+export const isBlossom = (tree: Tree, i: number) => {
+  if (tree.kind !== "oak") return false;
+  const grove = Math.sin(tree.x * 0.043 + 0.8) * Math.cos(tree.z * 0.057 + 2.2) > 0.3;
+  const byPlaza = Math.abs(tree.x) < 48 && tree.z > -20 && tree.z < 26;
+  return hash(i, 38) < (grove ? 0.7 : byPlaza ? 0.4 : 0.03);
+};
+export const BLOSSOMS: readonly Tree[] = TREES.filter(isBlossom);
+
 /** Tree trunks are what you bump into. */
 const trunkRadius = (t: Tree) => (t.kind === "pine" ? 0.32 : 0.38) * t.scale;
 
@@ -154,17 +177,51 @@ export const GRASS: readonly Prop[] = scatter(1.35, 61, (x, z, i) => {
   return { x, z, scale: 0.55 + hash(i, 63) * 0.6 + clump(x, z) * 0.3, turn: hash(i, 64) * 6.28, tint: hash(i, 65) };
 });
 
-/** Flowers bloom in patches in the open (where the woods thin out); each patch leans to one or two colours. */
-export const FLOWERS: readonly Prop[] = scatter(1.6, 71, (x, z, i) => {
-  if (!groundFree(x, z)) return null;
-  const meadow = 1 - woodland(x, z);
+/** 0–1: how thickly flowers bloom here — in patches, in the open (where the woods thin out). */
+export function bloom(x: number, z: number) {
   const patch = Math.sin(x * 0.21 + 0.4) * Math.cos(z * 0.19 + 1.7);
-  if (hash(i, 72) > (patch > 0.35 ? 0.75 : 0.05) * meadow) return null;
+  return (patch > 0.35 ? 0.75 : 0.05) * (1 - woodland(x, z));
+}
+
+/** Each bed is planted in two colours (tints into the petal palette: pink/white, yellow/orange, lilac/blue). */
+const BED_TINTS = [
+  [0.05, 0.4],
+  [0.2, 0.7],
+  [0.55, 0.9],
+];
+export const BED_FLOWERS: readonly Prop[] = FLOWER_BEDS.flatMap((bed, b) => {
+  const out: Prop[] = [];
+  const STEP = 0.42;
+  const tints = BED_TINTS[b % BED_TINTS.length];
+  let i = b * 1000;
+  for (let x = bed.x - bed.w / 2 + 0.35; x < bed.x + bed.w / 2 - 0.3; x += STEP) {
+    for (let z = bed.z - bed.d / 2 + 0.3; z < bed.z + bed.d / 2 - 0.25; z += STEP) {
+      i++;
+      out.push({
+        x: x + (hash(i, 77) - 0.5) * STEP * 0.8,
+        z: z + (hash(i, 78) - 0.5) * STEP * 0.8,
+        scale: 0.75 + hash(i, 79) * 0.45,
+        turn: hash(i, 80) * 6.28,
+        // drifts of one colour, then the other
+        tint: tints[Math.sin(x * 1.3 + b) + (hash(i, 76) - 0.5) > 0 ? 0 : 1],
+      });
+    }
+  }
+  return out;
+});
+
+/** Wild flowers; each patch leans to one or two colours. */
+export const WILD_FLOWERS: readonly Prop[] = scatter(1.6, 71, (x, z, i) => {
+  if (!groundFree(x, z)) return null;
+  if (hash(i, 72) > bloom(x, z)) return null;
   // a slow colour field per patch, with a few strays of any colour
   const hue = (Math.sin(x * 0.09 + 2.3) * Math.cos(z * 0.07 - 0.4) + 1) / 2;
   const tint = hash(i, 76) < 0.2 ? hash(i, 75) : (hue + (hash(i, 75) - 0.5) * 0.25 + 1) % 1;
   return { x, z, scale: 0.7 + hash(i, 73) * 0.6, turn: hash(i, 74) * 6.28, tint };
 });
+
+/** Every flower: the wild ones, then the plaza's beds. */
+export const FLOWERS: readonly Prop[] = [...WILD_FLOWERS, ...BED_FLOWERS];
 
 export const NATURE_SOLIDS: readonly Solid[] = [
   ...TREES.map((t): Solid => ({ foot: { shape: "circle", x: t.x, z: t.z, r: trunkRadius(t) }, top: 6 * t.scale, bottom: -1 })),
