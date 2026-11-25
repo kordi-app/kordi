@@ -12,6 +12,8 @@ export interface KordiDebugSeam {
   voices: { id: string; midi: number; t: number }[];
   /** keys stepped on */
   steps: { midi: number; t: number }[];
+  /** where the hall's cat is (on the island only) */
+  cat?: { x: number; z: number };
   /** a script may set: treat it as night for the midnight bell (`__kordi.night = true`) */
   night?: boolean;
   /** a script may set: put Kordi here on the next frame, then it's cleared (`__kordi.teleport = { x, y, z }`) */

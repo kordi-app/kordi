@@ -34,6 +34,7 @@ export async function HomePage() {
           emotes: t.raw("emotes") as PianoWorldCopy["emotes"],
           interact: t.raw("interact") as PianoWorldCopy["interact"],
           catReactions: t.raw("catReactions") as string[],
+          catLeads: t("catLeads"),
           teacherTips: t.raw("teacherTips") as string[],
           cards: t.raw("cards") as PianoWorldCopy["cards"],
           cardTitle: t("cardTitle"),

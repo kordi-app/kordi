@@ -21,6 +21,26 @@ test("the island, then through the illusory wall to the necklace", async ({ page
     await jumpUntilUp(page);
   });
 
+  await test.step("pet the cat three times and it shows the way to its spot", async () => {
+    // engine/cat-walk.ts SECRET_SPOT
+    const spot = { x: -11, z: 30 };
+    const catToSpot = async () => {
+      const cat = await page.evaluate(() => window.__kordi!.cat!);
+      return Math.hypot(cat.x - spot.x, cat.z - spot.z);
+    };
+    const before = await catToSpot();
+    for (let i = 0; i < 3; i++) {
+      // stand right by it (it wanders the keys) and pet it
+      const cat = await page.evaluate(() => window.__kordi!.cat!);
+      await teleport(page, { x: cat.x, y: 0.5, z: cat.z + 0.8 });
+      await page.waitForTimeout(400);
+      await page.keyboard.press("KeyE");
+      await page.waitForTimeout(1_800); // it holds still while it's petted
+    }
+    await expect(page.getByText("고양이가 꼬리를 세우고 어딘가로 걸어가요", { exact: false })).toBeVisible();
+    await expect.poll(catToSpot, { timeout: 20_000 }).toBeLessThan(before - 3);
+  });
+
   await test.step("walk into the illusory wall", async () => {
     // pressed up against the cliff where the wall isn't (engine/cave.ts ILLUSORY_WALL)
     await teleport(page, { x: -75, y: 0, z: -45.5 });

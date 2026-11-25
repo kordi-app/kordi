@@ -7,6 +7,7 @@ import type { InteractableId } from "../../engine/interactables";
 import type { WarpStoneId } from "../../engine/island";
 import { MUSIC_BOX, playSequence } from "../../audio/sequencer";
 import { isLoungeBandPlaying, nextLoungeStyle } from "../../audio/lounge-band";
+import { PETS_TO_FOLLOW, catPlan } from "../../engine/cat-walk";
 
 /** Overlay panels opened by interactables */
 export type Panel =
@@ -18,6 +19,8 @@ export type Panel =
 /** What the world shows in response to interactions (passed to the 3D scene) */
 export interface InteractionScene {
   petting: boolean;
+  /** when the cat set out to show me its spot (Date.now() ms), or null */
+  catWalkedAt: number | null;
   party: boolean;
   musicBoxPlaying: boolean;
   /** bumped to fire hearts over the cat */
@@ -50,6 +53,7 @@ export function useInteractions(copy: PianoWorldCopy, audio: AudioApi, onCelebra
   const [speech, setSpeech] = useState<string | null>(null);
   const [scene, setScene] = useState<InteractionScene>({
     petting: false,
+    catWalkedAt: null,
     party: false,
     musicBoxPlaying: false,
     hearts: 0,
@@ -57,6 +61,8 @@ export function useInteractions(copy: PianoWorldCopy, audio: AudioApi, onCelebra
   });
   const stopTune = useRef<(() => void) | null>(null);
   const draws = useRef({ tip: 0, reaction: 0 });
+  /** pets since the cat last came home from showing the way */
+  const pets = useRef({ count: 0, walkedAt: null as number | null });
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
 
   /** One named timer per purpose: restarting replaces the old one */
@@ -99,12 +105,24 @@ export function useInteractions(copy: PianoWorldCopy, audio: AudioApi, onCelebra
     (id: InteractableId) => {
       audio.startAudio();
       switch (id) {
-        case "cat":
-          setScene((s) => ({ ...s, petting: true, hearts: s.hearts + 1 }));
-          say(copy.catReactions[draws.current.reaction++ % copy.catReactions.length]);
+        case "cat": {
+          // win it over (three pets while it's home) and it shows you the way to its spot
+          const now = Date.now();
+          const out = catPlan(pets.current.walkedAt, now).kind === "out";
+          if (!out) pets.current.count++;
+          const follow = !out && pets.current.count >= PETS_TO_FOLLOW;
+          if (follow) {
+            pets.current = { count: 0, walkedAt: now };
+            setScene((s) => ({ ...s, petting: true, hearts: s.hearts + 1, catWalkedAt: now }));
+            say(copy.catLeads, TIP_MS);
+          } else {
+            setScene((s) => ({ ...s, petting: true, hearts: s.hearts + 1 }));
+            say(copy.catReactions[draws.current.reaction++ % copy.catReactions.length]);
+          }
           audio.chime(PURR, 0.25, 140, 700);
           after("petting", PETTING_MS, () => patch({ petting: false }));
           break;
+        }
         case "chordCard": {
           // a fresh random card per press (event-time randomness)
           const card = chordCard(Math.floor(Math.random() * CHORD_CARD_COUNT));

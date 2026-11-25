@@ -311,11 +311,14 @@ const CAT_LEGS = [
  */
 export function PianoCat({
   petting,
+  walkedAt,
   onKey,
   onPosition,
   onSignal,
 }: {
   petting: boolean;
+  /** when it set out to show you the spot (Date.now() ms), or null: it stays on the keys */
+  walkedAt: number | null;
   onKey: (midi: number | null) => void;
   onPosition: (position: THREE.Vector3) => void;
   onSignal?: (position: THREE.Vector3) => void;
@@ -356,8 +359,8 @@ export function PianoCat({
     if (tailTip.current) tailTip.current.rotation.z = Math.sin(t * (petting ? 9 : 3) - 0.9) * 0.5;
     let moving = false;
 
-    // the walk to the secret spot runs on the wall clock (everyone sees the same walk)
-    const plan = catPlan(Date.now());
+    // the walk to the secret spot: only once you've won it over (see use-interactions)
+    const plan = catPlan(walkedAt, Date.now());
     if (plan.kind === "out") {
       s.outing = true;
       s.target.set(plan.x, 0, plan.z);

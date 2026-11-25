@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ISLAND_BOUNDS, ISLAND_SOLIDS } from "./island";
 import { NATURE_SOLIDS } from "./nature";
-import { CAT_HOME, CAT_WALK_PERIOD, SECRET_SIT_SECONDS, SECRET_SPOT, catPlan, sitOnSpot } from "./cat-walk";
+import { CAT_HOME, CAT_SIT_SECONDS, CAT_WALK_SECONDS, SECRET_SIT_SECONDS, SECRET_SPOT, catPlan, sitOnSpot } from "./cat-walk";
 
 describe("the cat's secret spot", () => {
   it("is open meadow: nothing solid on or right beside it", () => {
@@ -28,14 +28,14 @@ describe("the cat's secret spot", () => {
     expect(SECRET_SPOT.z).toBeLessThan(ISLAND_BOUNDS.zMax - 2);
   });
 
-  it("the cat walks out, sits on it a while, and comes home", () => {
-    const at = (s: number) => catPlan(s * 1000);
-    const walking = at(3);
-    expect(walking.kind).toBe("out");
-    const sitting = at(50);
-    expect(sitting).toEqual({ kind: "out", ...SECRET_SPOT, sitting: true });
-    expect(at(CAT_WALK_PERIOD - 1)).toEqual({ kind: "home" });
-    expect(at(CAT_WALK_PERIOD)).toEqual({ kind: "out", ...CAT_HOME, sitting: false });
+  it("stays home until it's asked, then walks out, sits on it a while, and comes home", () => {
+    const walkedAt = 1_000_000;
+    const at = (s: number) => catPlan(walkedAt, walkedAt + s * 1000);
+    expect(catPlan(null, walkedAt)).toEqual({ kind: "home" });
+    expect(at(0)).toEqual({ kind: "out", ...CAT_HOME, sitting: false });
+    expect(at(3).kind).toBe("out");
+    expect(at(CAT_WALK_SECONDS - CAT_SIT_SECONDS / 2 - 15)).toEqual({ kind: "out", ...SECRET_SPOT, sitting: true });
+    expect(at(CAT_WALK_SECONDS + 1)).toEqual({ kind: "home" });
   });
 
   it("opens only for sitting, on the spot, long enough", () => {

@@ -478,10 +478,14 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
               <PianoCat
                 key={item.id}
                 petting={interaction.petting}
+                walkedAt={interaction.catWalkedAt}
                 onKey={(midi) => {
                   cat.current.key = midi;
                 }}
-                onPosition={(position) => cat.current.pos.copy(position)}
+                onPosition={(position) => {
+                  cat.current.pos.copy(position);
+                  if (debugSeam) debugSeam.cat = { x: position.x, z: position.z };
+                }}
                 onSignal={(position) => {
                   if (playerPos.distanceTo(position) < CAT_SIGNAL_EARSHOT) events.onCatSignal();
                 }}

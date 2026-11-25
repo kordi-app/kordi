@@ -18,6 +18,8 @@ export interface PianoWorldCopy {
   emotes: Record<EmoteId, string>;
   interact: Record<InteractableId, string>;
   catReactions: string[];
+  /** the third pet: the cat sets off to show you its spot */
+  catLeads: string;
   teacherTips: string[];
   cards: Record<ChordCardKey, string>;
   cardTitle: string;

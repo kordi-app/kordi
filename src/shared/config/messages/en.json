@@ -284,6 +284,7 @@
         "jukebox": "Change the mood on the jukebox",
         "discoBall": "Start the party!"
       },
+      "catLeads": "The cat raises its tail and sets off somewhere · follow it?",
       "catReactions": [
         "The cat purrs happily",
         "The cat swishes its tail across the keys",
@@ -321,7 +322,6 @@
       "wishSent": "Your wish rises as light",
       "warpStones": {
         "plaza": "Keyboard Plaza",
-        "bridge": "Xylophone Bridge",
         "drums": "Drum Valley",
         "tower": "Bell Tower",
         "pipes": "Pipe Forest",
