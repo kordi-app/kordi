@@ -18,6 +18,8 @@ import { CatSpot } from "./island/cat-spot";
 import { DreamingStatue } from "./island/dreaming-statue";
 import { Zone } from "./island/shared";
 import { WarpStoneMesh } from "./island/warp-stones";
+import { WaterReflection } from "./island/water-reflection";
+import { quality } from "./quality";
 import { XyloBridge } from "./island/xylo-bridge";
 
 /**
@@ -39,6 +41,8 @@ export const IslandScene = memo(function IslandScene({
 }) {
   return (
     <group>
+      {/* the water's soft mirror draws the scene a second time: only where there is power to spare */}
+      {quality.tier === "high" ? <WaterReflection /> : null}
       <Ground />
       <NatureScene player={player} />
       <IslandDressing />

@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { BLOSSOMS, BUSHES, FLOWER_BEDS, ROCKS, TREES, bloom, woodland } from "../../engine/nature";
 import { DRUMS, ISLAND_BOUNDS, LAMPS, PATHS, STREAM, TOWER, hash } from "../../engine/island";
 import { WHITE_L, keySpan } from "../../engine/layout";
+import { BRIDGE_RAIL_Z, SEA, STREAM_LEVEL } from "../../engine/water";
 import { SAND, roundedRect } from "./shared";
 import { Water } from "./water";
 
@@ -371,8 +372,8 @@ function paintGround() {
 }
 
 /** Shore parameters for the water shaders (stable objects: they key the materials) */
-const SEA_SHORE: [number, number, number, number] = [ISLAND_BOUNDS.x + 9, ISLAND_BOUNDS.zMin - 9, ISLAND_BOUNDS.zMax + 9, 22];
-const STREAM_SHORE: [number, number, number, number] = [STREAM.x, STREAM.width / 2, 0, 0];
+const SEA_SHORE: [number, number, number, number] = [SEA.halfX, SEA.zMin, SEA.zMax, SEA.radius];
+const STREAM_SHORE: [number, number, number, number] = [STREAM.x, STREAM.width / 2, BRIDGE_RAIL_Z, 0];
 
 /**
  * The beach: dry, pale sand up by the grass, darker wet sand along the
@@ -424,13 +425,13 @@ export function Ground() {
 
   return (
     <group>
-      <Water kind="sea" geometry={assets.sea} shore={SEA_SHORE} position={[0, -0.3, 0]} />
+      <Water kind="sea" geometry={assets.sea} shore={SEA_SHORE} position={[0, SEA.level, 0]} />
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} geometry={assets.beach} material={assets.sand} receiveShadow />
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} geometry={assets.grass} receiveShadow>
         <meshStandardMaterial map={assets.painted} roughness={1} />
       </mesh>
       {/* the stream, banks to the sea */}
-      <Water kind="stream" geometry={assets.stream} shore={STREAM_SHORE} position={[STREAM.x, 0.02, (STREAM.zMin + STREAM.zMax) / 2]} />
+      <Water kind="stream" geometry={assets.stream} shore={STREAM_SHORE} position={[STREAM.x, STREAM_LEVEL, (STREAM.zMin + STREAM.zMax) / 2]} />
     </group>
   );
 }

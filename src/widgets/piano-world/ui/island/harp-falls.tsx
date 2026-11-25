@@ -4,10 +4,11 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { CAVE, CLIFF, CRYSTALS, HARP, HARP_STRINGS, hash } from "../../engine/island";
+import { POOL } from "../../engine/water";
+import { FallsSpray } from "./falls-spray";
 import { ROCK, GOLD, mergeParts, paint, sinceHit, useBuilt } from "./shared";
 import { Water } from "./water";
 
-const POOL = { x: (CAVE.x0 + CAVE.x1) / 2, z: CLIFF.front + 1.6, r: 3.2 };
 const POOL_SHORE: [number, number, number, number] = [POOL.x, POOL.z, POOL.r, CLIFF.front];
 
 /** Falling water: blue-white sheets with bright streaks, thinner at the edges. */
@@ -230,7 +231,6 @@ export function HarpFalls() {
     [texture, spray],
   );
   const sprayMaterial = useRef<THREE.MeshStandardMaterial>(null);
-  const mist = useRef<THREE.Group>(null);
   const poolGeometry = useMemo(() => new THREE.CircleGeometry(POOL.r, 48).rotateX(-Math.PI / 2), []);
   useEffect(() => () => poolGeometry.dispose(), [poolGeometry]);
   const strings = useRef<(THREE.Mesh | null)[]>([]);
@@ -263,12 +263,6 @@ export function HarpFalls() {
   useFrame(({ clock }, delta) => {
     if (fall.current?.map) fall.current.map.offset.y += delta * 1.5; // water falling
     if (sprayMaterial.current?.map) sprayMaterial.current.map.offset.y += delta * 2.3; // a faster sheet in front
-    mist.current?.children.forEach((puff, i) => {
-      const t = (clock.getElapsedTime() * 0.45 + i / 7) % 1;
-      puff.position.y = 0.3 + t * 2.2;
-      puff.scale.setScalar(1.2 + t * 1.8);
-      ((puff as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = 0.32 * (1 - t);
-    });
     const now = clock.getElapsedTime();
     HARP_STRINGS.forEach((string, i) => {
       const mesh = strings.current[i];
@@ -341,16 +335,9 @@ export function HarpFalls() {
           emissiveIntensity={0.35}
         />
       </mesh>
-      {/* mist rising where the water lands */}
-      <group ref={mist} position={[(CAVE.x0 + CAVE.x1) / 2, 0, CLIFF.front + 0.9]}>
-        {Array.from({ length: 7 }, (_, i) => (
-          <mesh key={i} position={[(hash(i, 5) - 0.5) * 3.6, 0.5, (hash(i, 6) - 0.5) * 1.2]}>
-            <sphereGeometry args={[0.6, 12, 8]} />
-            <meshBasicMaterial color="#f2f9ff" transparent opacity={0.2} depthWrite={false} />
-          </mesh>
-        ))}
-      </group>
-      <Water kind="pool" geometry={poolGeometry} shore={POOL_SHORE} position={[POOL.x, 0.03, POOL.z]} />
+      <Water kind="pool" geometry={poolGeometry} shore={POOL_SHORE} position={[POOL.x, POOL.level, POOL.z]} />
+      {/* mist rising and droplets thrown out where the water lands (one mesh, alive in its shader) */}
+      <FallsSpray position={[(CAVE.x0 + CAVE.x1) / 2, POOL.level, CLIFF.front + 0.25]} halfWidth={caveWidth / 2} />
       {/* the harp standing in the spray: a golden frame and glowing strings */}
       <group position={[0, 0, HARP_Z]}>
         {HARP_STRINGS.map((string, i) => (

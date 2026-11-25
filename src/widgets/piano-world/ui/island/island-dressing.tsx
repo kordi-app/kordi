@@ -4,6 +4,7 @@ import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { ISLAND_BOUNDS, STREAM, hash } from "../../engine/island";
 import { TREES, woodland } from "../../engine/nature";
+import { STREAM_ROCKS } from "../../engine/water";
 import { quality } from "../quality";
 import { mergeParts, paint } from "./shared";
 
@@ -56,6 +57,15 @@ function stone(x: number, y: number, z: number, size: number, n: number, colours
 function streamBanks(parts: Parts) {
   const half = STREAM.width / 2;
   let n = 0;
+  // boulders standing in the current (the water's shader parts round these same spots)
+  STREAM_ROCKS.forEach((rock, i) => {
+    const boulder = new THREE.DodecahedronGeometry(rock.r * 1.12, 0)
+      .scale(1, 0.72, 1)
+      .rotateY(hash(i, 306) * 6.28)
+      .translate(rock.x, rock.r * 0.2, rock.z);
+    parts.push({ x: rock.x, geometry: paint(boulder, STONES[i % STONES.length]) });
+    parts.push({ x: rock.x, geometry: stone(rock.x + rock.r * 0.9, 0, rock.z + rock.r * 0.55, rock.r * 0.45, i + 40, STONES) });
+  });
   for (const side of [-1, 1]) {
     // stones straddling the waterline, bigger ones now and then
     for (let z = STREAM.zMin + 2; z < STREAM.zMax - 2; z += 0.8 + hash(n, 311) * 1.5) {

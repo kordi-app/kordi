@@ -5,13 +5,24 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { quality } from "../quality";
 import { skyAt } from "../../engine/day-night";
+import { STREAM_ROCKS, WATER_RIPPLES, WATER_RIPPLE_SECONDS, waterRipples } from "../../engine/water";
+import { reflectionUniforms, registerSurface } from "./water-reflection";
 
 /**
  * Stylised water: rippling normals from layered noise, a Fresnel blend toward
  * the sky's reflection (which follows the time of day), a sun glint and sheen,
  * and foam where the water meets land — along the beach, the stream's banks,
- * and under the waterfall. On capable devices, caustics play over the shallows
- * and sparkles flash on the ripples. Fog-aware, so the sea fades into the horizon.
+ * and under the waterfall. Near the shore the bed shows through, sand and
+ * pebbles, before the blue deepens. Rings spread from whoever wades in it
+ * (engine/water.ts keeps the last few). The stream runs: streaks follow the
+ * current, white water spills over the bridge's rails and parts round the
+ * boulders standing in it. On capable devices, caustics play over the shallows,
+ * sparkles flash on the ripples, and the scene is mirrored softly in the
+ * surface (water-reflection.tsx). Fog-aware, so the sea fades into the horizon.
+ *
+ * One program for all three waters (the kind is a uniform); the tiers differ
+ * by defines: LOW_QUALITY (not high) drops caustics, sparkles and lacy foam,
+ * MINIMAL also the pebbles and the boulders' wakes, REFLECT (high) adds the mirror.
  */
 export type WaterKind = "sea" | "stream" | "pool";
 
@@ -23,6 +34,10 @@ const VERTEX = /* glsl */ `
   varying vec3 vWorld;
   /** wave height, −1…1: crests catch a little more light */
   varying float vCrest;
+#ifdef REFLECT
+  uniform mat4 uReflMatrix;
+  varying vec4 vRefl;
+#endif
   #include <fog_pars_vertex>
   void main() {
     vec4 world = modelMatrix * vec4(position, 1.0);
@@ -32,6 +47,9 @@ const VERTEX = /* glsl */ `
     world.y += w * uWaves;
     vCrest = w / 0.26 * uWaves;
     vWorld = world.xyz;
+#ifdef REFLECT
+    vRefl = uReflMatrix * world;
+#endif
     vec4 mvPosition = viewMatrix * world;
     gl_Position = projectionMatrix * mvPosition;
     #include <fog_vertex>
@@ -47,9 +65,23 @@ const FRAGMENT = /* glsl */ `
   uniform vec3 uSunDir;
   uniform vec3 uSunColor;
   uniform float uDark;
-  /* sea: halfX, zMin, zMax, corner radius | stream: centreX, halfWidth | pool: centreX, centreZ, radius, fallsZ */
+  /* sea: halfX, zMin, zMax, corner radius | stream: centreX, halfWidth, the bridge rails' z (±) | pool: centreX, centreZ, radius, fallsZ */
   uniform vec4 uShore;
   uniform float uOpacity;
+  /** the sand under the shallows */
+  uniform vec3 uBed;
+  /** rings from someone wading: x, z, start time, strength */
+  uniform vec4 uRipples[RIPPLES];
+#ifndef MINIMAL
+  /** boulders standing in the stream: x, z, radius */
+  uniform vec3 uRocks[ROCKS];
+#endif
+#ifdef REFLECT
+  uniform sampler2D uRefl;
+  uniform vec2 uReflTexel;
+  uniform float uReflOn;
+  varying vec4 vRefl;
+#endif
   varying vec3 vWorld;
   varying float vCrest;
   #include <fog_pars_fragment>
@@ -79,6 +111,24 @@ const FRAGMENT = /* glsl */ `
     float h = ripples(p);
     float strength = uMode < 0.5 ? 0.9 : 0.6;
     vec3 n = normalize(vec3((h - ripples(p + vec2(e, 0.0))) / e * strength, 1.0, (h - ripples(p + vec2(0.0, e))) / e * strength));
+
+    // rings spreading from wading feet: a bright crest, a fainter one trailing inside, a push on the ripples
+    float rings = 0.0;
+    vec2 push = vec2(0.0);
+    for (int i = 0; i < RIPPLES; i++) {
+      vec4 ring = uRipples[i];
+      float age = uTime - ring.z;
+      if (ring.w <= 0.0 || age < 0.0 || age > RIPPLE_LIFE) continue;
+      vec2 away = p - ring.xy;
+      float dist = length(away);
+      float front = dist - (0.3 + age * 1.6);
+      float fade = 1.0 - age / RIPPLE_LIFE;
+      fade *= fade * ring.w;
+      rings += (smoothstep(0.17, 0.0, abs(front)) + 0.45 * smoothstep(0.12, 0.0, abs(front + 0.55)) * step(0.35, age)) * fade;
+      push += away / max(dist, 0.001) * sin(clamp(front * 8.0, -3.1416, 3.1416)) * fade;
+    }
+    n = normalize(n + vec3(push.x, 0.0, push.y) * 0.45);
+
     vec3 V = normalize(cameraPosition - vWorld);
     float fresnel = 0.03 + 0.97 * pow(1.0 - max(dot(n, V), 0.0), 4.0);
 
@@ -99,6 +149,23 @@ const FRAGMENT = /* glsl */ `
     vec3 water = mix(uShallow, uDeep, depth);
     // a band of lighter turquoise where the shelf drops off
     water += (uShallow - uDeep) * 0.18 * smoothstep(0.25, 0.5, depth) * smoothstep(0.85, 0.5, depth) * (1.0 - uDark);
+    // see-through shallows: by the shore the bed shows, sand and pebbles, wobbling under the ripples
+    float clearReach = uMode < 0.5 ? 3.4 : uMode < 1.5 ? 0.75 : 0.55;
+    float clear = exp(-shore / clearReach);
+    vec3 bed = uBed;
+#ifndef MINIMAL
+    {
+      vec2 g = (p + n.xz * 0.5) * (uMode < 0.5 ? 1.25 : 2.2);
+      vec2 id = floor(g);
+      float rnd = hash(id);
+      vec2 spot = fract(g) - 0.5 - (vec2(rnd, hash(id + 7.3)) - 0.5) * 0.45;
+      float size = 0.14 + rnd * 0.2;
+      float pebble = smoothstep(size, size - 0.06, length(spot)) * step(0.3, rnd);
+      bed *= mix(vec3(1.0), mix(vec3(0.58, 0.57, 0.56), vec3(0.86, 0.76, 0.64), hash(id + 3.1)), pebble);
+    }
+#endif
+    // the water tints what lies under it
+    water = mix(water, bed * mix(vec3(1.0), uShallow * 1.3, 0.45), clear * 0.85);
     // crests are a touch lighter, troughs a touch deeper
     water *= 1.0 + vCrest * 0.06;
     vec3 colour = mix(water, uSky, clamp(fresnel * 0.85, 0.0, 1.0));
@@ -135,21 +202,65 @@ const FRAGMENT = /* glsl */ `
       float swell = sin(shore * 1.4 - uTime * 1.6) * 0.5 + 0.5;
       foam = max(foam, smoothstep(0.82, 1.0, swell) * smoothstep(9.0, 2.0, shore) * churn);
     } else if (uMode < 1.5) {
-      float streak = smoothstep(0.72, 0.95, noise(vec2(p.x * 2.6, p.y * 0.35 + uTime * 2.2)));
-      foam = max(foam, streak * 0.5);
+      // the current: long streaks running downstream (−z), quick ones midstream, lazy ones by the banks
+      float mid = clamp(shore / uShore.y, 0.0, 1.0);
+      float slow = smoothstep(0.66, 0.92, noise(vec2(p.x * 3.1, p.y * 0.24 + uTime * 1.5)));
+      float quick = smoothstep(0.68, 0.94, noise(vec2(p.x * 5.3 + 4.0, p.y * 0.17 + uTime * 2.9)));
+      foam = max(foam, slow * 0.34 + quick * 0.42 * mid);
+      float lace = smoothstep(0.3, 0.7, noise(vec2(p.x * 3.0, p.y * 1.3 + uTime * 3.2)));
+      // white water spilling over the bridge's two rails: piled up a little above each, churning below
+      for (int k = 0; k < 2; k++) {
+        float past = (k == 0 ? uShore.z : -uShore.z) - p.y;
+        float spill = past > 0.0 ? smoothstep(1.1, 0.0, past) * (0.3 + 0.55 * lace) : smoothstep(0.22, 0.0, -past) * 0.7;
+        foam = max(foam, spill);
+      }
+#ifndef MINIMAL
+      // …and parting round the boulders: a collar piled against the upstream face, a wake opening behind
+      for (int i = 0; i < ROCKS; i++) {
+        vec2 rel = p - uRocks[i].xy;
+        float r = uRocks[i].z;
+        if (abs(rel.x) > 2.6 || rel.y > 1.6 || rel.y < -6.5) continue;
+        float along = -rel.y;
+        float collar = smoothstep(r + 0.42, r + 0.06, length(rel)) * (0.3 + 0.7 * smoothstep(-r, r, rel.y));
+        float arm = r * 0.85 + along * 0.2;
+        float behind = step(0.0, along);
+        float wake = smoothstep(0.14 + along * 0.06, 0.0, abs(abs(rel.x) - arm)) * smoothstep(5.5, 0.4, along) * behind * (0.45 + 0.55 * lace);
+        float eddy = smoothstep(arm, arm * 0.2, abs(rel.x)) * smoothstep(2.6, 0.2, along) * behind * lace * 0.55;
+        foam = max(foam, max(collar, max(wake, eddy)));
+      }
+#endif
     } else {
       float d = abs(p.y - uShore.w);
       foam = max(foam, smoothstep(1.6, 0.0, d + (churn - 0.5)) * step(abs(p.x - uShore.x), 2.4));
+      // rings pushed out across the pool from where the falls land
+      float fromFalls = length(vec2(max(abs(p.x - uShore.x) - 1.8, 0.0), p.y - uShore.w - 0.3));
+      foam = max(foam, smoothstep(0.7, 1.0, sin(fromFalls * 6.5 - uTime * 4.5)) * smoothstep(3.4, 0.6, fromFalls) * 0.22);
     }
 #ifndef LOW_QUALITY
     // bubbly, lacy foam rather than flat white
     foam *= mix(0.55, 1.0, smoothstep(0.25, 0.7, noise(p * 5.5 + vec2(0.0, uTime * 0.4))));
 #endif
-    colour = mix(colour, vec3(0.96, 0.98, 1.0) * (1.0 - uDark * 0.55), clamp(foam, 0.0, 1.0) * 0.85);
+    foam = clamp(foam, 0.0, 1.0);
+    vec3 white = vec3(0.96, 0.98, 1.0) * (1.0 - uDark * 0.55);
+    colour = mix(colour, white, foam * 0.85);
+    colour = mix(colour, white, clamp(rings, 0.0, 1.0) * 0.6);
 
     gl_FragColor = vec4(colour, uOpacity);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
+#ifdef REFLECT
+    {
+      // the mirror: a small picture of the scene, blurred and wobbled by the ripples, laid in weakly
+      // (it is already tone-mapped, so it goes in here; where it is empty the sky colour above stays)
+      vec2 uv = vRefl.xy / vRefl.w + n.xz * 0.03;
+      vec2 t = uReflTexel * 1.5;
+      vec4 mirrored = texture2D(uRefl, uv) * 0.3
+        + (texture2D(uRefl, uv + vec2(t.x, t.y)) + texture2D(uRefl, uv + vec2(-t.x, t.y))
+        + texture2D(uRefl, uv + vec2(t.x, -t.y)) + texture2D(uRefl, uv - vec2(t.x, t.y))) * 0.175;
+      float k = uReflOn * (0.24 + 0.5 * fresnel) * (1.0 - foam) * step(0.0, vRefl.w);
+      gl_FragColor.rgb = gl_FragColor.rgb * (1.0 - mirrored.a * k) + mirrored.rgb * k;
+    }
+#endif
     #include <fog_fragment>
   }
 `;
@@ -160,6 +271,25 @@ const PALETTE: Record<WaterKind, { shallow: string; deep: string; waves: number 
   pool: { shallow: "#9be5df", deep: "#3a98bb", waves: 0 },
 };
 const NIGHT_WATER = new THREE.Color("#0b1836");
+/** The sand and silt under the shallows */
+const BED = "#eadfc2";
+/** uRocks: x, z, radius of each boulder in the stream (fixed, so one array for every water) */
+const ROCKS = new Float32Array(STREAM_ROCKS.flatMap((rock) => [rock.x, rock.z, rock.r]));
+
+function tierDefines() {
+  const defines: Record<string, string | number> = {
+    RIPPLES: WATER_RIPPLES,
+    RIPPLE_LIFE: WATER_RIPPLE_SECONDS.toFixed(2),
+    ROCKS: STREAM_ROCKS.length,
+  };
+  // phones skip the caustics, sparkles and lacy foam (three fewer noise lookups per pixel)
+  if (quality.tier !== "high") defines.LOW_QUALITY = "";
+  // the CPU renderer also skips the pebbles on the bed and the boulders' wakes
+  if (quality.tier === "minimal") defines.MINIMAL = "";
+  // only the capable tier mirrors the scene (water-reflection.tsx is mounted only there)
+  if (quality.tier === "high") defines.REFLECT = "";
+  return defines;
+}
 
 /**
  * A water surface. Pass a flat geometry lying in x/z (already rotated) and
@@ -182,7 +312,7 @@ export function Water({
   const last = useRef(-Infinity);
   const material = useMemo(() => {
     const palette = PALETTE[kind];
-    return new THREE.ShaderMaterial({
+    const built = new THREE.ShaderMaterial({
       uniforms: THREE.UniformsUtils.merge([
         THREE.UniformsLib.fog,
         {
@@ -197,16 +327,22 @@ export function Water({
           uDark: { value: 0 },
           uShore: { value: new THREE.Vector4(...shore) },
           uOpacity: { value: opacity },
+          uBed: { value: new THREE.Color(BED) },
         },
       ]),
       vertexShader: VERTEX,
       fragmentShader: FRAGMENT,
-      // phones skip the caustics, sparkles and lacy foam (three fewer noise lookups per pixel)
-      defines: quality.tier === "high" ? {} : { LOW_QUALITY: "" },
+      defines: tierDefines(),
       fog: true,
       transparent: opacity < 1,
       depthWrite: opacity >= 1,
     });
+    // shared with every water, by reference (merge above would have copied them):
+    // the rings are written in place by the frame loop, the mirror by its own pass
+    built.uniforms.uRipples = { value: waterRipples.data };
+    built.uniforms.uRocks = { value: ROCKS };
+    Object.assign(built.uniforms, reflectionUniforms);
+    return built;
   }, [kind, shore, opacity]);
   useEffect(() => () => material.dispose(), [material]);
 
@@ -225,7 +361,13 @@ export function Water({
     m.uniforms.uDark.value = sky.night;
     m.uniforms.uDeep.value.set(palette.deep).lerp(NIGHT_WATER, sky.night * 0.75);
     m.uniforms.uShallow.value.set(palette.shallow).lerp(NIGHT_WATER, sky.night * 0.6);
+    m.uniforms.uBed.value.set(BED).lerp(NIGHT_WATER, sky.night * 0.7);
   });
 
-  return <mesh ref={mesh} geometry={geometry} material={material} position={position} receiveShadow />;
+  return (
+    // the group is what the mirror hides while it draws (a ref callback: there for as long as the water is)
+    <group ref={registerSurface}>
+      <mesh ref={mesh} geometry={geometry} material={material} position={position} receiveShadow />
+    </group>
+  );
 }

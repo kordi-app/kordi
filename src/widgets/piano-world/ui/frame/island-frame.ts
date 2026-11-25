@@ -2,6 +2,7 @@ import { islandHits } from "../../engine/island";
 import type { Landing } from "../../engine/player";
 import { stepSkyPads } from "../../engine/sky-island";
 import { STATUE, createStatueSit, resetStatue, stepStatue, type StatueSit } from "../../engine/statue";
+import { createWade, resetWade, stepWade, type Wade } from "../../engine/water";
 import type { FrameContext } from "./context";
 
 /** The statue's dream, in the colour of its mirror stone's light */
@@ -10,19 +11,23 @@ const DREAM_GLOW = "#ffe9a8";
 export interface IslandFrame {
   /** sitting before the dreaming statue */
   statue: StatueSit;
+  /** in the water: the rings my feet leave on it */
+  wade: Wade;
 }
 
-export const createIslandFrame = (): IslandFrame => ({ statue: createStatueSit() });
+export const createIslandFrame = (): IslandFrame => ({ statue: createStatueSit(), wade: createWade() });
 
 /** A fresh arrival on the island: the statue is asleep, and no half-finished sit carries over */
 export function enterIsland(state: IslandFrame) {
   resetStatue(state.statue);
+  resetWade(state.wade);
 }
 
 /**
  * The island's secrets and toys, after you've moved: drums beat when you land
  * on them, the sky island's star pads light under your feet, and the dreaming
- * statue wakes for whoever sits out its dream on the mirror stone. (The cat's
+ * statue wakes for whoever sits out its dream on the mirror stone; wading
+ * through water leaves rings on it (the water's shader draws them). (The cat's
  * spot needs nothing here: it is an ordinary, undrawn portal — regions.ts.)
  */
 export function stepIslandFrame(
@@ -44,6 +49,8 @@ export function stepIslandFrame(
     else fx?.confetti(s.pos.x, s.pos.y, s.pos.z);
     events.onSky(event);
   }
+  // water: a splash ring on stepping or landing in it, a trail of rings while wading
+  stepWade(state.wade, s.pos.x, s.pos.y, s.pos.z, grounded, now);
   // the dreaming statue: sit as it sits, and it takes you into its dream
   const dream = stepStatue(state.statue, s.pos.x, s.pos.z, sitting, grounded, now);
   if (dream === "woke") {
