@@ -6,8 +6,8 @@ import { WORLD_CONTRACT } from "./world-contract";
  * can see (cat-walk.ts). A sea of stars you walk on, small islands holding
  * dream things — a giant shell, a teacup, a tree growing upside down, a moon
  * lantern — and jellyfish lanterns to hop between them. A whale swims the sky
- * and has lost five notes of its song; each is hidden in one of those things.
- * Bring all five to the summit and it comes down to sing, and a baby whale
+ * and has lost four notes of its song; each is hidden in one of those things.
+ * Bring all four to the summit and it comes down to sing, and a baby whale
  * follows you home.
  *
  * Pure data + state; dream-sea.tsx draws it.
@@ -80,8 +80,8 @@ export const JELLIES: readonly Jelly[] = JELLY_CHAINS.flat();
 export const TEACUP = { x: -17, z: -6.5, saucer: { r: 2.4, top: 1.85 }, cup: { r: 1.5, top: 2.7 } };
 
 export interface LostNote {
-  /** where it hides: in one of the dream things, or out on the open sea */
-  thing: Exclude<DreamThing, "summit"> | "sea";
+  /** the dream thing it hides in */
+  thing: Exclude<DreamThing, "summit">;
   midi: number;
   x: number;
   y: number;
@@ -92,21 +92,26 @@ export interface LostNote {
 export const NOTE_REACH = 1.1;
 
 /**
- * Where the five notes hide. The tree's hangs from a branch (jump for it);
- * the teacup's floats in its steam (climb the cup); the moon's sits in the
- * lantern, up the jellyfish; the shell's lies inside it; and one drifts out
- * on the open sea, so the first find is easy.
+ * Where the four notes hide: one in each dream thing, so finding them takes
+ * you round the whole sea and leaves you at the foot of the climb. The
+ * shell's lies inside it (a hop up from the sea: the easy first find); the
+ * moon's sits in the lantern, up the jellyfish from the shell; the teacup's
+ * floats in its steam (climb the cup); and the tree's hangs from a branch
+ * (jump for it), where the last jellyfish lead on to the summit.
  */
 export const LOST_NOTES: readonly LostNote[] = [
   { thing: "shell", midi: 67, x: isle("shell").x, y: isle("shell").top + 0.9, z: isle("shell").z },
   { thing: "teacup", midi: 72, x: TEACUP.x, y: TEACUP.cup.top + 1.1, z: TEACUP.z },
   { thing: "tree", midi: 74, x: isle("tree").x + 1.2, y: isle("tree").top + 2.3, z: isle("tree").z },
   { thing: "moon", midi: 69, x: isle("moon").x, y: isle("moon").top + 0.9, z: isle("moon").z },
-  { thing: "sea", midi: 64, x: 9, y: 0.9, z: 8 },
 ];
 
-/** The whale's song, once it has its notes back (all five, then home) */
-export const WHALE_SONG: readonly number[] = [67, 69, 72, 74, 72, 69, 64, 67];
+/**
+ * The whale's song, once it has its notes back: only those four pitches
+ * (G A C D). It climbs through them, comes back down, and the low G lifts to
+ * C to end: so-do, a close that sounds like coming home.
+ */
+export const WHALE_SONG: readonly number[] = [67, 69, 72, 74, 72, 69, 67, 72];
 
 /**
  * The server only believes the whale sang for someone who has been in the
@@ -144,7 +149,7 @@ export function startDream() {
 export type DreamEvent = { kind: "note"; index: number; midi: number } | { kind: "whale" };
 
 /**
- * Take any note within reach (feet at y) and, holding all five on the
+ * Take any note within reach (feet at y) and, holding all four on the
  * summit, call the whale. `now` is any clock that only moves forward.
  */
 /** What a quiet frame returns (shared: most frames nothing happens) */
