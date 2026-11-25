@@ -6,6 +6,7 @@ import { REGIONS, arrivalPoint, isRegionId, type RegionDef, type RegionId } from
 import { readCourseBest } from "./course-record";
 import { dreamFoundBefore } from "./use-dream-sea";
 import { caveFoundBefore } from "./use-cave";
+import { musicBoxFoundBefore } from "./use-music-box";
 
 const FADE_MS = 260;
 
@@ -27,6 +28,8 @@ function initialRegion(): RegionId {
   if (param === "whale" && !dreamFoundBefore()) return "hall";
   // nor the cave behind the illusory wall
   if (param === "cave" && !caveFoundBefore()) return "hall";
+  // nor the inside of the music box, before the dreaming statue has taken you there
+  if (param === "musicbox" && !musicBoxFoundBefore()) return "hall";
   return param;
 }
 

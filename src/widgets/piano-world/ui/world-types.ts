@@ -4,6 +4,7 @@ import type { Appearance, RewardId } from "@/entities/character";
 import type { CaveEvent } from "../engine/cave";
 import type { DreamEvent } from "../engine/dream-sea";
 import type { EmoteId, InteractableId } from "../engine/interactables";
+import type { MusicBoxEvent } from "../engine/music-box";
 import type { WarpStoneId } from "../engine/island";
 import type { RegionId } from "../engine/regions";
 import type { SkyEvent } from "../engine/sky-island";
@@ -54,6 +55,13 @@ export interface WorldEvents {
   onCatSignal: () => void;
   /** in the cave of sleeping stars: a star rest woken, a fall into the abyss, the necklace taken */
   onCave: (event: CaveEvent) => void;
+  /**
+   * The dreaming statue opened its eyes: you sat out its dream on the mirror
+   * stone. (The trip itself follows a moment later, as an onPortal.)
+   */
+  onStatueWake: () => void;
+  /** inside the music box: a step of its tune, or the whole tune remembered */
+  onMusicBox: (event: MusicBoxEvent) => void;
 }
 
 export interface WorldPresence {

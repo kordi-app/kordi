@@ -1,4 +1,5 @@
 import { playNoteOff, playNoteOn } from "@/shared/lib/audio";
+import { TEETH, TUNE } from "../engine/music-box";
 
 /** [midi, beats] — midi null is a rest */
 export type Step = [midi: number | null, beats: number];
@@ -39,8 +40,10 @@ export function playSequence(steps: Step[], bpm: number, velocity = 0.6, onEnd?:
   };
 }
 
-/** Twinkle Twinkle up high, plucked like a music box (traditional, public domain). */
-export const MUSIC_BOX: Step[] = [
-  [84, 1], [84, 1], [91, 1], [91, 1], [93, 1], [93, 1], [91, 2],
-  [89, 1], [89, 1], [88, 1], [88, 1], [86, 1], [86, 1], [84, 2],
-];
+/**
+ * Twinkle Twinkle up high, plucked like a music box (traditional, public
+ * domain). The tune is written once, as the teeth of the comb inside the box
+ * (engine/music-box.ts TUNE): what the box plays out here is what its cylinder
+ * is pinned to in there.
+ */
+export const MUSIC_BOX: Step[] = TUNE.map(([tooth, beats]) => [TEETH[tooth].midi, beats]);

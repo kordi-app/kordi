@@ -29,7 +29,7 @@ import {
   type CircleCollider,
   type InputState,
 } from "../engine/physics";
-import { PORTAL_RADIUS, type RegionDef } from "../engine/regions";
+import { PORTAL_RADIUS, isDrawn, isWalkThrough, type RegionDef } from "../engine/regions";
 import { EmoteBubble } from "./emote-bubble";
 import { debugSeam } from "../lib/debug-seam";
 import type { KordiMotion } from "@/entities/character";
@@ -217,6 +217,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       inputs: {
         landing: null,
         steering: false,
+        sitting: false,
         skyClock: 0,
         cosmicCrown: false,
         hasNecklace: false,
@@ -268,6 +269,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     const inputs = reused.inputs;
     inputs.landing = landing;
     inputs.steering = steering;
+    inputs.sitting = emote === "sit";
     inputs.skyClock = skyClock;
     inputs.cosmicCrown = cosmicCrown;
     inputs.hasNecklace = hasNecklace;
@@ -372,6 +374,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     // --- portals
     const inside = region.portals.find(
       (portal) =>
+        isWalkThrough(portal) &&
         Math.hypot(s.pos.x - portal.x, s.pos.z - portal.z) < PORTAL_RADIUS &&
         Math.abs(s.pos.y - (portal.y ?? 0)) < PORTAL_HEIGHT_TOLERANCE,
     );
@@ -501,7 +504,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
         }
       })}
       {region.portals
-        .filter((portal) => !portal.invisible)
+        .filter(isDrawn)
         .map((portal) => (
           <Portal key={`${portal.to}-${portal.x}`} portal={portal} glow={region.theme.dark} />
         ))}

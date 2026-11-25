@@ -200,8 +200,8 @@ export interface BallSnapshot {
 
 /** Where the balls start in each region (none on the jump course). */
 export function ballSpawns(region: string, spawn: { x: number; z: number }): { x: number; z: number }[] {
-  // none on the jump courses (no keyboard floor), in the dream sea (nothing to play) or in the cave
-  if (region === "clouds" || region === "night" || region === "ruins" || region === "whale" || region === "cave") return [];
+  // none on the jump courses (no keyboard floor), in the dream sea (nothing to play), in the cave or inside the music box
+  if (["clouds", "night", "ruins", "whale", "cave", "musicbox"].includes(region)) return [];
   if (region === "hall") {
     return [
       { x: spawn.x + 3, z: spawn.z + 1.2 },

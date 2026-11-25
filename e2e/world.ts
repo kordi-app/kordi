@@ -9,6 +9,7 @@ export interface GuestProgress {
   bests?: Partial<Record<"clouds" | "night" | "ruins", number>>;
   caveFound?: boolean;
   dreamFound?: boolean;
+  musicBoxFound?: boolean;
   necklace?: boolean;
 }
 
@@ -18,6 +19,7 @@ export async function seedGuest(page: Page, progress: GuestProgress) {
     for (const [course, ms] of Object.entries(p.bests ?? {})) put(`world.course-best.${course}`, ms);
     if (p.caveFound) put("world.cave-found", true);
     if (p.dreamFound) put("world.dream-found", true);
+    if (p.musicBoxFound) put("world.musicbox-found", true);
     if (p.necklace) put("world.necklace", true);
   }, progress);
 }

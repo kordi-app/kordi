@@ -13,6 +13,7 @@ import {
 } from "./island";
 import { REGIONS } from "./regions";
 import { SKY_SOLIDS } from "./sky-island";
+import { MIRROR_STONE, PLINTH, STANDING_STONES, STATUE, STATUE_CLEARING, STATUE_GLADE, STATUE_SOLIDS } from "./statue";
 import { buildTerrain, type Solid } from "./terrain";
 
 /**
@@ -60,6 +61,10 @@ const GROUND_CLEAR: Area[] = [
   ...DRUMS.map((d) => ({ x: d.x, z: d.z, r: d.r + 0.3 })),
   { x: TOWER.x, z: TOWER.z, r: TOWER.half + 2 },
   { x0: CLIFF.x0 - 1, x1: CLIFF.x1 + 1, z0: CLIFF.back - 10, z1: CLIFF.front + 3.5 }, // cliff, cave, falls pool
+  // the dreaming statue: no grass through its plinth, the mirror stone or the standing stones
+  { x: STATUE.x, z: STATUE.z, r: PLINTH.r + 0.3 },
+  { x: MIRROR_STONE.x, z: MIRROR_STONE.z, r: MIRROR_STONE.r + 0.2 },
+  ...STANDING_STONES.map((s) => ({ x: s.x, z: s.z, r: s.r + 0.2 })),
 ];
 
 /** …plus room to move: solid things (trees, bushes, rocks) also keep off these. */
@@ -72,6 +77,9 @@ const SOLID_CLEAR: Area[] = [
   { x0: -90, x1: -34, z0: -27, z1: 28 }, // the pipe forest has its own trees
   { x0: CLIFF.x0 - 4, x1: CLIFF.x1 + 6, z0: CLIFF.back - 12, z1: CLIFF.front + 12 },
   { x0: STREAM.x - 8, x1: STREAM.x + 10, z0: -4, z1: 4 }, // bridge approaches
+  // the dreaming statue's clearing in the north-east wood, and the gap in the trees that leads to it
+  { x: STATUE.x, z: STATUE.z, r: STATUE_CLEARING },
+  STATUE_GLADE,
   ...WARP_STONES.map((w) => ({ x: w.x, z: w.z + 1, r: 4.5 })),
   ...REGIONS.hall.portals.map((p) => ({ x: p.x, z: p.z, r: 3.5 })),
   ...LAMPS.map((l) => ({ x: l.x, z: l.z, r: 1.2 })),
@@ -167,5 +175,5 @@ export const NATURE_SOLIDS: readonly Solid[] = [
   ),
 ];
 
-/** Everything solid on the island (the musical zones, nature, and the gated sky), indexed for fast queries. */
-export const ISLAND_TERRAIN = buildTerrain([...ISLAND_SOLIDS, ...NATURE_SOLIDS, ...SKY_SOLIDS]);
+/** Everything solid on the island (the musical zones, nature, the gated sky, and the dreaming statue's clearing), indexed for fast queries. */
+export const ISLAND_TERRAIN = buildTerrain([...ISLAND_SOLIDS, ...NATURE_SOLIDS, ...SKY_SOLIDS, ...STATUE_SOLIDS]);

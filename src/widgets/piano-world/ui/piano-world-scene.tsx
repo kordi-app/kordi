@@ -22,6 +22,7 @@ import { useWarpStones } from "./hooks/use-warp-stones";
 import { useSkyEvents } from "./hooks/use-sky-events";
 import { useDreamEvents } from "./hooks/use-dream-events";
 import { useCaveEvents } from "./hooks/use-cave-events";
+import { useMusicBoxEvents } from "./hooks/use-musicbox-events";
 import type { WorldFeedback } from "./hooks/world-feedback";
 import { PlaceBanner, usePlaceBanner } from "./hud/place-banner";
 import { LOST_NOTES } from "../engine/dream-sea";
@@ -215,9 +216,11 @@ export default function PianoWorldScene({
     if (regionRef.current.feature === "dream") portalRef.current("hall");
   }, [regionRef]);
   const dream = useDreamEvents(feedback, { isGuest, sendWhale, carryHome });
+  const musicBox = useMusicBoxEvents(feedback, { showBanner });
 
   const { leave: leaveDream, enter: enterDream } = dream;
   const { enter: enterCave } = cave;
+  const { enter: enterMusicBox, leave: leaveMusicBox } = musicBox;
   /** what each region's page side does as you come in (the scene's counterpart of the world's frames) */
   const arrivals = useMemo<Partial<Record<RegionFeature, (next: RegionDef) => void>>>(
     () => ({
@@ -226,19 +229,23 @@ export default function PianoWorldScene({
       },
       dream: enterDream,
       cave: enterCave,
+      musicbox: enterMusicBox,
     }),
-    [enterCourse, enterDream, enterCave],
+    [enterCourse, enterDream, enterCave, enterMusicBox],
   );
   const handlePortal = useCallback(
     (to: RegionId) =>
       travel(to, (next) => {
         leaveDream();
+        leaveMusicBox();
+        // you arrive on your feet (the statue takes you as you sit)
+        cancelEmote();
         silence();
         resetInteractions();
         arrivals[next.feature]?.(next);
         if (isOn()) switchInstrument(next.instrument);
       }),
-    [travel, leaveDream, silence, resetInteractions, arrivals, isOn, switchInstrument],
+    [travel, leaveDream, leaveMusicBox, cancelEmote, silence, resetInteractions, arrivals, isOn, switchInstrument],
   );
   useEffect(() => {
     portalRef.current = handlePortal;
@@ -284,6 +291,8 @@ export default function PianoWorldScene({
       onDream: dream.handleDream,
       onCatSignal: handleCatSignal,
       onCave: cave.handleCave,
+      onStatueWake: musicBox.wake,
+      onMusicBox: musicBox.handleMusicBox,
     }),
     [
       handleStep,
@@ -302,6 +311,8 @@ export default function PianoWorldScene({
       dream.handleDream,
       handleCatSignal,
       cave.handleCave,
+      musicBox.wake,
+      musicBox.handleMusicBox,
     ],
   );
 

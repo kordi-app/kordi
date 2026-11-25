@@ -202,7 +202,8 @@
         "night": "밤의 건반",
         "ruins": "폭풍의 신전",
         "whale": "달고래의 바다",
-        "cave": "별이 잠든 동굴"
+        "cave": "별이 잠든 동굴",
+        "musicbox": "오르골 속"
       },
       "melodies": {
         "twinkle": "작은별",
@@ -232,6 +233,9 @@
       "necklaceFound": "별빛 아래 잠들어 있던 목걸이를 얻었어요",
       "necklaceGuestNote": "로그인하면 다른 사람에게도 보여요",
       "necklaceRefused": "목걸이가 별빛 속으로 흩어졌어요 · 입구부터 다시 걸어와 보세요",
+      "statueWakes": "석상이 천천히 눈을 떠요…",
+      "musicBoxArrive": "석상이 꾸던 꿈이에요 · 빛나는 빗살을 차례로 밟아 보세요",
+      "musicBoxDone": "오르골이 노래를 되찾았어요 · 발레리나가 춤을 춰요",
       "courseRankingTitle": "역대 랭킹",
       "courseRankingEmpty": "아직 기록이 없어요 · 첫 주인공이 되어 보세요",
       "courseRankSaved": "랭킹 {rank}위에 올랐어요!",

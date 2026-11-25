@@ -1,5 +1,6 @@
 import { CAVE_TERRAIN } from "./cave";
 import { DREAM_TERRAIN } from "./dream-sea";
+import { MUSICBOX_TERRAIN } from "./music-box";
 import { ISLAND_TERRAIN } from "./nature";
 import type { Terrain } from "./terrain";
 
@@ -12,6 +13,7 @@ export const TERRAINS = {
   island: ISLAND_TERRAIN,
   dream: DREAM_TERRAIN,
   cave: CAVE_TERRAIN,
+  musicbox: MUSICBOX_TERRAIN,
 } as const satisfies Record<string, Terrain>;
 
 export type TerrainId = keyof typeof TERRAINS;

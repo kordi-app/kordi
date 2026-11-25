@@ -11,6 +11,7 @@ import { CourseScene } from "./course-scene";
 import { DreamSea } from "./dream-sea";
 import { REWARD_OF } from "./hooks/use-course-run";
 import { IslandScene } from "./island-scene";
+import { MusicBoxScene } from "./music-box";
 import { PianoFloor } from "./piano-floor";
 
 export interface RegionSceneProps {
@@ -32,7 +33,7 @@ export interface RegionSceneProps {
 
 /**
  * What a region is drawn on: a course's climb, the dream's sea of stars, the
- * cave's rock, or the keyboard floor; and on the island, the island itself
+ * cave's rock, the music box's velvet, or the keyboard floor; and on the island, the island itself
  * around the keys. The one place that picks a renderer by region.
  */
 export function RegionScene(props: RegionSceneProps) {
@@ -60,6 +61,8 @@ function RegionGround({ region, player, pressed, rewards, caveLight, hasNecklace
       return <DreamSea player={player} />;
     case "cave":
       return <CaveScene player={player} light={caveLight} owned={hasNecklace} remotes={remotes} />;
+    case "musicbox":
+      return <MusicBoxScene />;
     default:
       return <PianoFloor pressed={pressed} theme={region.theme} ground={!region.island} keys={region.keys} />;
   }

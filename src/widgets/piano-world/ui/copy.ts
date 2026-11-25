@@ -72,6 +72,11 @@ export interface PianoWorldCopy {
   necklaceGuestNote: string;
   /** the server turned a member's claim down (teleported, skipped the bridge…) */
   necklaceRefused: string;
+  /** the dreaming statue opens its eyes (you sat out its dream) */
+  statueWakes: string;
+  /** inside the music box: the line under its name as you arrive, and the tune remembered */
+  musicBoxArrive: string;
+  musicBoxDone: string;
   courseBest: string;
   courseDone: string;
   /** the night course's finish: its crown is the cosmic one */

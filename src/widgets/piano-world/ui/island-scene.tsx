@@ -3,6 +3,7 @@
 import { memo } from "react";
 import type * as THREE from "three";
 import { CAVE, CLIFF, STREAM, WARP_STONES, type WarpStoneId } from "../engine/island";
+import { STATUE } from "../engine/statue";
 import { BellTower } from "./island/bell-tower";
 import { DrumValley } from "./island/drum-valley";
 import { Ground } from "./island/ground";
@@ -12,6 +13,7 @@ import { NightLights } from "./island/night-lights";
 import { PipeForest } from "./island/pipe-forest";
 import { SkyIsland } from "./island/sky-island";
 import { CatSpot } from "./island/cat-spot";
+import { DreamingStatue } from "./island/dreaming-statue";
 import { Zone } from "./island/shared";
 import { WarpStoneMesh } from "./island/warp-stones";
 import { XyloBridge } from "./island/xylo-bridge";
@@ -53,6 +55,9 @@ export const IslandScene = memo(function IslandScene({
       </Zone>
       <Zone x={(CAVE.x0 + CAVE.x1) / 2} z={CLIFF.front} player={player}>
         <HarpFalls />
+      </Zone>
+      <Zone x={STATUE.x} z={STATUE.z} player={player}>
+        <DreamingStatue />
       </Zone>
       {WARP_STONES.map((stone) => (
         <WarpStoneMesh key={stone.id} stone={stone} awake={awake.has(stone.id)} />

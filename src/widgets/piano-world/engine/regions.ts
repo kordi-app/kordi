@@ -5,6 +5,8 @@ import { CAVE_PORTAL, ISLAND_BOUNDS } from "./island";
 import { SECRET_SPOT } from "./cat-walk";
 import { DREAM_ARRIVAL, DREAM_BOUNDS, DREAM_HOME } from "./dream-sea";
 import { ABYSS_FLOOR, CAVE_ARRIVAL, CAVE_BOUNDS, CAVE_EXIT, ILLUSORY_ARRIVAL, ILLUSORY_WALL } from "./cave";
+import { MUSICBOX_ARRIVAL, MUSICBOX_BOUNDS, MUSICBOX_HOME } from "./music-box";
+import { STATUE, STATUE_ARRIVAL } from "./statue";
 import type { TerrainId } from "./terrains";
 
 /**
@@ -15,7 +17,7 @@ import type { TerrainId } from "./terrains";
  * optionally, decor), not a scene change.
  */
 
-export const REGION_IDS = ["hall", "neon", "cathedral", "lounge", "clouds", "night", "ruins", "whale", "cave"] as const;
+export const REGION_IDS = ["hall", "neon", "cathedral", "lounge", "clouds", "night", "ruins", "whale", "cave", "musicbox"] as const;
 export type RegionId = (typeof REGION_IDS)[number];
 
 export function isRegionId(value: unknown): value is RegionId {
@@ -63,7 +65,19 @@ export interface PortalDef {
    * in the meadow (cat-walk.ts; only the cat shows you where).
    */
   invisible?: boolean;
+  /**
+   * Only the far end of a trip: never drawn and never walked through. The way
+   * in is something else (the dreaming statue takes you when you sit before
+   * it: statue.ts); this entry is here so coming back has a place to arrive
+   * (`arrive`, see arrivalPoint).
+   */
+  arriveOnly?: boolean;
 }
+
+/** A portal you go through by walking into it (drawn or not): everything but an arrive-only one */
+export const isWalkThrough = (portal: PortalDef) => !portal.arriveOnly;
+/** A portal that is drawn as a gate */
+export const isDrawn = (portal: PortalDef) => !portal.arriveOnly && !portal.invisible;
 
 /**
  * What makes a region play differently, not just look different:
@@ -74,8 +88,9 @@ export interface PortalDef {
  * - course: a jump climb (no keyboard floor; see course.ts)
  * - dream: the cat's dream sea — no keys, a sea of stars and a whale's lost song (dream-sea.ts)
  * - cave: the cave of sleeping stars — pitch dark unless you wear the cosmic crown (cave.ts)
+ * - musicbox: inside the music box — a steel comb to walk on and a tune to step back together (music-box.ts)
  */
-export type RegionFeature = "melody" | "springs" | "echo" | "jazz" | "course" | "dream" | "cave";
+export type RegionFeature = "melody" | "springs" | "echo" | "jazz" | "course" | "dream" | "cave" | "musicbox";
 
 export interface RegionDef {
   id: RegionId;
@@ -131,6 +146,9 @@ const HALL_PORTALS: PortalDef[] = [
   { to: "whale", ...SECRET_SPOT, color: "#9fb8ff", invisible: true, arrive: { x: SECRET_SPOT.x + 1.8, z: SECRET_SPOT.z + 1.2 } },
   // the illusory wall: a stretch of cliff you can walk into, if you know where (cave.ts)
   { to: "cave", x: ILLUSORY_WALL.x, z: ILLUSORY_WALL.z, color: "#c9b8ff", invisible: true, arrive: ILLUSORY_ARRIVAL },
+  // the dreaming statue: no portal at all — you sit before it and it takes you (statue.ts).
+  // This is only where you come back out: in front of its mirror stone
+  { to: "musicbox", ...STATUE, color: "#ffd9a0", arriveOnly: true, arrive: STATUE_ARRIVAL },
 ];
 
 /** Three octaves round middle C (C3–C6): plenty of floor to dance on with a band. */
@@ -428,6 +446,39 @@ export const REGIONS: Record<RegionId, RegionDef> = {
       dark: true,
       accent: "#ffd27a",
       petGlow: 1,
+    },
+  },
+  // what the dreaming statue dreams of: the inside of a music box, lined with velvet and lit like a candle
+  musicbox: {
+    id: "musicbox",
+    instrument: "synth-pad",
+    feature: "musicbox",
+    // no keys: velvet at y = 0, and the comb to walk on
+    terrain: "musicbox",
+    floor: 0,
+    entry: MUSICBOX_ARRIVAL,
+    // a little closer than outside: you are small in here, and the walls are near
+    camera: [0, 10.5, 12.5],
+    bounds: MUSICBOX_BOUNDS,
+    portals: [{ to: "hall", ...MUSICBOX_HOME, color: "#ffd9a0", arrive: MUSICBOX_ARRIVAL }],
+    theme: {
+      background: "#1d0f0a",
+      fog: [26, 70],
+      floor: "#7a1f2e",
+      keyboardCase: "#3a2114",
+      white: "#d8dde6",
+      whitePressed: "#ffe9b0",
+      black: "#3a2114",
+      blackPressed: "#6b4a2a",
+      pressedGlow: "#ffd98a",
+      sky: "#ffd9a8",
+      ground: "#5a2a1c",
+      ambient: 1.25,
+      sun: 1.5,
+      sunColor: "#ffd2a0",
+      dark: true,
+      accent: "#ffd98a",
+      petGlow: 0.5,
     },
   },
 };

@@ -202,7 +202,8 @@
         "night": "Night Keys",
         "ruins": "Storm Temple",
         "whale": "Moon-Whale Sea",
-        "cave": "Cave of Sleeping Stars"
+        "cave": "Cave of Sleeping Stars",
+        "musicbox": "Inside the Music Box"
       },
       "melodies": {
         "twinkle": "Twinkle Twinkle Little Star",
@@ -232,6 +233,9 @@
       "necklaceFound": "You found the necklace sleeping in the starlight",
       "necklaceGuestNote": "Sign in so others can see it too",
       "necklaceRefused": "The necklace scattered into starlight · walk back in from the entrance",
+      "statueWakes": "The statue slowly opens its eyes…",
+      "musicBoxArrive": "This is what the statue was dreaming · step on the glowing teeth in turn",
+      "musicBoxDone": "The music box remembers its song · the ballerina dances",
       "courseRankingTitle": "All-time ranking",
       "courseRankingEmpty": "No times yet · be the first",
       "courseRankSaved": "You're #{rank} on the ranking!",
