@@ -193,7 +193,7 @@ export const KordiModel = forwardRef<
 
       </group>
       </group>
-      {/* the pet swims alongside, untouched by the body's squash and lean */}
+      {/* the pet swims after Kordi in the world: mounted here, but not carried by this group's heading (moon-whale.tsx) */}
       {appearance.pet === "moon-whale" ? <MoonWhale motion={motion} glow={glow} /> : null}
     </group>
   );

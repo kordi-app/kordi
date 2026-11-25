@@ -1,18 +1,23 @@
 "use client";
 
-import { useRef, type MutableRefObject, type RefObject } from "react";
+import { useLayoutEffect, useRef, type MutableRefObject, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { carryPetSwim, createPetSwim, stepPetSwim, type PetMood } from "../model/pet-swim";
 import type { KordiMotion } from "./kordi-model";
 
 /**
- * The baby moon-whale: a pet that swims round Kordi's shoulder. It reacts to
- * what Kordi does, read from the same motion the body animates with —
- * jumping makes it spout stars, sitting brings it into Kordi's arms, dancing
- * sends it round in circles, waving makes it flip. `glow` (0–1, the night)
- * lights its moon mark and belly.
+ * The baby moon-whale: a pet that swims after Kordi. It reacts to what Kordi
+ * does, read from the same motion the body animates with — jumping makes it
+ * hop and spout stars, sitting brings it into Kordi's arms, dancing sends it
+ * round in circles, waving makes it flip. `glow` (0–1, the night) lights its
+ * moon mark and belly.
  *
- * In Kordi's local space (faces +z), outside the body's squash and lean.
+ * It is mounted inside Kordi's model (so every Kordi with a pet gets one, and
+ * callers place nothing), but it does not live in Kordi's space: where it is
+ * and which way it faces are kept in the world (model/pet-swim.ts), so it
+ * trails behind with a lag of its own and Kordi turning on the spot doesn't
+ * swing it round. Its group ignores its parent's transform to draw there.
  */
 
 const SHARED = {
@@ -24,9 +29,15 @@ const SHARED = {
 };
 const INK = new THREE.MeshStandardMaterial({ color: "#1d1b2e", roughness: 0.3 });
 
-/** Behind the right shoulder, above the head (clear of any hat, from the side too) */
-const HOME = new THREE.Vector3(-0.8, 1.85, -0.45);
 const SPARKS = 7;
+
+/** Its mood, from what Kordi is doing */
+const MOODS: Partial<Record<NonNullable<KordiMotion["emote"]>, PetMood>> = { sit: "sit", dance: "dance", clap: "clap" };
+/** How fast the tail beats in each mood (it beats faster the faster it swims, too) */
+const TAIL_BEAT: Record<PetMood, number> = { follow: 3, sit: 1.2, dance: 7, clap: 6 };
+
+const AT = new THREE.Vector3();
+const SIZE = new THREE.Vector3();
 
 export function MoonWhale({
   motion,
@@ -45,60 +56,93 @@ export function MoonWhale({
   const moon = useRef<THREE.MeshBasicMaterial>(null);
   const sparks = useRef<(THREE.Mesh | null)[]>([]);
   const state = useRef({
-    pos: HOME.clone(),
-    want: new THREE.Vector3(),
+    swim: createPetSwim(),
+    seeded: false,
+    /** tail-beat phase (accumulated: its rate changes with speed) */
+    stroke: 0,
     spoutAt: -Infinity,
     rising: false,
     flipAt: -Infinity,
     waving: false,
   });
 
+  // The group draws where the swim says, in the world, whatever its parent
+  // (Kordi's model) is doing. Done by taking over how its world matrix is
+  // made, rather than by undoing the parent's transform in a frame callback:
+  // those run before the scene has placed Kordi for this frame, so the pet
+  // would be un-rotated by last frame's heading and wobble as Kordi turns.
+  useLayoutEffect(() => {
+    const group = root.current;
+    if (!group) return;
+    const place = () => {
+      const swim = state.current.swim;
+      const owner = group.parent?.matrixWorld.elements;
+      const scale = owner ? Math.hypot(owner[0], owner[1], owner[2]) : 1;
+      // Kordi just went through a portal or warped: it comes along instead of swimming across the map
+      if (owner) carryPetSwim(swim, owner[12], owner[13], owner[14], scale);
+      group.matrixWorld.compose(AT.set(swim.x, swim.y, swim.z), group.quaternion, SIZE.setScalar(scale));
+    };
+    group.rotation.order = "YXZ"; // heading first, then nose up or down
+    group.matrixAutoUpdate = false;
+    group.updateMatrixWorld = () => {
+      place();
+      for (const child of group.children) child.updateMatrixWorld(true);
+    };
+    group.updateWorldMatrix = (updateParents, updateChildren) => {
+      if (updateParents) group.parent?.updateWorldMatrix(true, false);
+      place();
+      if (updateChildren) for (const child of group.children) child.updateWorldMatrix(false, true);
+    };
+  }, []);
+
   useFrame(({ clock }, rawDelta) => {
     const dt = Math.min(rawDelta, 0.05);
     const t = clock.getElapsedTime();
     const s = state.current;
     const m = motion.current;
-
-    // where it wants to be: swimming a lazy loop by the shoulder, or reacting
-    let swim = 3;
-    switch (m.emote) {
-      case "sit":
-        // nestles into Kordi's arms, below the face
-        s.want.set(0, 0.4 + Math.sin(t * 1.5) * 0.02, 0.62);
-        swim = 1.2;
-        break;
-      case "dance":
-        s.want.set(Math.cos(t * 3.2) * 1.05, 1.3 + Math.sin(t * 6.4) * 0.15, Math.sin(t * 3.2) * 1.05);
-        swim = 7;
-        break;
-      case "clap":
-        s.want.copy(HOME).setY(HOME.y + Math.abs(Math.sin(t * 9)) * 0.25);
-        swim = 6;
-        break;
-      default:
-        s.want.set(HOME.x + Math.sin(t * 0.7) * 0.18, HOME.y + Math.sin(t * 1.3) * 0.12, HOME.z + Math.cos(t * 0.7) * 0.15);
+    const group = root.current;
+    const parent = group?.parent;
+    if (!group || !parent) return;
+    if (!s.seeded) {
+      // each whale bobs to its own beat (frame-time randomness, not render)
+      s.seeded = true;
+      s.swim.seed = Math.random() * 100;
+      // nothing has been drawn yet: have Kordi's pose to start from
+      parent.updateWorldMatrix(true, false);
     }
-    s.pos.lerp(s.want, 1 - Math.exp(-dt * (m.emote === "dance" ? 9 : 4)));
 
-    // a jump (Kordi rising fast) spouts stars from its blowhole
+    // a jump (Kordi rising fast) makes it hop, and spout stars from its blowhole
     const rising = m.stretch > 0.55;
-    if (rising && !s.rising) s.spoutAt = t;
+    const jumped = rising && !s.rising;
+    if (jumped) s.spoutAt = t;
     s.rising = rising;
+
+    // where Kordi is in the world (as last drawn: a frame's lag the spring hides) and where that sends the whale
+    const owner = parent.matrixWorld.elements;
+    const scale = Math.hypot(owner[0], owner[1], owner[2]);
+    const mood = (m.emote ? MOODS[m.emote] : undefined) ?? "follow";
+    stepPetSwim(
+      s.swim,
+      { x: owner[12], y: owner[13], z: owner[14], heading: Math.atan2(owner[8], owner[10]), scale },
+      mood,
+      t,
+      dt,
+      jumped,
+    );
     // a wave makes it do a little flip
     const waving = m.emote === "wave";
     if (waving && !s.waving) s.flipAt = t;
     s.waving = waving;
 
-    if (root.current) {
-      root.current.position.copy(s.pos);
-      const flip = t - s.flipAt < 0.8 ? ((t - s.flipAt) / 0.8) * Math.PI * 2 : 0;
-      // faces the way it swims round in the dance; otherwise alongside Kordi, rolling gently
-      const heading = m.emote === "dance" ? -t * 3.2 : Math.sin(t * 0.7) * 0.4;
-      root.current.rotation.set(Math.sin(t * 1.3) * 0.12 - flip, heading, Math.sin(t * 0.9) * 0.1);
-    }
-    if (tail.current) tail.current.rotation.x = Math.sin(t * swim) * 0.45;
-    if (finL.current) finL.current.rotation.z = 0.5 + Math.sin(t * swim + 1) * 0.3;
-    if (finR.current) finR.current.rotation.z = -0.5 - Math.sin(t * swim + 1) * 0.3;
+    const flip = t - s.flipAt < 0.8 ? ((t - s.flipAt) / 0.8) * Math.PI * 2 : 0;
+    // nose up as it climbs and down as it sinks, rolling gently
+    const climb = THREE.MathUtils.clamp(s.swim.vy / (scale * 4), -0.5, 0.5);
+    group.rotation.set(Math.sin(t * 1.3) * 0.12 - climb - flip, s.swim.yaw, Math.sin(t * 0.9) * 0.1);
+
+    s.stroke += dt * (TAIL_BEAT[mood] + Math.min(s.swim.speed, 4) * 1.5);
+    if (tail.current) tail.current.rotation.x = Math.sin(s.stroke) * 0.45;
+    if (finL.current) finL.current.rotation.z = 0.5 + Math.sin(s.stroke + 1) * 0.3;
+    if (finR.current) finR.current.rotation.z = -0.5 - Math.sin(s.stroke + 1) * 0.3;
 
     const dark = typeof glow === "number" ? glow : (glow.current ?? 0);
     const light = 0.15 + dark * 0.85;
@@ -121,7 +165,7 @@ export function MoonWhale({
   });
 
   return (
-    <group ref={root} position={HOME.toArray()}>
+    <group ref={root}>
       <group scale={0.62}>
         {/* body: deep night blue, a pale belly underneath */}
         <mesh geometry={SHARED.body} scale={[0.32, 0.26, 0.44]} castShadow>

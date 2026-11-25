@@ -51,7 +51,7 @@ export const StarCrown: Story = {
   args: { appearance: { body: "mint", hat: "star-crown", face: "smile", accessory: "scarf", pet: null } },
 };
 
-/** The baby moon-whale, from the cat's dream sea, swimming by the shoulder. */
+/** The baby moon-whale, from the cat's dream sea, floating by the shoulder. */
 export const MoonWhalePet: Story = {
   args: { appearance: { body: "sky", hat: null, face: "smile", accessory: null, pet: "moon-whale" }, glow: 1 },
 };
