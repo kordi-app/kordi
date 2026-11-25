@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   pull_request:
+  # e2e on demand (Actions → CI → Run workflow) …
+  workflow_dispatch:
+  # … and once a day, for what the path filter below lets through (03:00 KST)
+  schedule:
+    - cron: "0 18 * * *"
 
 jobs:
   check:
@@ -38,8 +43,44 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
 
-  # Playtests of the 3D world in a real (CPU-rendered) browser, against a build of the app
+  # Does this push / PR touch what the playtests exercise? (A plain git diff: no third-party action.)
+  # Manual and nightly runs always play; so does anything we can't diff (a new branch).
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      world: ${{ steps.diff.outputs.world }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          case "$EVENT" in
+            push) from="$BEFORE" ;;
+            pull_request) from="$BASE" ;;
+            *) echo "world=true" >> "$GITHUB_OUTPUT"; exit 0 ;;
+          esac
+          if [ -z "$from" ] || ! git cat-file -e "$from^{commit}" 2>/dev/null; then
+            echo "world=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if git diff --name-only "$from" HEAD -- \
+              src/widgets/piano-world src/entities/character src/views/home \
+              e2e playwright.config.ts next.config.ts package.json pnpm-lock.yaml \
+              .github/workflows/ci.yml | grep -q .; then
+            echo "world=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "world=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # Playtests of the 3D world in a real (CPU-rendered) browser, against a build of the app.
+  # They never gate a deploy (Vercel deploys main on its own): a red run is a message to fix it.
   e2e:
+    needs: changes
+    if: needs.changes.outputs.world == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
