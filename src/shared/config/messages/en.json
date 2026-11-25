@@ -187,6 +187,7 @@
       "soundOff": "Sound starts on your first key press",
       "soundLoading": "Loading piano sounds…",
       "soundOn": "Sound on",
+      "worldDrawing": "Drawing the world…",
       "guest": "Guest",
       "channel": "Channel {channel}",
       "online": "{count} here",

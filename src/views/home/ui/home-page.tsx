@@ -110,6 +110,7 @@ export async function HomePage() {
           soundOff: t("soundOff"),
           soundLoading: t("soundLoading"),
           soundOn: t("soundOn"),
+          worldDrawing: t("worldDrawing"),
           // Raw templates: "{channel}"/"{count}" are filled in on the client
           channel: t.raw("channel") as string,
           online: t.raw("online") as string,

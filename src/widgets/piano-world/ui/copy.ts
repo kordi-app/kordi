@@ -96,6 +96,8 @@ export interface PianoWorldCopy {
   soundOff: string;
   soundLoading: string;
   soundOn: string;
+  /** over the world while its first frame is being drawn */
+  worldDrawing: string;
   /** "{channel}" is filled in */
   channel: string;
   /** "{count}" is filled in */

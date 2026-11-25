@@ -31,6 +31,8 @@ import { CourseCard, DreamCard, MelodyCard } from "./hud/progress-cards";
 import { EmoteBar, InteractPrompt, SpeechBubble, WarpPrompt } from "./hud/interaction-hud";
 import { NameChip, NoteDisplay, RegionLabel, StatusStack } from "./hud/status";
 import { TouchControls } from "./hud/touch-controls";
+import { WorldLoading } from "./hud/world-loading";
+import { FirstFrames } from "./first-frames";
 import { ChordCardPanel, WarpPanel, WishPanel } from "./interaction-panels";
 import { World, type WorldDisplay, type WorldEvents } from "./world";
 import { rememberGuestName, saveGuestName } from "./hooks/guest-name";
@@ -66,6 +68,8 @@ export default function PianoWorldScene({
   const [warpNearby, setWarpNearbyState] = useState<WarpStoneId | null>(null);
   /** the melody card only shows on the keyboard plaza */
   const [nearKeys, setNearKeys] = useState(true);
+  /** the place whose scene has actually reached the screen (shaders compiled, first frame drawn) */
+  const [drawnRegion, setDrawnRegion] = useState<RegionId | null>(null);
   /** the named place you're in on the island (shown as a banner on arrival) */
   const warpNearbyRef = useRef<WarpStoneId | null>(null);
   const melody = useMelodyGame(bumpCelebrate);
@@ -388,7 +392,10 @@ export default function PianoWorldScene({
           display={display}
           events={events}
         />
+        <FirstFrames key={region.id} onDrawn={() => setDrawnRegion(region.id)} />
       </Canvas>
+
+      <WorldLoading drawing={drawnRegion !== region.id} label={copy.worldDrawing} />
 
       {/* region transition */}
       <div

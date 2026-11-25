@@ -3,11 +3,16 @@
 import dynamic from "next/dynamic";
 import type { PianoWorldCopy } from "./copy";
 import { WorldErrorBoundary } from "./world-error-boundary";
+import { WorldLoading } from "./hud/world-loading";
 
 // three.js is ~600 KB and needs WebGL — load it on the client only, after the page shell
 const PianoWorldScene = dynamic(() => import("./piano-world-scene"), {
   ssr: false,
-  loading: () => <div className="h-full w-full animate-pulse bg-muted" />,
+  loading: () => (
+    <div className="relative h-full w-full bg-muted">
+      <WorldLoading drawing />
+    </div>
+  ),
 });
 
 export function PianoWorld({
