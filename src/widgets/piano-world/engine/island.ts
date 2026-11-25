@@ -50,6 +50,37 @@ export const XYLO_BARS: readonly XyloBar[] = XYLO_NOTES.map((midi, i) => ({
   color: XYLO_COLORS[i],
 }));
 
+/**
+ * The upper row, as on a real xylophone: the sharps, each between the two
+ * naturals it lies between (no sharp between E–F or B–C), over the deck's far
+ * (north) half and a step higher than its neighbours.
+ */
+export interface XyloSharp extends XyloBar {
+  /** depth of the bar (it covers the deck's north side) and its centre */
+  depth: number;
+  z: number;
+}
+
+export const XYLO_SHARP_WIDTH = 0.55;
+/** How far a sharp stands above the higher of its two neighbours (an easy step) */
+const SHARP_RISE = 0.2;
+const SHARP_DEPTH = BRIDGE_DEPTH * 0.45;
+
+export const XYLO_SHARPS: readonly XyloSharp[] = XYLO_BARS.slice(0, -1).flatMap((bar, i) => {
+  const next = XYLO_BARS[i + 1];
+  if (next.midi - bar.midi !== 2) return []; // a semitone apart: nothing in between
+  return [
+    {
+      x: (bar.x + next.x) / 2,
+      top: Math.max(bar.top, next.top) + SHARP_RISE,
+      midi: bar.midi + 1,
+      color: bar.color,
+      depth: SHARP_DEPTH,
+      z: -BRIDGE_DEPTH / 2 + SHARP_DEPTH / 2,
+    },
+  ];
+});
+
 // --- drum valley -----------------------------------------------------------
 
 export interface Drum {
@@ -228,7 +259,7 @@ export const CAVE_PORTAL = { x: (CAVE.x0 + CAVE.x1) / 2, z: CAVE.back + 1.4 };
 
 // --- warp stones -----------------------------------------------------------
 
-export type WarpStoneId = "plaza" | "bridge" | "drums" | "tower" | "pipes" | "falls";
+export type WarpStoneId = "plaza" | "drums" | "tower" | "pipes" | "falls";
 
 export interface WarpStone {
   id: WarpStoneId;
@@ -238,7 +269,6 @@ export interface WarpStone {
 
 export const WARP_STONES: readonly WarpStone[] = [
   { id: "plaza", x: -13, z: 9 },
-  { id: "bridge", x: 56.5, z: 5 },
   { id: "drums", x: 80, z: 11 },
   { id: "tower", x: 8, z: -36 },
   { id: "pipes", x: WARP_PIPES.x, z: WARP_PIPES.z },
@@ -295,6 +325,15 @@ export const ISLAND_SOLIDS: readonly Solid[] = [
       bottom: bar.top - 0.2,
       sound: { voice: "xylophone", midi: bar.midi },
       tag: `xylo:${i}`,
+    }),
+  ),
+  ...XYLO_SHARPS.map(
+    (bar, i): Solid => ({
+      foot: { shape: "box", x: bar.x, z: bar.z, w: XYLO_SHARP_WIDTH, d: bar.depth },
+      top: bar.top,
+      bottom: bar.top - 0.2,
+      sound: { voice: "xylophone", midi: bar.midi },
+      tag: `xylo-sharp:${i}`,
     }),
   ),
   ...DRUMS.map(
