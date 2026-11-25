@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronsUp } from "lucide-react";
 import { rankingQueries } from "@/entities/ranking";
 import { midiToNoteName } from "@/shared/lib/music";
+import { cn } from "@/shared/lib/utils";
 import { COURSES } from "../../engine/course";
 import { formatTime, type CourseRun } from "../hooks/course-record";
 import type { PianoWorldCopy } from "../copy";
 import type { Melody } from "../../engine/melodies";
 import type { MelodyProgress } from "../hooks/use-melody-game";
+import { HUD_CARD } from "./surface";
 
 /** Fill "{jump}" with the jump control: the Space key, or on touch screens the jump button's icon. */
 function withJumpKey(template: string): ReactNode {
@@ -28,7 +30,7 @@ function withJumpKey(template: string): ReactNode {
 /**
  * Shared shape: title + value on top, a progress bar, a hint line. Centered at
  * the top on wide screens; on narrower ones it drops below the corner chips
- * (place name, note) so it never covers them.
+ * (place name, note, my name) so it never covers them.
  */
 function ProgressCard({
   title,
@@ -45,23 +47,46 @@ function ProgressCard({
   hint: ReactNode;
   footer?: ReactNode;
 }) {
+  const titleId = useId();
+  const percent = Math.min(Math.max(ratio, 0), 1) * 100;
   return (
-    <div className="pointer-events-none absolute left-4 top-[5.5rem] w-[min(20rem,calc(100%-2rem))] rounded-xl border border-border bg-card/90 px-4 py-3 shadow-sm md:left-6 lg:left-1/2 lg:top-6 lg:-translate-x-1/2">
+    <div
+      className={cn(
+        HUD_CARD,
+        "pointer-events-none absolute left-4 top-[7.5rem] w-[min(20rem,calc(100%-2rem))] px-4 pb-3 pt-3.5 md:left-6 md:top-32 lg:left-1/2 lg:top-6 lg:-translate-x-1/2",
+      )}
+    >
       <div className="flex items-baseline justify-between gap-3">
-        <p className="truncate text-sm font-semibold text-foreground">{title}</p>
+        <p id={titleId} className="truncate text-sm font-semibold -tracking-[0.01em] text-foreground">
+          {title}
+        </p>
         <div className="shrink-0">{value}</div>
       </div>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+      {/* the track is ink on cream, not a second cream: an empty bar still has to read as a bar */}
+      <div
+        role="progressbar"
+        aria-labelledby={titleId}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(percent)}
+        className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-foreground/10"
+      >
         <div
-          className={`h-full rounded-full transition-[width] duration-300 ${barClass}`}
-          style={{ width: `${Math.min(Math.max(ratio, 0), 1) * 100}%` }}
+          className={cn(
+            "h-full rounded-full transition-[width] duration-300 ease-out motion-reduce:transition-none",
+            barClass,
+          )}
+          style={{ width: `${percent}%` }}
         />
       </div>
-      <p className="mt-2 text-xs text-muted-foreground">{hint}</p>
+      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{hint}</p>
       {footer}
     </div>
   );
 }
+
+/** The small count at a card's top right ("3 / 14") */
+const COUNT = "text-xs font-medium tabular-nums text-muted-foreground";
 
 export function MelodyCard({
   melody,
@@ -77,11 +102,7 @@ export function MelodyCard({
   return (
     <ProgressCard
       title={copy.melodies[melody.key]}
-      value={
-        <span className="text-xs tabular-nums text-muted-foreground">
-          {progress.done ? copy.melodyDone : `${progress.step} / ${total}`}
-        </span>
-      }
+      value={<span className={COUNT}>{progress.done ? copy.melodyDone : `${progress.step} / ${total}`}</span>}
       ratio={progress.step / total}
       barClass="bg-warning"
       hint={
@@ -108,21 +129,29 @@ function CourseRanking({ run, isGuest, copy }: { run: CourseRun; isGuest: boolea
         : withRank(copy.courseRankMember, server.rank)
     : null;
   return (
-    <div className="mt-2 border-t border-border pt-2">
-      {result ? <p className="mb-1.5 text-xs font-medium text-foreground">{result}</p> : null}
-      <p className="text-t1 font-medium text-muted-foreground">{copy.courseRankingTitle}</p>
+    <div className="mt-2.5 border-t border-border pt-2.5">
+      {result ? <p className="mb-2 text-xs font-semibold text-foreground">{result}</p> : null}
+      <p className="text-t1 font-semibold tracking-[0.05em] text-muted-foreground">{copy.courseRankingTitle}</p>
       {top && top.length > 0 ? (
-        <ol className="mt-1 space-y-0.5">
+        <ol className="mt-1.5 space-y-1">
           {top.slice(0, 3).map((entry) => (
             <li key={entry.rank} className="flex items-baseline gap-2 text-xs text-foreground">
-              <span className="w-3 tabular-nums text-muted-foreground">{entry.rank}</span>
+              {/* the system's ranking colour, for whoever holds the record */}
+              <span
+                className={cn(
+                  "w-3 text-center font-semibold tabular-nums",
+                  entry.rank === 1 ? "text-warning" : "text-muted-foreground",
+                )}
+              >
+                {entry.rank}
+              </span>
               <span className="min-w-0 flex-1 truncate">{entry.nickname}</span>
-              <span className="tabular-nums">{formatTime(entry.timeMs)}</span>
+              <span className="tabular-nums text-muted-foreground">{formatTime(entry.timeMs)}</span>
             </li>
           ))}
         </ol>
       ) : (
-        <p className="mt-1 text-xs text-muted-foreground">{copy.courseRankingEmpty}</p>
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{copy.courseRankingEmpty}</p>
       )}
     </div>
   );
@@ -139,17 +168,22 @@ export function CourseCard({ run, isGuest, copy }: { run: CourseRun; isGuest: bo
   // `now` only ticks during a run: right after a start it can still predate it
   const elapsed = run.startedAt !== null ? Math.max(0, now - run.startedAt) : (run.finishedMs ?? 0);
   const justFinished = run.finishedMs !== null && run.startedAt === null;
-  // each course's own heading, hint and bar colour (the cloud course is the plain one)
+  // each course's own heading, hint and bar colour (the cloud course is the plain one).
+  // The 500 steps: a 300 is too pale to tell from the track on cream.
   const look = {
     clouds: { title: copy.courseTitle, hint: withJumpKey(copy.courseHint), bar: "bg-palette-purple-500" },
-    night: { title: copy.nightTitle, hint: copy.nightHint, bar: "bg-palette-yellow-300" },
+    night: { title: copy.nightTitle, hint: copy.nightHint, bar: "bg-palette-yellow-500" },
     ruins: { title: copy.ruinsTitle, hint: copy.ruinsHint, bar: "bg-palette-red-500" },
   }[run.course];
 
   return (
     <ProgressCard
       title={justFinished ? (run.course === "night" ? copy.nightDone : copy.courseDone) : look.title}
-      value={<span className="text-lg font-semibold tabular-nums text-foreground">{formatTime(elapsed)}</span>}
+      value={
+        <span className="text-lg font-semibold -tracking-[0.02em] tabular-nums text-foreground">
+          {formatTime(elapsed)}
+        </span>
+      }
       ratio={run.reached / COURSES[run.course].goalIndex}
       barClass={look.bar}
       hint={run.best !== null ? `${copy.courseBest} ${formatTime(run.best)}` : look.hint}
@@ -164,7 +198,7 @@ export function DreamCard({ found, total, sung, copy }: { found: number; total: 
     <ProgressCard
       title={copy.dreamTitle}
       value={
-        <span className="text-xs tabular-nums text-muted-foreground">
+        <span className={COUNT}>
           {found} / {total}
         </span>
       }

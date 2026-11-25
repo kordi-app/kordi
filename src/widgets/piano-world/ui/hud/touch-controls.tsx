@@ -3,10 +3,20 @@
 import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ChevronsUp } from "lucide-react";
+import { cn } from "@/shared/lib/utils";
 import type { Direction } from "../../engine/physics";
+import { HUD_FOCUS, HUD_SURFACE } from "./surface";
 
-const PAD_BUTTON =
-  "flex size-12 touch-none select-none items-center justify-center rounded-xl border border-border bg-card/90 text-foreground shadow-sm active:bg-muted";
+/**
+ * A pad key: held rather than clicked, so it answers the press at once (no
+ * transition in) and stays sunk while it's down.
+ */
+const PAD_KEY = cn(
+  HUD_SURFACE,
+  HUD_FOCUS,
+  "touch-none select-none items-center justify-center text-foreground active:scale-[0.94] active:bg-muted active:shadow-none motion-reduce:active:scale-100",
+);
+const PAD_BUTTON = cn(PAD_KEY, "flex size-12 rounded-card");
 
 function DirectionButton({
   direction,
@@ -57,7 +67,7 @@ export function TouchControls({
         onPointerUp={() => onJump(false)}
         onPointerCancel={() => onJump(false)}
         onContextMenu={(e) => e.preventDefault()}
-        className="absolute bottom-6 right-48 hidden size-14 touch-none select-none items-center justify-center rounded-full border border-border bg-card/90 text-foreground shadow-sm active:bg-muted pointer-coarse:flex"
+        className={cn(PAD_KEY, "absolute bottom-6 right-48 hidden size-14 rounded-full pointer-coarse:flex")}
       >
         <ChevronsUp className="size-6" />
       </button>
