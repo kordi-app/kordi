@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { ISLAND_BOUNDS, ISLAND_SOLIDS } from "./island";
 import { NATURE_SOLIDS } from "./nature";
-import { CAT_HOME, CAT_SIT_SECONDS, CAT_WALK_SECONDS, SECRET_SIT_SECONDS, SECRET_SPOT, catPlan, sitOnSpot } from "./cat-walk";
+import { CAT_HOME, CAT_SIT_SECONDS, CAT_WALK_SECONDS, SECRET_SPOT, catPlan } from "./cat-walk";
+import { PORTAL_RADIUS, REGIONS, arrivalPoint } from "./regions";
 
 describe("the cat's secret spot", () => {
   it("is open meadow: nothing solid on or right beside it", () => {
@@ -38,15 +39,19 @@ describe("the cat's secret spot", () => {
     expect(at(CAT_WALK_SECONDS + 1)).toEqual({ kind: "home" });
   });
 
-  it("opens only for sitting, on the spot, long enough", () => {
-    const timer: { since: number | null } = { since: null };
-    const at = (x: number, sitting: boolean, now: number) => sitOnSpot(timer, x, SECRET_SPOT.z, sitting, true, now);
-    expect(at(SECRET_SPOT.x, false, 10)).toBe(false);
-    expect(at(SECRET_SPOT.x + 3, true, 20)).toBe(false);
-    expect(at(SECRET_SPOT.x, true, 30)).toBe(false); // sat down
-    expect(at(SECRET_SPOT.x, true, 30 + SECRET_SIT_SECONDS / 2)).toBe(false);
-    expect(at(SECRET_SPOT.x, true, 30 + SECRET_SIT_SECONDS)).toBe(true);
-    expect(at(SECRET_SPOT.x, false, 40)).toBe(false); // stood up: starts over
-    expect(at(SECRET_SPOT.x, true, 41)).toBe(false);
+  it("is a portal you walk through but never see", () => {
+    const portal = REGIONS.hall.portals.find((p) => p.to === "whale");
+    expect(portal).toMatchObject({ ...SECRET_SPOT, invisible: true });
+    expect(portal?.y ?? 0).toBe(0);
+  });
+
+  it("lets you back out of the dream without falling straight back in", () => {
+    // the world re-arms portals only once you've stood clear of them all: both ends must land clear
+    const back = arrivalPoint("hall", "whale");
+    expect(Math.hypot(back.x - SECRET_SPOT.x, back.z - SECRET_SPOT.z)).toBeGreaterThan(PORTAL_RADIUS * 2);
+    const there = arrivalPoint("whale", "hall");
+    for (const portal of REGIONS.whale.portals) {
+      expect(Math.hypot(there.x - portal.x, there.z - portal.z)).toBeGreaterThan(PORTAL_RADIUS * 2);
+    }
   });
 });

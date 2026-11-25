@@ -6,7 +6,7 @@ import { createCaveFrame, enterCave, stepCaveFrame } from "./cave-frame";
 import { createCourseFrame, stepCourseAfter, stepCourseBefore } from "./course-frame";
 import { enterDream, stepDreamFrame } from "./dream-frame";
 import { createDriftFrame, stepDriftFrame } from "./drift-frame";
-import { createIslandFrame, enterIsland, stepIslandFrame } from "./island-frame";
+import { stepIslandFrame } from "./island-frame";
 
 /** What a region's frame may need beyond the FrameContext, gathered once per frame by the world */
 export interface FrameInputs {
@@ -14,8 +14,6 @@ export interface FrameInputs {
   landing: Landing | null;
   /** steering this frame */
   steering: boolean;
-  /** sitting (the sit emote) */
-  sitting: boolean;
   /** the island's sky clock (the star steps and pads run on it) */
   skyClock: number;
   /** I carry the cosmic crown's light */
@@ -45,13 +43,9 @@ export interface FrameShared {
 /** The island: the drift down from the sky, and the island's secrets and toys */
 function islandFrames(): RegionFrame[] {
   const drift = createDriftFrame();
-  const island = createIslandFrame();
   return [
     { after: (ctx, { landing, steering }) => stepDriftFrame(ctx, drift, landing, steering) },
-    {
-      enter: () => enterIsland(island),
-      after: (ctx, { landing, sitting, skyClock }) => stepIslandFrame(ctx, island, { landing, sitting, skyClock }),
-    },
+    { after: (ctx, { landing, skyClock }) => stepIslandFrame(ctx, landing, skyClock) },
   ];
 }
 

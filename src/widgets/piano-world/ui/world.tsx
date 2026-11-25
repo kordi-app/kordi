@@ -217,7 +217,6 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
       inputs: {
         landing: null,
         steering: false,
-        sitting: false,
         skyClock: 0,
         cosmicCrown: false,
         hasNecklace: false,
@@ -269,7 +268,6 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     const inputs = reused.inputs;
     inputs.landing = landing;
     inputs.steering = steering;
-    inputs.sitting = emote === "sit";
     inputs.skyClock = skyClock;
     inputs.cosmicCrown = cosmicCrown;
     inputs.hasNecklace = hasNecklace;
@@ -374,7 +372,6 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     // --- portals
     const inside = region.portals.find(
       (portal) =>
-        !portal.secret &&
         Math.hypot(s.pos.x - portal.x, s.pos.z - portal.z) < PORTAL_RADIUS &&
         Math.abs(s.pos.y - (portal.y ?? 0)) < PORTAL_HEIGHT_TOLERANCE,
     );
@@ -504,7 +501,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
         }
       })}
       {region.portals
-        .filter((portal) => !portal.secret && !portal.invisible)
+        .filter((portal) => !portal.invisible)
         .map((portal) => (
           <Portal key={`${portal.to}-${portal.x}`} portal={portal} glow={region.theme.dark} />
         ))}

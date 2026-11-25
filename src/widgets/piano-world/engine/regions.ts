@@ -58,13 +58,9 @@ export interface PortalDef {
   /** Where you appear coming back through it (default: beside it) */
   arrive?: { x: number; z: number };
   /**
-   * Never drawn and never walked through: only a place to arrive at. The way
-   * in is something else (the dream sea's: sitting on the cat's spot).
-   */
-  secret?: boolean;
-  /**
    * Walked through like any portal, but never drawn: the cave's illusory wall
-   * (cave.ts). Only the cosmic crown's light gives it away.
+   * (cave.ts; only the cosmic crown's light gives it away) and the cat's spot
+   * in the meadow (cat-walk.ts; only the cat shows you where).
    */
   invisible?: boolean;
 }
@@ -130,8 +126,9 @@ const HALL_PORTALS: PortalDef[] = [
     hidden: true,
     arrive: { x: CAVE_PORTAL.x, z: CAVE_PORTAL.z + 3 },
   },
-  // the cat's secret: nothing here to see or walk into (cat-walk.ts) — you come back out on the spot
-  { to: "whale", ...SECRET_SPOT, color: "#9fb8ff", secret: true, arrive: { x: SECRET_SPOT.x + 1.8, z: SECRET_SPOT.z + 1.2 } },
+  // the cat's secret: nothing to see, but step on the spot and you're through (cat-walk.ts).
+  // You come back out a couple of steps beside it, clear of its radius, so you don't fall straight back in
+  { to: "whale", ...SECRET_SPOT, color: "#9fb8ff", invisible: true, arrive: { x: SECRET_SPOT.x + 1.8, z: SECRET_SPOT.z + 1.2 } },
   // the illusory wall: a stretch of cliff you can walk into, if you know where (cave.ts)
   { to: "cave", x: ILLUSORY_WALL.x, z: ILLUSORY_WALL.z, color: "#c9b8ff", invisible: true, arrive: ILLUSORY_ARRIVAL },
 ];
@@ -369,7 +366,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
       accent: "#ffb35a",
     },
   },
-  // the cat's dream: a night sea of stars, reached only by sitting where the cat sits
+  // the cat's dream: a night sea of stars, reached only by stepping where the cat sits
   whale: {
     id: "whale",
     instrument: "synth-pad",

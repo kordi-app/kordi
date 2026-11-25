@@ -1,12 +1,11 @@
 import { SPAWN } from "./layout";
 
 /**
- * The cat's secret. The dream sea's portal is always open, but nothing shows
- * where it is and walking over it does nothing: you have to sit (emote) on
- * that one spot of meadow for a moment. The only one who knows is the cat —
- * pet it three times and it takes you there: it wanders off the keys, out to
- * the spot, sits there looking up at the sky a while, and comes home. Sit
- * beside it and you're through.
+ * The cat's secret. The dream sea's portal is always open on one spot of
+ * meadow (regions.ts: an undrawn portal), but nothing shows where it is. The
+ * only one who knows is the cat — pet it three times and it takes you there:
+ * it wanders off the keys, out to the spot, sits there looking up at the sky a
+ * while, and comes home. Walk up to where it sits and you're through.
  *
  * The walk is yours alone: it happens on your screen (the cat isn't shared),
  * so someone else beside you sees it stay on the keys.
@@ -14,10 +13,6 @@ import { SPAWN } from "./layout";
 
 /** The spot: an unremarkable stretch of open meadow south of the keys (nothing tall between it and the camera, so you can see the cat sit) */
 export const SECRET_SPOT = { x: -11, z: 30 };
-/** How close to it you must sit */
-export const SECRET_REACH = 1.1;
-/** ...and for how long */
-export const SECRET_SIT_SECONDS = 2.5;
 
 /** Pet the cat this many times and it shows you the way */
 export const PETS_TO_FOLLOW = 3;
@@ -53,19 +48,4 @@ export function catPlan(walkedAt: number | null, nowMs: number): CatPlan {
   if (t < sitUntil) return { kind: "out", ...SECRET_SPOT, sitting: true };
   if (t < sitUntil + tripSeconds) return { kind: "out", ...along(1 - (t - sitUntil) / tripSeconds), sitting: false };
   return { kind: "home" };
-}
-
-/**
- * Sitting on the spot (feet on the ground) at clock time `now` (seconds): true
- * once you've sat there long enough. Timed by the clock, not summed frame
- * deltas — those are capped per frame, so a slow device would wait far longer.
- */
-export function sitOnSpot(timer: { since: number | null }, x: number, z: number, sitting: boolean, grounded: boolean, now: number) {
-  const on = sitting && grounded && Math.hypot(x - SECRET_SPOT.x, z - SECRET_SPOT.z) < SECRET_REACH;
-  if (!on) {
-    timer.since = null;
-    return false;
-  }
-  timer.since ??= now;
-  return now - timer.since >= SECRET_SIT_SECONDS;
 }
