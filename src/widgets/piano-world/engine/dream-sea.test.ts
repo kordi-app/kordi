@@ -9,6 +9,7 @@ import {
   JELLY_RADIUS,
   LOST_NOTES,
   NOTE_REACH,
+  WHALE_SONG,
   TEACUP,
   dreamRuntime,
   isle,
@@ -100,10 +101,23 @@ describe("the whale's lost song", () => {
     expect(take(0)).toEqual([]);
   });
 
-  it("the whale only comes for all five, on the summit", () => {
+  it("there are four, one in each dream thing", () => {
+    expect(LOST_NOTES.map((n) => n.thing).toSorted()).toEqual(["moon", "shell", "teacup", "tree"]);
+  });
+
+  it("the song is made of the lost notes, all of them, and ends on its tonic", () => {
+    const pitches = new Set(LOST_NOTES.map((n) => n.midi));
+    expect(new Set(WHALE_SONG)).toEqual(pitches);
+    // C: the others (G, A, D) are its fifth, sixth and ninth
+    expect(WHALE_SONG.at(-1)! % 12).toBe(0);
+  });
+
+  it("the whale only comes for all four, on the summit", () => {
     const summit = isle("summit");
     expect(stepDream(summit.x, summit.top, summit.z, 1)).toEqual([]);
-    LOST_NOTES.forEach((_, i) => take(i));
+    LOST_NOTES.slice(0, -1).forEach((_, i) => take(i));
+    expect(stepDream(summit.x, summit.top, summit.z, 1.5)).toEqual([]); // one short
+    take(LOST_NOTES.length - 1);
     expect(stepDream(summit.x, 0, summit.z, 2)).toEqual([]); // under it, on the sea
     expect(stepDream(summit.x, summit.top, summit.z, 3)).toEqual([{ kind: "whale" }]);
     expect(stepDream(summit.x, summit.top, summit.z, 4)).toEqual([]);

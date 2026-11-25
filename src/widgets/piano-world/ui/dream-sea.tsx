@@ -5,16 +5,15 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import {
   DREAM_BOUNDS,
-  ISLES,
   JELLIES,
   JELLY_RADIUS,
   LOST_NOTES,
   TEACUP,
   dreamRuntime,
   isle,
-  type DreamIsle,
 } from "../engine/dream-sea";
 import { hash } from "../engine/island";
+import { DreamIsles, TREE, TREE_ROOTS, dreamMotes } from "./dream-isles";
 import { useBuilt } from "./island/shared";
 
 /**
@@ -23,32 +22,44 @@ import { useBuilt } from "./island/shared";
  * through it all — until you bring it its
  * notes and it comes to the summit to sing. Everything lights itself; the
  * palette is indigo, violet and silver.
+ *
+ * This file draws the sea, the dream things and the whale; the islands under
+ * them and all their small detail are dream-isles.tsx.
  */
 
 const STAR = "#ffe9a8";
 const SILVER = "#dfe6ff";
-const VIOLET = "#9d8cff";
 const DEEP = "#141a46";
-const ROCK = "#262b5e";
-const LAWN = "#a99cf0";
 
 // ── the sea ──────────────────────────────────────────────────────────────────
 
-/** Stars scattered on (just under) the sea's surface, twinkling */
+/**
+ * Stars scattered on (just under) the sea's surface, twinkling, and motes of
+ * light that lift off the islands and the water and fade. One cloud of points
+ * and one shader for both: a star is a mote that doesn't rise.
+ */
 function SeaStars() {
   const geometry = useBuilt(() => {
-    const count = 1400;
+    const stars = 1400;
+    const motes = dreamMotes();
+    const count = stars + motes.length;
     const positions = new Float32Array(count * 3);
     const phase = new Float32Array(count);
-    for (let i = 0; i < count; i++) {
+    const rise = new Float32Array(count);
+    for (let i = 0; i < stars; i++) {
       const r = Math.sqrt(hash(i, 1)) * 90;
       const a = hash(i, 2) * Math.PI * 2;
       positions.set([Math.cos(a) * r, 0.02, Math.sin(a) * r - 10], i * 3);
-      phase[i] = hash(i, 3) * Math.PI * 2;
     }
+    motes.forEach((mote, k) => {
+      positions.set([mote.x, mote.y, mote.z], (stars + k) * 3);
+      rise[stars + k] = mote.rise;
+    });
+    for (let i = 0; i < count; i++) phase[i] = hash(i, 3) * Math.PI * 2;
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     g.setAttribute("phase", new THREE.BufferAttribute(phase, 1));
+    g.setAttribute("rise", new THREE.BufferAttribute(rise, 1));
     return g;
   });
   const material = useBuilt(
@@ -60,12 +71,17 @@ function SeaStars() {
         uniforms: { time: { value: 0 } },
         vertexShader: /* glsl */ `
           attribute float phase;
+          attribute float rise;
           uniform float time;
           varying float vTwinkle;
           void main() {
-            vTwinkle = 0.45 + 0.55 * sin(time * 1.7 + phase * 3.0);
-            vec4 mv = modelViewMatrix * vec4(position, 1.0);
-            gl_PointSize = (2.0 + 2.5 * vTwinkle) * (60.0 / -mv.z);
+            float mote = step(0.001, rise);
+            // a mote climbs its rise, swaying, over a quarter of a minute, in and out of sight
+            float life = fract(time * 0.06 + phase);
+            vec3 p = position + mote * vec3(sin(time * 0.6 + phase * 5.0) * 0.2, rise * life, cos(time * 0.5 + phase * 3.0) * 0.2);
+            vTwinkle = (0.45 + 0.55 * sin(time * 1.7 + phase * 3.0)) * mix(1.0, sin(life * 3.14159), mote);
+            vec4 mv = modelViewMatrix * vec4(p, 1.0);
+            gl_PointSize = (2.0 + 2.5 * vTwinkle) * (60.0 / -mv.z) * mix(1.0, 0.6, mote);
             gl_Position = projectionMatrix * mv;
           }`,
         fragmentShader: /* glsl */ `
@@ -144,23 +160,6 @@ function Wake({ player }: { player: THREE.Vector3 }) {
 }
 
 // ── islands and the dream things on them ─────────────────────────────────────
-
-/** An island: a violet lawn on a short rock cone that dips into the sea */
-function Isle({ isle: i }: { isle: DreamIsle }) {
-  const depth = Math.min(i.top + 0.4, 3.2);
-  return (
-    <group position={[i.x, i.top, i.z]}>
-      <mesh position={[0, -0.15, 0]} receiveShadow>
-        <cylinderGeometry args={[i.r, i.r, 0.3, 36]} />
-        <meshStandardMaterial color={LAWN} emissive={LAWN} emissiveIntensity={0.18} roughness={0.7} />
-      </mesh>
-      <mesh position={[0, -0.3 - depth / 2, 0]}>
-        <cylinderGeometry args={[i.r, i.r * 0.35, depth, 14]} />
-        <meshStandardMaterial color={ROCK} emissive="#1b1f52" emissiveIntensity={0.4} roughness={0.95} flatShading />
-      </mesh>
-    </group>
-  );
-}
 
 /** A giant scallop shell, lid lifted, a pearl's glow inside */
 function Shell() {
@@ -245,17 +244,8 @@ function Teacup() {
 
 /** A tree growing upside down: its crown rests on the island, its roots reach up into the dark */
 function UpsideDownTree() {
-  const i = isle("tree");
-  const roots = useMemo(
-    () =>
-      Array.from({ length: 6 }, (_, k) => {
-        const a = (k / 6) * Math.PI * 2 + 0.4;
-        return { a, tilt: 0.55 + hash(k, 9) * 0.3, length: 1.6 + hash(k, 10) * 0.8 };
-      }),
-    [],
-  );
   return (
-    <group position={[i.x - 0.9, i.top, i.z]}>
+    <group position={[TREE.x, isle("tree").top, TREE.z]}>
       {/* the crown, a cloud of leaves on the ground */}
       {[
         [0, 0.55, 0, 1.0],
@@ -272,9 +262,9 @@ function UpsideDownTree() {
         <cylinderGeometry args={[0.14, 0.26, 2.6, 8]} />
         <meshStandardMaterial color="#6b5a8c" roughness={0.9} />
       </mesh>
-      {/* roots fanning out at the top */}
-      {roots.map(({ a, tilt, length }) => (
-        <group key={a} position={[0, 3.4, 0]} rotation={[0, a, tilt]}>
+      {/* roots fanning out at the top (dream-isles.tsx hangs a light on each tip) */}
+      {TREE_ROOTS.map(({ a, tilt, length }) => (
+        <group key={a} position={[0, TREE.crownTop, 0]} rotation={[0, a, tilt]}>
           <mesh position={[0, length / 2, 0]}>
             <cylinderGeometry args={[0.03, 0.09, length, 6]} />
             <meshStandardMaterial color="#6b5a8c" roughness={0.9} />
@@ -304,29 +294,6 @@ function MoonLantern() {
         <meshBasicMaterial color="#fff2b8" toneMapped={false} />
       </mesh>
       <pointLight color="#fff2b8" intensity={14} distance={8} position={[0, 1.2, 0]} />
-    </group>
-  );
-}
-
-/** A ring of standing stones round the summit, where the whale comes to sing */
-function SummitStones() {
-  const i = isle("summit");
-  return (
-    <group position={[i.x, i.top, i.z]}>
-      {Array.from({ length: 7 }, (_, k) => {
-        const a = (k / 7) * Math.PI * 2;
-        const h = 0.9 + hash(k, 21) * 0.7;
-        return (
-          <mesh key={k} position={[Math.cos(a) * (i.r - 0.6), h / 2, Math.sin(a) * (i.r - 0.6)]}>
-            <boxGeometry args={[0.35, h, 0.35]} />
-            <meshStandardMaterial color="#cfd6ff" emissive="#8a96ff" emissiveIntensity={0.3} roughness={0.6} />
-          </mesh>
-        );
-      })}
-      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[1.6, 1.8, 48]} />
-        <meshBasicMaterial color={STAR} transparent opacity={0.6} toneMapped={false} />
-      </mesh>
     </group>
   );
 }
@@ -555,22 +522,14 @@ export function DreamSea({ player }: { player: THREE.Vector3 }) {
       <SeaStars />
       <Moons />
       <Wake player={player} />
-      {ISLES.map((i) => (
-        <Isle key={i.thing} isle={i} />
-      ))}
+      <DreamIsles />
       <Shell />
       <Teacup />
       <UpsideDownTree />
       <MoonLantern />
-      <SummitStones />
       <Jellies />
       <LostNotes />
       <Whale player={player} />
-      {/* a ring of drifting bubbles round the note out on the open sea */}
-      <mesh position={[LOST_NOTES[4].x, 0.03, LOST_NOTES[4].z]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[1.1, 1.25, 40]} />
-        <meshBasicMaterial color={VIOLET} transparent opacity={0.5} toneMapped={false} />
-      </mesh>
       <hemisphereLight args={["#8fa6ff", "#1a1f52", 0.6]} />
     </group>
   );
