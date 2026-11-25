@@ -92,6 +92,21 @@ export function useWorldControls(handlers: ControlHandlers) {
     };
   }, []);
 
+  // A button clicked with the mouse or a finger lets go of focus straight after: otherwise
+  // it keeps it, and Space (which a focused button takes for itself) would press it again
+  // instead of jumping. Keyboard activation (Tab, then Enter/Space) keeps focus as it should.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const release = (e: MouseEvent) => {
+      if (e.detail === 0) return; // activated from the keyboard
+      const control = (e.target as Element | null)?.closest("button, a, [role='button']");
+      if (control instanceof HTMLElement && el.contains(control)) control.blur();
+    };
+    el.addEventListener("click", release);
+    return () => el.removeEventListener("click", release);
+  }, []);
+
   /** Reads and clears a pending jump (called once per frame by the scene) */
   const takeJump = useCallback(() => {
     const requested = input.current.jump;
