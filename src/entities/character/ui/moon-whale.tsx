@@ -57,6 +57,8 @@ export function MoonWhale({
   const sparks = useRef<(THREE.Mesh | null)[]>([]);
   const state = useRef({
     swim: createPetSwim(),
+    /** where Kordi is this frame (refilled, not reallocated: every whale in view steps each frame) */
+    owner: { x: 0, y: 0, z: 0, heading: 0, scale: 1 },
     seeded: false,
     /** tail-beat phase (accumulated: its rate changes with speed) */
     stroke: 0,
@@ -121,9 +123,15 @@ export function MoonWhale({
     const owner = parent.matrixWorld.elements;
     const scale = Math.hypot(owner[0], owner[1], owner[2]);
     const mood = (m.emote ? MOODS[m.emote] : undefined) ?? "follow";
+    const me = s.owner;
+    me.x = owner[12];
+    me.y = owner[13];
+    me.z = owner[14];
+    me.heading = Math.atan2(owner[8], owner[10]);
+    me.scale = scale;
     stepPetSwim(
       s.swim,
-      { x: owner[12], y: owner[13], z: owner[14], heading: Math.atan2(owner[8], owner[10]), scale },
+      me,
       mood,
       t,
       dt,

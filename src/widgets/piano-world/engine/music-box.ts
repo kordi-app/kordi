@@ -57,10 +57,14 @@ export const TEETH: readonly Tooth[] = TOOTH_NOTES.map((midi, i) => ({
 /** A tooth's solid carries this tag (the world rings `islandHits` with it; the renderer makes the tooth quiver) */
 export const toothTag = (index: number) => `tooth:${index}`;
 
+/** Every tooth's tag, made once (read every frame) */
+export const TOOTH_TAGS: readonly string[] = TEETH.map((_, i) => toothTag(i));
+const TOOTH_BY_TAG = new Map(TOOTH_TAGS.map((tag, i) => [tag, i]));
+
 /** Which tooth a solid is (null: not a tooth) */
 export function toothOf(solid: Solid | null | undefined): number | null {
-  const match = solid?.tag?.match(/^tooth:(\d+)$/);
-  return match ? Number(match[1]) : null;
+  const tag = solid?.tag;
+  return tag === undefined ? null : (TOOTH_BY_TAG.get(tag) ?? null);
 }
 
 // ── the cylinder, the ballerina ──────────────────────────────────────────────

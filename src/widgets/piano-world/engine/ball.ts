@@ -1,4 +1,5 @@
 import { BODY_RADIUS, resolveCircles, type CircleCollider } from "./physics";
+import { WORLD_CONTRACT } from "./world-contract";
 
 /**
  * The note ball: kick it and it bounces across the keys, sounding whatever it
@@ -198,10 +199,13 @@ export interface BallSnapshot {
   vz: number;
 }
 
-/** Where the balls start in each region (none on the jump course). */
+/**
+ * Where the balls start in each region. Only the keyboard regions have any —
+ * the ones the server keeps balls for (world-contract.json `balls.regions`), so
+ * a new region is ball-free unless the contract says otherwise.
+ */
 export function ballSpawns(region: string, spawn: { x: number; z: number }): { x: number; z: number }[] {
-  // none on the jump courses (no keyboard floor), in the dream sea (nothing to play), in the cave or inside the music box
-  if (["clouds", "night", "ruins", "whale", "cave", "musicbox"].includes(region)) return [];
+  if (!(WORLD_CONTRACT.balls.regions as readonly string[]).includes(region)) return [];
   if (region === "hall") {
     return [
       { x: spawn.x + 3, z: spawn.z + 1.2 },

@@ -2,9 +2,9 @@
 
 import { useCallback } from "react";
 import { useLocalStorage } from "@/shared/lib/react/use-local-storage";
-import { readStored } from "@/shared/lib/storage";
+import { SECRET_PLACES } from "./secret-places";
 
-const FOUND_KEY = "world.dream-found";
+const FOUND_KEY = SECRET_PLACES.whale;
 
 /**
  * What this browser remembers of the cat's dream sea: whether you've found
@@ -19,6 +19,3 @@ export function useDreamSea() {
   const adoptGuestWhale = useCallback(() => setGuestWhale(true), [setGuestWhale]);
   return { found, markFound, guestWhale, adoptGuestWhale };
 }
-
-/** For the first render's region choice: a direct link to the dream sea only works once you've found it. */
-export const dreamFoundBefore = () => readStored<unknown>(FOUND_KEY, false) === true;

@@ -72,37 +72,50 @@ describe("sitting out the statue's dream", () => {
   beforeEach(() => resetStatue(sit));
   const onStone = (now: number, sitting = true, grounded = true) => stepStatue(sit, MIRROR_STONE.x, MIRROR_STONE.z + 0.3, sitting, grounded, now);
 
+  /** Frame by frame (every 50 ms) from `from` to `to`: what each frame said, in order */
+  const frames = (from: number, to: number, sitting = true) => {
+    const said: ReturnType<typeof stepStatue>[] = [];
+    for (let t = from; t <= to + 1e-9; t += 0.05) said.push(onStone(t, sitting));
+    return said;
+  };
+
   it("fills the mirror stone's light while you sit on it, and wakes the statue when it's full", () => {
     // asleep: "seconds since it woke" must never read as positive (the renderer opens its eyes by it)
     expect(10 - statueRuntime.wokenAt).toBeLessThan(0);
-    expect(onStone(10)).toBeNull();
-    expect(statueRuntime.progress).toBe(0);
-    expect(onStone(10 + MIRROR_SIT_SECONDS / 2)).toBeNull();
-    expect(statueRuntime.progress).toBeCloseTo(0.5);
-    expect(onStone(10 + MIRROR_SIT_SECONDS)).toBe("woke");
+    expect(frames(10, 10 + MIRROR_SIT_SECONDS / 2)).not.toContain("woke");
+    expect(statueRuntime.progress).toBeCloseTo(0.5, 1);
+    const said = frames(10 + MIRROR_SIT_SECONDS / 2 + 0.05, 10 + MIRROR_SIT_SECONDS + 0.05);
+    expect(said.filter((x) => x === "woke")).toHaveLength(1);
     expect(statueRuntime.progress).toBe(1);
-    expect(statueRuntime.wokenAt).toBe(10 + MIRROR_SIT_SECONDS);
   });
 
-  it("takes you a moment after it wakes, once, even if you've stood up by then", () => {
-    onStone(0);
-    expect(onStone(MIRROR_SIT_SECONDS)).toBe("woke");
-    expect(onStone(MIRROR_SIT_SECONDS + STATUE_WAKE_SECONDS / 2, false)).toBeNull();
-    expect(onStone(MIRROR_SIT_SECONDS + STATUE_WAKE_SECONDS + 0.01, false)).toBe("go");
-    // still sitting there (the screen is fading): nothing more
-    expect(onStone(MIRROR_SIT_SECONDS + STATUE_WAKE_SECONDS + 0.1)).toBeNull();
-    expect(onStone(MIRROR_SIT_SECONDS + STATUE_WAKE_SECONDS + 5)).toBeNull();
+  it("takes you a moment after it wakes, even if you've stood up by then, and keeps asking till you're gone", () => {
+    frames(0, MIRROR_SIT_SECONDS + 0.05);
+    const woke = statueRuntime.wokenAt;
+    expect(frames(woke + 0.05, woke + STATUE_WAKE_SECONDS / 2, false)).not.toContain("go");
+    const after = frames(woke + STATUE_WAKE_SECONDS + 0.05, woke + STATUE_WAKE_SECONDS + 0.5, false);
+    // a trip asked for while another fade runs is refused: "go" repeats until the next arrival resets it
+    expect(after.every((x) => x === "go")).toBe(true);
+    resetStatue(sit);
+    expect(frames(20, 20.5)).not.toContain("go");
   });
 
   it("empties at once when you stand up, and starts from nothing when you sit again", () => {
-    onStone(0);
-    onStone(MIRROR_SIT_SECONDS * 0.9);
-    expect(statueRuntime.progress).toBeCloseTo(0.9);
-    expect(onStone(MIRROR_SIT_SECONDS * 0.95, false)).toBeNull();
+    frames(0, MIRROR_SIT_SECONDS * 0.9);
+    expect(statueRuntime.progress).toBeCloseTo(0.9, 1);
+    expect(onStone(MIRROR_SIT_SECONDS * 0.9 + 0.05, false)).toBeNull();
     expect(statueRuntime.progress).toBe(0);
-    expect(onStone(MIRROR_SIT_SECONDS)).toBeNull();
-    expect(onStone(MIRROR_SIT_SECONDS * 1.5)).toBeNull();
-    expect(onStone(MIRROR_SIT_SECONDS * 2)).toBe("woke");
+    const t = MIRROR_SIT_SECONDS * 0.9 + 0.1;
+    expect(frames(t, t + MIRROR_SIT_SECONDS * 0.8)).not.toContain("woke");
+    expect(frames(t + MIRROR_SIT_SECONDS * 0.8 + 0.05, t + MIRROR_SIT_SECONDS + 0.1)).toContain("woke");
+  });
+
+  it("doesn't count a sit across frames that were paused (the world scrolled out of view)", () => {
+    frames(0, MIRROR_SIT_SECONDS * 0.5);
+    // no frames for a minute, then back: the clock ran on, the sit didn't
+    expect(onStone(60)).toBeNull();
+    expect(statueRuntime.progress).toBe(0);
+    expect(frames(60.05, 60 + MIRROR_SIT_SECONDS * 0.8)).not.toContain("woke");
   });
 
   it("needs you on the stone, sitting, with your feet down", () => {

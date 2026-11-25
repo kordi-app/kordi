@@ -7,7 +7,7 @@ import { createCourseFrame, stepCourseAfter, stepCourseBefore } from "./course-f
 import { enterDream, stepDreamFrame } from "./dream-frame";
 import { createDriftFrame, stepDriftFrame } from "./drift-frame";
 import { createIslandFrame, enterIsland, stepIslandFrame } from "./island-frame";
-import { enterMusicBox, stepMusicBoxFrame } from "./musicbox-frame";
+import { resetMusicBoxFrame, stepMusicBoxFrame } from "./musicbox-frame";
 
 /** What a region's frame may need beyond the FrameContext, gathered once per frame by the world */
 export interface FrameInputs {
@@ -75,7 +75,7 @@ const FEATURE_FRAMES: Partial<Record<RegionFeature, (region: RegionDef, shared: 
       },
     ];
   },
-  musicbox: () => [{ enter: enterMusicBox, after: stepMusicBoxFrame }],
+  musicbox: () => [{ enter: resetMusicBoxFrame, after: stepMusicBoxFrame }],
 };
 
 /** The frames a region runs, fresh for each stay in it. Adding a region's rules is a line in FEATURE_FRAMES. */

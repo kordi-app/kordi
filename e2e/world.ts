@@ -31,11 +31,20 @@ export function collectErrors(page: Page) {
   return errors;
 }
 
+/**
+ * Wait until Kordi is in a region (its first frame has run). The first frame
+ * compiles every shader in the region: on a CPU renderer the island's takes about
+ * a minute (several on a CI runner), every time you come back to it too. So wait
+ * as long as the test may run, never a fixed guess.
+ */
+export async function waitForRegion(page: Page, region: string) {
+  await page.waitForFunction((r) => window.__kordi?.region === r, region, { timeout: test.info().timeout });
+}
+
 /** Open the world in a region (at the lowest graphics quality) and wait until Kordi is in it */
 export async function openWorld(page: Page, region: string) {
   await page.goto(`/?region=${region}&quality=minimal`);
-  // the first frame compiles every shader in the region: on a CPU renderer, the island's takes about a minute
-  await page.waitForFunction((r) => window.__kordi?.region === r, region, { timeout: test.info().timeout });
+  await waitForRegion(page, region);
 }
 
 export const where = (page: Page) => page.evaluate(() => ({ ...window.__kordi!.pos, region: window.__kordi!.region }));

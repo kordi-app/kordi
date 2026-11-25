@@ -165,10 +165,12 @@ export function useInteractions(copy: PianoWorldCopy, audio: AudioApi, onCelebra
     say(copy.wishSent);
   }, [copy, patch, say, setPanel, stopMusic]);
 
-  /** Leaving a region: close panels and stop tunes. */
+  /** Leaving a region: close panels, stop tunes, and hush what was being said (it was about there). */
   const reset = useCallback(() => {
     setPanel(null);
     stopMusic();
+    clearTimeout(timers.current.get("speech"));
+    setSpeech(null);
   }, [setPanel, stopMusic]);
 
   useEffect(() => {

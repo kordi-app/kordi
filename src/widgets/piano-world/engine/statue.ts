@@ -102,17 +102,26 @@ export const statueRuntime = {
 export interface StatueSit {
   /** sitting on the mirror stone since (null: not sitting there) */
   since: number | null;
+  /** the clock at the last step (null: none yet): a long gap means the frames were paused */
+  seenAt: number | null;
   /** the statue woke at (null: it hasn't, this sit) */
   wokenAt: number | null;
   /** this sit has already sent you off: nothing more until you stand up */
   done: boolean;
 }
 
-export const createStatueSit = (): StatueSit => ({ since: null, wokenAt: null, done: false });
+export const createStatueSit = (): StatueSit => ({ since: null, seenAt: null, wokenAt: null, done: false });
+
+/**
+ * Frames further apart than this were paused (the world scrolled out of view
+ * stops drawing, but the clock runs on): a sit doesn't count across the gap.
+ */
+const PAUSE_GAP = 0.5;
 
 /** A fresh arrival on the island: no half-finished sit carries over, and the statue is asleep */
 export function resetStatue(sit: StatueSit) {
   sit.since = null;
+  sit.seenAt = null;
   sit.wokenAt = null;
   sit.done = false;
   statueRuntime.progress = 0;
@@ -123,9 +132,9 @@ export function resetStatue(sit: StatueSit) {
  * One frame by the statue. Sitting (the emote) with your feet on the mirror
  * stone fills its light over MIRROR_SIT_SECONDS; standing up, stepping off or
  * jumping empties it at once. When it's full the statue wakes ("woke": its
- * eyes open, a chime), and a moment later you go ("go": into the music box) —
- * once woken it takes you even if you stand up, and then does nothing more
- * until you've left the stone (or stood up) and sat again.
+ * eyes open, a chime), and a moment later you go ("go": into the music box,
+ * asked for every frame until you've gone) — once woken it takes you even if
+ * you stand up.
  *
  * Timed by the clock `now` (seconds), not summed frame deltas — those are
  * capped per frame, so a slow device would wait far longer.
@@ -138,13 +147,17 @@ export function stepStatue(
   grounded: boolean,
   now: number,
 ): "woke" | "go" | null {
-  // woken: the dream takes you, whatever you do now
+  const paused = sit.seenAt !== null && now - sit.seenAt > PAUSE_GAP;
+  sit.seenAt = now;
+  // woken: the dream takes you, whatever you do now. "go" repeats every frame
+  // until you're gone (resetStatue, on the next arrival): a trip asked for while
+  // another fade was still running is refused, and must be asked for again
   if (sit.wokenAt !== null) {
     if (now - sit.wokenAt < STATUE_WAKE_SECONDS) return null;
-    sit.wokenAt = null;
     sit.done = true;
     return "go";
   }
+  if (paused) sit.since = null;
   const on = sitting && grounded && Math.hypot(x - MIRROR_STONE.x, z - MIRROR_STONE.z) < MIRROR_REACH;
   if (!on) {
     sit.since = null;

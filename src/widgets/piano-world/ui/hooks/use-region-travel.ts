@@ -4,9 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Arrival } from "../../engine/physics";
 import { REGIONS, arrivalPoint, isRegionId, type RegionDef, type RegionId } from "../../engine/regions";
 import { readCourseBest } from "./course-record";
-import { dreamFoundBefore } from "./use-dream-sea";
-import { caveFoundBefore } from "./use-cave";
-import { musicBoxFoundBefore } from "./use-music-box";
+import { foundBefore, isSecretPlace } from "./secret-places";
 
 const FADE_MS = 260;
 
@@ -24,12 +22,8 @@ function initialRegion(): RegionId {
   // each later course opens once the one before it is cleared: fall back to the first that isn't
   if (param === "ruins" && readCourseBest("night") === null) return readCourseBest("clouds") === null ? "clouds" : "night";
   if (param === "night" && readCourseBest("clouds") === null) return "clouds";
-  // the cat's dream sea can't be linked to until you've found the way in yourself
-  if (param === "whale" && !dreamFoundBefore()) return "hall";
-  // nor the cave behind the illusory wall
-  if (param === "cave" && !caveFoundBefore()) return "hall";
-  // nor the inside of the music box, before the dreaming statue has taken you there
-  if (param === "musicbox" && !musicBoxFoundBefore()) return "hall";
+  // the hidden places (the dream sea, the cave, the music box) can't be linked to until you've found the way in yourself
+  if (isSecretPlace(param) && !foundBefore(param)) return "hall";
   return param;
 }
 

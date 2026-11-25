@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { collectErrors, jumpUntilUp, openWorld, seedGuest, teleport, walkUntilMoved, where } from "./world";
+import { collectErrors, jumpUntilUp, openWorld, seedGuest, teleport, waitForRegion, walkUntilMoved, where } from "./world";
 
 /**
  * The island (the grand hall) and the secret behind its cliff, in one visit:
@@ -53,7 +53,7 @@ test("the island: the statue's music box, then through the illusory wall to the 
     // sitting on it does (the statue opens its eyes, then the dream takes you)
     await page.getByRole("button", { name: "앉기" }).click();
     await expect(page.getByText("석상이 천천히 눈을 떠요…")).toBeVisible();
-    await page.waitForFunction(() => window.__kordi?.region === "musicbox", null, { timeout: 60_000 });
+    await waitForRegion(page, "musicbox");
     await expect(page.getByText("오르골 속", { exact: true }).last()).toBeVisible();
     await expect(page.getByText("석상이 꾸던 꿈이에요", { exact: false })).toBeVisible();
   });
@@ -78,7 +78,7 @@ test("the island: the statue's music box, then through the illusory wall to the 
   await test.step("leave by the winding key and come out in front of the statue", async () => {
     // the portal home (engine/music-box.ts MUSICBOX_HOME)
     await teleport(page, { x: 8, y: 0, z: 5.4 });
-    await page.waitForFunction(() => window.__kordi?.region === "hall", null, { timeout: 120_000 });
+    await waitForRegion(page, "hall");
     // off the mirror stone, and it doesn't take you straight back
     await page.waitForTimeout(4_000);
     const back = await where(page);
@@ -90,7 +90,7 @@ test("the island: the statue's music box, then through the illusory wall to the 
   await test.step("walk into the illusory wall", async () => {
     // pressed up against the cliff where the wall isn't (engine/cave.ts ILLUSORY_WALL)
     await teleport(page, { x: -75, y: 0, z: -45.5 });
-    await page.waitForFunction(() => window.__kordi?.region === "cave", null, { timeout: 60_000 });
+    await waitForRegion(page, "cave");
     await expect(page.getByText("별이 잠든 동굴", { exact: true }).last()).toBeVisible();
     await expect(page.getByText("우주의 왕관이 잠든 별들을 깨워요")).toBeVisible();
   });

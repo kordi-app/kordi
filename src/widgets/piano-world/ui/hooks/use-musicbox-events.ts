@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { TEETH, TUNE, type MusicBoxEvent } from "../../engine/music-box";
-import { useMusicBox } from "./use-music-box";
+import { markFound } from "./secret-places";
 import type { WorldFeedback } from "./world-feedback";
 import type { Banner } from "../hud/place-banner";
 
@@ -21,30 +21,40 @@ export function useMusicBoxEvents(
   { showBanner }: { showBanner: (title: string, sub: string, tone: Banner["tone"]) => void },
 ) {
   const { voice, warpEffect } = audio;
-  const { markFound } = useMusicBox();
+
   /** the tune's notes still to come (cancelled by any trip, so it can't ring on somewhere else) */
   const tuneTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const stopTune = useCallback(() => {
     tuneTimers.current.forEach(clearTimeout);
     tuneTimers.current = [];
   }, []);
-  useEffect(() => stopTune, [stopTune]);
+  /** the statue's wake chimes still to ring (they outlive the trip they start, but not the page) */
+  const chimeTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(
+    () => () => {
+      stopTune();
+      chimeTimers.current.forEach(clearTimeout);
+    },
+    [stopTune],
+  );
 
   /** The statue opened its eyes: a soft rising chime, and the warp's hum as the dream takes you. */
   const wake = useCallback(() => {
     voice("crystal", 79, 0.5);
-    setTimeout(() => voice("crystal", 84, 0.5), 160);
-    setTimeout(() => voice("crystal", 91, 0.45), 320);
+    chimeTimers.current.push(
+      setTimeout(() => voice("crystal", 84, 0.5), 160),
+      setTimeout(() => voice("crystal", 91, 0.45), 320),
+    );
     warpEffect("depart");
     say(copy.statueWakes);
   }, [voice, warpEffect, say, copy]);
 
   /** Inside: a link can bring you back from now on. */
   const enter = useCallback(() => {
-    markFound();
+    markFound("musicbox");
     warpEffect("arrive");
     showBanner(copy.regions.musicbox, copy.musicBoxArrive, "place");
-  }, [markFound, warpEffect, showBanner, copy]);
+  }, [warpEffect, showBanner, copy]);
 
   /** Any trip anywhere: the tune stops with it. */
   const leave = stopTune;

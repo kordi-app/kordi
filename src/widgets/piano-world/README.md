@@ -14,7 +14,7 @@
 | `ui/frame/*-frame.ts` | 지역·기능별 한 프레임 처리 (코스, 하늘에서 낙하, 섬의 비밀, 꿈의 바다, 동굴, 오르골 속, 공) | `FrameContext`를 받아 플레이어를 움직이고 이벤트를 보내요 |
 | `ui/region-scene.tsx` | 지역마다 무엇을 그릴지 고르는 유일한 곳 | |
 | `ui/piano-world-scene.tsx` | 페이지: 상태, 오디오, 서버 접속, HUD를 조립 | 지역마다의 이벤트 처리는 `ui/hooks/use-*-events.ts`로 |
-| `ui/hooks/` | 페이지 쪽 훅. 지역 이벤트(`use-sky-events`, `use-dream-events`, `use-cave-events`, `use-musicbox-events`), 저장(`use-cave`, `use-dream-sea`, `use-music-box`…), 이동, 조작 | 브라우저 저장은 `@/shared/lib/storage`만 거쳐요 |
+| `ui/hooks/` | 페이지 쪽 훅. 지역 이벤트(`use-sky-events`, `use-dream-events`, `use-cave-events`, `use-musicbox-events`), 저장(`secret-places`: 숨은 곳을 찾았는지와 링크 허용, `use-cave`, `use-dream-sea`…), 이동, 조작 | 브라우저 저장은 `@/shared/lib/storage`만 거쳐요 |
 | `ui/hud/` | 화면 위 UI (카드, 배너, 상태) | |
 | `ui/island/`, `ui/*.tsx` | 지역별 3D 그리기 | |
 | `net/` | 서버 WebSocket 프로토콜과 접속 | 메시지 모양은 `net/protocol.ts`에 한 번만 정의해요. 서버 저장소의 `world/` 패키지와 짝이에요 |

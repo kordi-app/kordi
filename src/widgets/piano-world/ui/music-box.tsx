@@ -16,7 +16,7 @@ import {
   WINDING_KEY,
   musicBoxRuntime,
   nextTooth,
-  toothTag,
+  TOOTH_TAGS,
 } from "../engine/music-box";
 import { mergeParts, paint, sinceHit, useBuilt } from "./island/shared";
 import { quality } from "./quality";
@@ -232,14 +232,14 @@ function Comb() {
     if (m) {
       // only touch the instance buffer while something is quivering (and once more, to lay it flat)
       let moving = false;
-      TEETH.forEach((_, i) => {
-        const since = sinceHit(toothTag(i), now);
+      for (let i = 0; i < TOOTH_TAGS.length; i++) {
+        const since = sinceHit(TOOTH_TAGS[i], now);
         const ringing = since < QUIVER_SECONDS;
-        if (!ringing && !scratch.current.moving) return;
+        if (!ringing && !scratch.current.moving) continue;
         moving ||= ringing;
         placeTooth(m, scratch.current.dummy, i, ringing ? Math.sin(since * 46) * 0.035 * (1 - since / QUIVER_SECONDS) : 0);
         m.instanceMatrix.needsUpdate = true;
-      });
+      }
       scratch.current.moving = moving;
     }
     const p = plate.current;
@@ -295,16 +295,16 @@ function cylinderGeometry() {
 }
 
 function Cylinder() {
-  const group = useRef<THREE.Mesh>(null);
+  const drum = useRef<THREE.Mesh>(null);
   const geometry = useBuilt(cylinderGeometry);
   const metal = useBuilt(metalMaterial);
   useFrame(({ clock }, dt) => {
-    if (!group.current) return;
+    if (!drum.current) return;
     const speed = THREE.MathUtils.lerp(CYLINDER_IDLE, CYLINDER_PLAYING, alive(clock.getElapsedTime()));
     // turning so the pins on the comb's side rise past the teeth's tips
-    group.current.rotation.x -= speed * dt;
+    drum.current.rotation.x -= speed * dt;
   });
-  return <mesh ref={group} geometry={geometry} material={metal} position={[0, CYLINDER.y, CYLINDER.z]} castShadow />;
+  return <mesh ref={drum} geometry={geometry} material={metal} position={[0, CYLINDER.y, CYLINDER.z]} castShadow />;
 }
 
 // --- the ballerina --------------------------------------------------------------

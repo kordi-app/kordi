@@ -3,8 +3,8 @@ import { groundAt } from "../../engine/physics";
 import { TERRAINS } from "../../engine/terrains";
 import type { FrameContext } from "./context";
 
-/** Coming into the music box: it has forgotten its tune again. */
-export const enterMusicBox = () => startMusicBox();
+/** Coming into the music box: it has forgotten its tune again. (The page's own arrival is use-musicbox-events' enter.) */
+export const resetMusicBoxFrame = () => startMusicBox();
 
 /**
  * Inside the music box, after you've moved: which tooth of the comb is under
@@ -17,8 +17,8 @@ export function stepMusicBoxFrame(ctx: FrameContext) {
   const solid = s.airborne ? null : groundAt(region, s.pos.x, s.pos.z, s.pos.y).solid;
   const tooth = solid === null ? null : toothOf(TERRAINS.musicbox.solids[solid]);
   for (const event of stepMusicBox(tooth, now)) {
+    // the tune's end celebrates on the page's side (confetti there), so only steps ripple here
     if (event.kind === "step") fx?.ripple(s.pos.x, s.pos.y, s.pos.z, region.theme.accent);
-    else fx?.confetti(s.pos.x, s.pos.y, s.pos.z);
     events.onMusicBox(event);
   }
 }
