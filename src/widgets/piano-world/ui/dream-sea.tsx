@@ -19,8 +19,8 @@ import { useBuilt } from "./island/shared";
 
 /**
  * The cat's dream: a sea of stars you walk on, islands holding dream things,
- * jellyfish lanterns, two moons lying on the water (one of them the dreaming
- * cat's eye) and the whale, swimming through it all — until you bring it its
+ * jellyfish lanterns, a moon lying on the water, and the whale, swimming
+ * through it all — until you bring it its
  * notes and it comes to the summit to sing. Everything lights itself; the
  * palette is indigo, violet and silver.
  */
@@ -85,17 +85,8 @@ function SeaStars() {
   return <points ref={points} geometry={geometry} material={material} />;
 }
 
-/**
- * Two moons lying on the water ahead: a full one, and a narrow slit-pupilled
- * one — the dreaming cat's eye, half-open, watching.
- */
+/** The moon lying on the water ahead, with a soft halo */
 function Moons() {
-  const eye = useRef<THREE.Mesh>(null);
-  useFrame(({ clock }) => {
-    // a slow blink every so often
-    const t = clock.getElapsedTime() % 9;
-    if (eye.current) eye.current.scale.y = t > 8.7 ? 0.08 : 1;
-  });
   return (
     <group position={[0, 0.03, -78]} rotation={[-Math.PI / 2, 0, 0]}>
       <mesh position={[-16, 0, 0]}>
@@ -106,16 +97,6 @@ function Moons() {
         <circleGeometry args={[10, 48]} />
         <meshBasicMaterial color="#fff6d8" toneMapped={false} transparent opacity={0.12} />
       </mesh>
-      <group position={[17, 0, 0]}>
-        <mesh ref={eye} scale={[1, 1, 1]}>
-          <circleGeometry args={[5.5, 48]} />
-          <meshBasicMaterial color="#d9f27a" toneMapped={false} transparent opacity={0.8} />
-        </mesh>
-        <mesh position={[0, 0, 0.01]} scale={[0.22, 1, 1]}>
-          <circleGeometry args={[4.6, 32]} />
-          <meshBasicMaterial color="#10132e" />
-        </mesh>
-      </group>
     </group>
   );
 }
@@ -455,7 +436,30 @@ const SING_AT = new THREE.Vector3(isle("summit").x + 5, isle("summit").top + 0.5
  * diving back in. Once it has its notes it comes to the summit and sings,
  * notes streaming from it.
  */
-function Whale() {
+/** The whale swims this high (centre), above the low isles' things */
+const WHALE_CRUISE = { y: 6, sway: 1.5 };
+/**
+ * It keeps clear of you on screen: of you, and of the stretch between you and
+ * the camera (which looks on from behind, +z: DEFAULT_CAMERA in regions.ts), so
+ * it never swims across your view of Kordi. It goes round instead.
+ */
+const WHALE_CLEARANCE = { radius: 9, towardCamera: 14 };
+
+/** Push a point (in xz) out of the capsule from (x, z) to (x, z + length), radius r */
+function keepOut(point: THREE.Vector3, x: number, z: number, length: number, r: number) {
+  const qz = THREE.MathUtils.clamp(point.z, z, z + length);
+  const dx = point.x - x;
+  const dz = point.z - qz;
+  const d = Math.hypot(dx, dz);
+  if (d >= r) return;
+  // dead centre: go round on the side it's heading for anyway
+  const nx = d > 1e-3 ? dx / d : 1;
+  const nz = d > 1e-3 ? dz / d : 0;
+  point.x = x + nx * r;
+  point.z = qz + nz * r;
+}
+
+function Whale({ player }: { player: THREE.Vector3 }) {
   const root = useRef<THREE.Group>(null);
   const tail = useRef<THREE.Group>(null);
   const song = useRef<THREE.Group>(null);
@@ -467,7 +471,8 @@ function Whale() {
     const singing = dreamRuntime.sungAt > -Infinity;
     const want = singing
       ? SING_AT
-      : s.look.set(Math.cos(t * 0.09) * 24, 2.5 + Math.sin(t * 0.21) * 3, Math.sin(t * 0.09) * 18 - 10);
+      : s.look.set(Math.cos(t * 0.09) * 24, WHALE_CRUISE.y + Math.sin(t * 0.21) * WHALE_CRUISE.sway, Math.sin(t * 0.09) * 18 - 10);
+    if (!singing) keepOut(want, player.x, player.z, WHALE_CLEARANCE.towardCamera, WHALE_CLEARANCE.radius);
     const before = s.before.copy(s.pos);
     s.pos.lerp(want, 1 - Math.exp(-dt * (singing ? 0.8 : 3)));
     if (root.current) {
@@ -560,7 +565,7 @@ export function DreamSea({ player }: { player: THREE.Vector3 }) {
       <SummitStones />
       <Jellies />
       <LostNotes />
-      <Whale />
+      <Whale player={player} />
       {/* a ring of drifting bubbles round the note out on the open sea */}
       <mesh position={[LOST_NOTES[4].x, 0.03, LOST_NOTES[4].z]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[1.1, 1.25, 40]} />
