@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { ILLUSORY_WALL } from "../../engine/cave";
 import { CAVE, CLIFF, CRYSTALS, HARP, HARP_STRINGS, hash } from "../../engine/island";
 import { POOL } from "../../engine/water";
 import { FallsSpray } from "./falls-spray";
@@ -48,16 +49,34 @@ const SOUNDBOARD = "#b0803a";
 const MOSS = "#8fb36a";
 const MOSS_DARK = "#7a9f58";
 const STRATA = ["#968c80", "#b6ad9f", "#9f9588"];
+/** a crack in the face: the rock's own colour, in shadow */
+const CRACK = "#7f766a";
 /** The two cliff faces either side of the cave mouth */
 const CLIFF_PARTS = [
   { x0: CLIFF.x0, x1: CLIFF.caveX0 },
   { x0: CLIFF.caveX1, x1: CLIFF.x1 },
 ];
 
+/** A hairline crack down the cliff's face from y1 to y0, wandering a little; `foot` widens its lowest stretch */
+function crack(x: number, y0: number, y1: number, seed: number, foot = 0) {
+  const parts: THREE.BufferGeometry[] = [];
+  const stretches = Math.max(2, Math.round((y1 - y0) / 0.7));
+  const tall = (y1 - y0) / stretches;
+  for (let k = 0; k < stretches; k++) {
+    const lean = (hash(seed + k, 82) - 0.5) * 0.5;
+    const wide = k === 0 ? 0.06 + foot : 0.035 + hash(seed + k, 83) * 0.035;
+    parts.push(paint(new THREE.BoxGeometry(wide, tall + 0.06, 0.04).rotateZ(lean).translate(x, y0 + (k + 0.5) * tall, CLIFF.front + 0.01), CRACK));
+    // the next stretch starts where this one's top leaned to
+    x -= Math.sin(lean) * tall;
+  }
+  return parts;
+}
+
 /**
  * Dressing for the plain cliff boxes, one vertex-coloured mesh: rock strata
- * running along the face in broken ledges, a mossy cap over the top with
- * tufts spilling down the front, and a stone lip the water pours over.
+ * running along the face in broken ledges, hairline cracks, a mossy cap over
+ * the top with tufts spilling down the front, and a stone lip the water pours
+ * over.
  */
 function cliffDressingGeometry() {
   const parts: THREE.BufferGeometry[] = [];
@@ -80,6 +99,12 @@ function cliffDressingGeometry() {
         x += run + 0.15 + hash(n, 65) * 0.8;
       }
     }
+    // cracks down the face, here and there, none of them reaching the ground
+    for (let x = part.x0 + 2.5 + hash(n, 78) * 3; x < part.x1 - 1.5; x += 5 + hash(Math.round(x * 10), 79) * 5) {
+      if (Math.abs(x - ILLUSORY_WALL.x) < 3.5) continue;
+      const y0 = 0.5 + hash(Math.round(x * 10), 80) * 3.5;
+      parts.push(...crack(x, y0, y0 + 1.6 + hash(Math.round(x * 10), 81) * 2.2, Math.round(x * 10)));
+    }
     // the mossy cap, a hair proud of the cliff all round
     const w = part.x1 - part.x0;
     parts.push(
@@ -95,6 +120,10 @@ function cliffDressingGeometry() {
       );
     }
   }
+  // one crack does come down to the ground, and stands a finger wider at its foot: the stretch
+  // of cliff that isn't there (cave.ts ILLUSORY_WALL). No more than that — it is a secret, and
+  // from a few paces off it is one crack among the others
+  parts.push(...crack(ILLUSORY_WALL.x, 0, 3.3, 7, 0.07));
   // the lip the falls pour over, spanning the cave mouth
   // (its front stops just behind the falling sheet, so the two never z-fight)
   parts.push(paint(new THREE.BoxGeometry(CAVE.x1 - CAVE.x0 + 1.4, 0.55, CLIFF.front - CLIFF.back + 0.3).translate((CAVE.x0 + CAVE.x1) / 2, CLIFF.top - 0.15, (CLIFF.front + CLIFF.back) / 2 - 0.05), "#8e8578"));

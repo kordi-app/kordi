@@ -1076,8 +1076,9 @@ export function lightCave(
 const SHIMMER_COUNT = 36;
 
 /**
- * The illusory wall, seen from the island: nothing at all — unless you wear the
- * cosmic crown and come close, when stars shimmer over that stretch of rock.
+ * The illusory wall, seen from the island: nothing here (the cliff has a crack
+ * at the spot, among its others: harp-falls.tsx) — unless you wear the cosmic
+ * crown and come close, when stars shimmer over that stretch of rock.
  */
 export function IllusoryWall({ player, crowned }: { player: THREE.Vector3; crowned: boolean }) {
   const points = useRef<THREE.Points>(null);

@@ -4,7 +4,7 @@ import { WORLD_CONTRACT } from "./world-contract";
 
 /**
  * The cave of sleeping stars: behind an illusory stretch of the island's cliff
- * (nothing there to see — walk into the right spot of rock and you're through),
+ * (next to nothing there to see — walk into the right spot of rock and you're through),
  * a cave so dark you can barely see your own feet. Wear the cosmic crown (the
  * night course's reward) and its starlight fills the place: the stars asleep in
  * the walls wake as you pass. Inside: a hall of fallen pillars, a chasm crossed
@@ -100,8 +100,10 @@ export const CAVE_ARRIVAL = { x: CAVE_EXIT.x, z: CAVE_EXIT.z - 4 };
 
 /**
  * The illusory wall on the island: a stretch of the cliff west of the harp
- * waterfall you can walk into. Nothing marks it — unless you wear the cosmic
- * crown, whose light makes the rock shimmer when you're close.
+ * waterfall you can walk into. All that marks it is a crack in the rock like
+ * the cliff's others, but for coming down to the ground (harp-falls.tsx) —
+ * unless you wear the cosmic crown, whose light makes the rock shimmer when
+ * you're close.
  */
 export const ILLUSORY_WALL = { x: -75, z: CLIFF.front + 0.55, width: 2.4 };
 /** Coming back out, you stand in front of it */
