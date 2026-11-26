@@ -51,7 +51,6 @@ export async function HomePage() {
           warpUse: t("warpUse"),
           warpWoke: t.raw("warpWoke") as string,
           warpHere: t("warpHere"),
-          skyOpened: t("skyOpened"),
           skyFound: t("skyFound"),
           warpAsleep: t("warpAsleep"),
           melodies: {
@@ -79,7 +78,6 @@ export async function HomePage() {
           dreamReady: t("dreamReady"),
           dreamNote: t.raw("dreamNote") as string,
           whaleSings: t("whaleSings"),
-          petGuestNote: t("petGuestNote"),
           caveDark: t("caveDark"),
           caveLit: t("caveLit"),
           caveRest: t("caveRest"),

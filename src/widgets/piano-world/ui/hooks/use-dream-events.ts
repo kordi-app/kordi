@@ -66,7 +66,7 @@ export function useDreamEvents(
       progression(WHALE_SONG.map((midi) => [midi - 24, midi]));
       celebrate();
       if (isGuest) adoptGuestWhale();
-      say(isGuest ? `${copy.whaleSings} · ${copy.petGuestNote}` : copy.whaleSings);
+      say(copy.whaleSings);
       // members: the server only believes it after a minute here (plus a margin for lag)
       const wait = Math.max(0, SERVER_MIN_STAY_SECONDS * 1000 + 1500 - (performance.now() - arrivedAt.current));
       clearTimeout(whaleTimer.current);

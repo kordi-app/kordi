@@ -62,7 +62,6 @@ export interface PianoWorldCopy {
   /** "{note}" is filled in */
   dreamNote: string;
   whaleSings: string;
-  petGuestNote: string;
   /** the cave of sleeping stars: coming in without the cosmic crown, and with it */
   caveDark: string;
   caveLit: string;
@@ -89,7 +88,6 @@ export interface PianoWorldCopy {
   warpWoke: string;
   warpHere: string;
   // the sky island
-  skyOpened: string;
   skyFound: string;
   warpAsleep: string;
   // sound & presence status

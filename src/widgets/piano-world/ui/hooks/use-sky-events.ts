@@ -18,9 +18,8 @@ export function useSkyEvents({ copy, audio, say, celebrate }: WorldFeedback) {
   const ring = useCallback(
     (opened: boolean) => {
       towerBell(opened ? 12 : 1);
-      if (opened) say(copy.skyOpened);
     },
-    [towerBell, say, copy],
+    [towerBell],
   );
 
   /** Someone in the channel rang the midnight bell (`rung`), or I joined while the stars were out. */
