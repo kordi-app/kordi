@@ -28,8 +28,6 @@ export interface PianoWorldCopy {
   cardPlay: string;
   close: string;
   wishTitle: string;
-  wishPlaceholder: string;
-  wishNote: string;
   wishSend: string;
   wishSent: string;
   /** "{style}" is filled in: what the lounge band switched to */

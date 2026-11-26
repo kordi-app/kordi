@@ -41,8 +41,6 @@ export async function HomePage() {
           cardPlay: t("cardPlay"),
           close: t("close"),
           wishTitle: t("wishTitle"),
-          wishPlaceholder: t("wishPlaceholder"),
-          wishNote: t("wishNote"),
           wishSend: t("wishSend"),
           wishSent: t("wishSent"),
           jukeboxStyle: t.raw("jukeboxStyle") as string,
