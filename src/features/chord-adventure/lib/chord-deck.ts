@@ -65,9 +65,13 @@ export class ChordDeck {
     }
     const name = this.bag.pop()!;
     this.last = name;
-    const minor = name.endsWith("m");
-    // id: negative, so it can't collide with a server chord's
-    return { id: -1 - names.indexOf(name), chordKey: minor ? name.slice(0, -1) : name, chordType: minor ? "MINOR" : "MAJOR", name, notes: "", difficulty: "EASY" };
+    return made(name, -1 - names.indexOf(name));
+  }
+
+  /** Chords by name, in order (a boss's warm-up progression), made here like the warm-up's. */
+  named(names: readonly string[]): QuizChordItem[] {
+    this.last = names[names.length - 1] ?? this.last;
+    return names.map((name, i) => made(name, -1000 - i));
   }
 
   /** Nothing to deal at all (e.g. the chord server is unreachable). */
@@ -88,6 +92,12 @@ export class ChordDeck {
       this.refilling.delete(difficulty);
     }
   }
+}
+
+/** A plain major or minor triad by name; its id is negative, so it can't collide with a server chord's. */
+function made(name: string, id: number): QuizChordItem {
+  const minor = name.endsWith("m");
+  return { id, chordKey: minor ? name.slice(0, -1) : name, chordType: minor ? "MINOR" : "MAJOR", name, notes: "", difficulty: "EASY" };
 }
 
 /** A shuffled copy (Fisher–Yates). */

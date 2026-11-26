@@ -2,11 +2,18 @@
 
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { Press_Start_2P } from "next/font/google";
-import { useTranslations } from "next-intl";
-import { STAGES_PER_SCENE, type AdventureClock, type AdventureView } from "@/entities/chord-adventure";
+import { useFormatter, useTranslations } from "next-intl";
+import {
+  ADVENTURE_LIVES,
+  STAGES_PER_SCENE,
+  comboMultiplier,
+  isBossStage,
+  type AdventureClock,
+  type AdventureView,
+} from "@/entities/chord-adventure";
 import { toDisplayChordName } from "@/shared/lib/music";
 import { cn } from "@/shared/lib/utils";
-import { isBoss, posePlayers } from "../lib/pose";
+import { posePlayers } from "../lib/pose";
 import { renderStage } from "../lib/render";
 import { H, W } from "../lib/scenes";
 import { createStageFx, stepBits } from "../lib/stage-fx";
@@ -25,6 +32,7 @@ const pixelFont = Press_Start_2P({ weight: "400", subsets: ["latin"], display: "
  */
 export function AdventureStage({ view, clock }: { view: AdventureView; clock: RefObject<AdventureClock> }) {
   const t = useTranslations("chordAdventure");
+  const format = useFormatter();
   const canvas = useRef<HTMLCanvasElement>(null);
   const viewRef = useRef(view);
   const fx = useRef(createStageFx());
@@ -75,6 +83,9 @@ export function AdventureStage({ view, clock }: { view: AdventureView; clock: Re
   const world = Math.floor((view.stage - 1) / STAGES_PER_SCENE) + 1;
   const round = ((view.stage - 1) % STAGES_PER_SCENE) + 1;
   const newWorld = fighting && round === 1;
+  const boss = isBossStage(view.stage);
+  const progression = fighting ? view.boss : null;
+  const multiplier = comboMultiplier(view.combo);
 
   return (
     // a card like the rest of the page (soft shadow, hairline edge); the canvas is
@@ -94,13 +105,27 @@ export function AdventureStage({ view, clock }: { view: AdventureView; clock: Re
         aria-label={t("stageLabel")}
       />
 
-      {/* HUD: world-round, and how many you've beaten (a count, never a clock) */}
+      {/* HUD: world-round and lives on the left; score and combo on the right (a count, never a clock) */}
       {view.phase !== "ready" && view.phase !== "loading" ? (
         <div className="absolute top-3 right-3 left-3 flex items-start justify-between text-[10px] leading-none text-palette-gray-00 md:text-t2">
-          <span className="rounded-r1 bg-palette-gray-1000/70 px-2 py-1.5">
-            {world}-{round}
-          </span>
-          <span className="rounded-r1 bg-palette-gray-1000/70 px-2 py-1.5 tabular-nums">KO {view.defeated}</span>
+          <div className="flex items-center gap-1.5">
+            <span className="rounded-r1 bg-palette-gray-1000/70 px-2 py-1.5">
+              {world}-{round}
+            </span>
+            <span className="flex gap-0.5 rounded-r1 bg-palette-gray-1000/70 px-1.5 py-1" aria-label={t("lives", { count: view.lives })}>
+              {Array.from({ length: ADVENTURE_LIVES }, (_, i) => (
+                <PixelHeart key={i} full={i < view.lives} />
+              ))}
+            </span>
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            <span className="rounded-r1 bg-palette-gray-1000/70 px-2 py-1.5 tabular-nums">{format.number(view.score)}</span>
+            {multiplier > 1 ? (
+              <span key={multiplier} className="animate-pulse rounded-r1 bg-palette-gray-1000/70 px-2 py-1.5 text-palette-yellow-300 tabular-nums">
+                {view.combo} COMBO ×{multiplier}
+              </span>
+            ) : null}
+          </div>
         </div>
       ) : null}
 
@@ -113,15 +138,53 @@ export function AdventureStage({ view, clock }: { view: AdventureView; clock: Re
         aria-live="polite"
         aria-hidden={!fighting}
       >
-        <div className="border-2 border-palette-gray-1000 bg-palette-gray-00 px-4 py-2.5 text-t5 text-palette-gray-1000 shadow-pixel md:px-5 md:py-3 md:text-t9">
-          {fighting && view.chord ? toDisplayChordName(view.chord.name) : ""}
-        </div>
+        {progression ? (
+          // a boss: its whole progression, the chords already played dimmed
+          <div className="flex items-center gap-1.5 md:gap-2">
+            {progression.chords.map((chord, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "border-2 border-palette-gray-1000 px-3 py-2 shadow-pixel md:px-4 md:py-2.5",
+                  i === progression.index
+                    ? "bg-palette-gray-00 text-t5 text-palette-gray-1000 md:text-t9"
+                    : "bg-palette-gray-00/50 text-t3 text-palette-gray-1000/60 md:text-t5",
+                  i < progression.index && "line-through",
+                )}
+              >
+                {toDisplayChordName(chord.name)}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="border-2 border-palette-gray-1000 bg-palette-gray-00 px-4 py-2.5 text-t5 text-palette-gray-1000 shadow-pixel md:px-5 md:py-3 md:text-t9">
+            {fighting && view.chord ? toDisplayChordName(view.chord.name) : ""}
+          </div>
+        )}
       </div>
 
-      {newWorld || (fighting && isBoss(view.stage)) ? (
-        <Banner key={view.stage} title={isBoss(view.stage) ? "BOSS" : `WORLD ${world}`} subtitle={t(`scenes.${view.scene}`)} danger={isBoss(view.stage)} />
+      {newWorld || (fighting && boss) ? (
+        <Banner key={view.stage} title={boss ? "BOSS" : `WORLD ${world}`} subtitle={t(`scenes.${view.scene}`)} danger={boss} />
       ) : null}
     </div>
+  );
+}
+
+const HEART = [".XX.XX.", "XXXXXXX", "XXXXXXX", ".XXXXX.", "..XXX..", "...X..."];
+
+/** A life: a 7×6 pixel heart, red when it's still yours. */
+function PixelHeart({ full }: { full: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 7 6"
+      className={cn("size-2.5 fill-current md:size-3.5", full ? "text-palette-red-500" : "text-palette-gray-00/25")}
+      shapeRendering="crispEdges"
+      aria-hidden
+    >
+      {HEART.flatMap((row, y) =>
+        [...row].flatMap((c, x) => (c === "X" ? [<rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} />] : [])),
+      )}
+    </svg>
   );
 }
 

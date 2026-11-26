@@ -54,7 +54,8 @@ export function ChordAdventurePage() {
                 ) : (
                   <>
                     <p className="text-t3 text-fg-neutral-muted">{t("gameOver")}</p>
-                    <p className="mt-1 text-t9 font-bold text-fg-neutral">{t("defeated", { count: view.defeated })}</p>
+                    <p className="mt-1 text-t9 font-bold tabular-nums text-fg-neutral">{t("score", { score: view.score })}</p>
+                    <p className="text-t3 text-fg-neutral-muted">{t("defeated", { count: view.defeated })}</p>
                     <p className="mt-between-text h-5 text-t3 text-fg-neutral-muted">
                       {saving
                         ? t("saving")
@@ -63,7 +64,7 @@ export function ChordAdventurePage() {
                           : result
                             ? result.saved
                             ? t("newBest", { rank: result.rank })
-                            : t("best", { count: result.bestDefeated, rank: result.rank })
+                            : t("best", { score: result.bestScore, rank: result.rank })
                           : null}
                     </p>
                   </>
@@ -101,7 +102,7 @@ function TopRuns() {
           <li key={`${entry.rank}-${entry.nickname}`} className="flex items-baseline gap-2 text-t3 text-fg-neutral">
             <span className="w-4 tabular-nums text-fg-neutral-subtle">{entry.rank}</span>
             <span className="min-w-0 flex-1 truncate">{entry.nickname}</span>
-            <span className="tabular-nums">{t("defeated", { count: entry.defeated })}</span>
+            <span className="tabular-nums">{t("score", { score: entry.score })}</span>
           </li>
         ))}
       </ol>

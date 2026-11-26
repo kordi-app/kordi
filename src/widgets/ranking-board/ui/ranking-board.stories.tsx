@@ -15,9 +15,9 @@ function makeRankings(topScore: number, count: number): RankingEntry[] {
 }
 
 const ADVENTURE = [
-  { rank: 1, nickname: "재즈냥", profileImageUrl: null, defeated: 31 },
-  { rank: 2, nickname: "코드왕", profileImageUrl: null, defeated: 24 },
-  { rank: 3, nickname: "새벽연습", profileImageUrl: null, defeated: 19 },
+  { rank: 1, nickname: "재즈냥", profileImageUrl: null, score: 18_400, defeated: 31 },
+  { rank: 2, nickname: "코드왕", profileImageUrl: null, score: 12_150, defeated: 24 },
+  { rank: 3, nickname: "새벽연습", profileImageUrl: null, score: 8_300, defeated: 19 },
 ];
 const seed = (byDifficulty: Record<RankingDifficulty, RankingEntry[]>) => [
   ...(Object.keys(byDifficulty) as RankingDifficulty[]).map((d) => [["ranking", d], byDifficulty[d]]),

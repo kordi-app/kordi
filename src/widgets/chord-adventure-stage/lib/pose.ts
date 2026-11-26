@@ -1,8 +1,10 @@
 import {
   ADVENTURE_DEATH_MS,
+  ADVENTURE_HURT_MS,
   ADVENTURE_INTRO_MS,
   ADVENTURE_VICTORY_MS,
-  STAGES_PER_SCENE,
+  gradeFor,
+  isBossStage,
   sceneFor,
   type AdventureClock,
   type AdventureView,
@@ -24,7 +26,10 @@ const PENALTY_EASE = 7;
 const FIRE_END = 560;
 const WALK_START = 900;
 
-export const isBoss = (stage: number) => stage % STAGES_PER_SCENE === 0;
+/** The grade words that float up when a monster falls. */
+const GRADE_POPS = { PERFECT: ["PERFECT!", "#ffe066"], GREAT: ["GREAT!", "#8fe3ff"], GOOD: ["GOOD", "#c9f2b0"] } as const;
+/** How long a boss flinches when it takes a chord. */
+const BOSS_FLINCH_MS = 220;
 
 /** Everyone's position and look for one frame. */
 export interface Pose {
@@ -65,7 +70,7 @@ export interface Pose {
 export function posePlayers(view: AdventureView, clock: AdventureClock, fx: StageFx, now: number, dt: number): Pose {
   const elapsed = now - clock.phaseStartedAt;
   const time = now / 1000;
-  const boss = isBoss(view.stage);
+  const boss = isBossStage(view.stage);
   // a new run starts clean (otherwise "already burst for stage 1" would carry over)
   if (view.phase === "ready" || view.phase === "intro") {
     fx.burstFor = -1;
@@ -118,7 +123,15 @@ export function posePlayers(view: AdventureView, clock: AdventureClock, fx: Stag
         fx.missSeen = clock.lastMissAt;
         fx.pops.push({ text: "MISS", color: "#ff5a5a", x: HERO_X - 4, y: 58, born: now });
       }
-      pose.monsterX = lerp(MONSTER_FAR_X, MONSTER_NEAR_X + (boss ? 10 : 0), easeIn(danger)) - lunge * LUNGE_DISTANCE;
+      // a boss taking one chord of its progression: notes hit it, it flashes and staggers back
+      const sinceBossHit = now - clock.lastBossHitAt;
+      if (clock.lastBossHitAt !== fx.bossHitSeen && sinceBossHit < 100) {
+        fx.bossHitSeen = clock.lastBossHitAt;
+        fx.pops.push({ text: "HIT!", color: "#ffe066", x: MONSTER_FAR_X - 40, y: 52, born: now });
+      }
+      const flinch = sinceBossHit < BOSS_FLINCH_MS ? 1 - sinceBossHit / BOSS_FLINCH_MS : 0;
+      pose.monsterFlash = flinch > 0.5;
+      pose.monsterX = lerp(MONSTER_FAR_X, MONSTER_NEAR_X + (boss ? 10 : 0), easeIn(danger)) - lunge * LUNGE_DISTANCE + flinch * 8;
       dash = Math.round(lunge * 4);
       pose.monsterAlpha = clamp01(elapsed / 350);
       // Kordi takes the hit: knocked back a touch, flinching while it lasts
@@ -143,9 +156,9 @@ export function posePlayers(view: AdventureView, clock: AdventureClock, fx: Stag
         fx.burstFor = view.stage;
         fx.flash = 1;
         burst(fx.bits, pose.monsterX + (boss ? 24 : 12), GROUND_Y - (boss ? 24 : 12), view.scene, boss);
-        const used = clock.lastAnswerUsed;
-        const [text, color] = used < 0.34 ? ["PERFECT!", "#ffe066"] : used < 0.67 ? ["GREAT!", "#8fe3ff"] : ["GOOD", "#c9f2b0"];
+        const [text, color] = GRADE_POPS[gradeFor(clock.lastAnswerUsed)];
         fx.pops.push({ text, color, x: pose.monsterX - 10, y: 48, born: now });
+        fx.pops.push({ text: `+${clock.lastGain}`, color: "#ffffff", x: pose.monsterX - 6, y: 62, born: now });
       }
       if (elapsed > WALK_START) {
         const p = clamp01((elapsed - WALK_START) / (ADVENTURE_VICTORY_MS - WALK_START));
@@ -155,6 +168,23 @@ export function posePlayers(view: AdventureView, clock: AdventureClock, fx: Stag
       } else {
         pose.heroBob = -Math.round(Math.sin(clamp01(elapsed / FIRE_END) * Math.PI) * 5);
       }
+      break;
+    }
+    case "hurt": {
+      // out of time with lives to spare: it slams into Kordi, then backs off to come again
+      const p = clamp01(elapsed / ADVENTURE_HURT_MS);
+      if (clock.phaseStartedAt !== fx.hurtSeen) {
+        fx.hurtSeen = clock.phaseStartedAt;
+        fx.pops.push({ text: "-1", color: "#ff5a5a", x: HERO_X - 2, y: 58, born: now });
+      }
+      const slam = Math.sin(clamp01(p * 3) * Math.PI);
+      pose.danger = 1 - p;
+      pose.monsterX = lerp(MONSTER_NEAR_X + (boss ? 10 : 0) - slam * 10, MONSTER_FAR_X, easeIn(clamp01((p - 0.35) / 0.55)));
+      pose.monsterAlpha = 1 - clamp01((p - 0.75) / 0.25);
+      pose.hit = p < 0.35 ? 1 - p / 0.35 : 0;
+      pose.heroFrame = p < 0.6 ? "ouch" : pose.heroFrame;
+      pose.heroX = HERO_X - Math.round(slam * 6);
+      pose.shake = p < 0.3 ? 4 * (1 - p / 0.3) : 0;
       break;
     }
     case "dying":

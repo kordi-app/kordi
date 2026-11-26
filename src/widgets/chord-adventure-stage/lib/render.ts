@@ -1,6 +1,6 @@
-import { ADVENTURE_DEATH_MS, sceneFor, type AdventureView } from "@/entities/chord-adventure";
+import { ADVENTURE_DEATH_MS, isBossStage, sceneFor, type AdventureView } from "@/entities/chord-adventure";
 import { clamp01, easeIn, easeOut, lerp } from "./motion";
-import { isBoss, type Pose } from "./pose";
+import type { Pose } from "./pose";
 import { GROUND_Y, H, W, drawParticles, drawScene, glow, sceneAmbient, sceneDark } from "./scenes";
 import { HERO_HEIGHT, batonSprite, heroSprite, monsterFrameCount, monsterSprite, noteSprite, scarfSprite } from "./sprites";
 import type { StageFx } from "./stage-fx";
@@ -64,7 +64,7 @@ function drawMonster({ ctx, view, pose }: FrameContext) {
   const frames = monsterFrameCount(view.scene);
   const frame = frames > 1 ? Math.floor(pose.monsterFramePhase) % frames : 0;
   const img = monsterSprite(view.scene, frame, pose.danger > 0.6, pose.monsterFlash);
-  const scale = isBoss(view.stage) ? 2 : 1;
+  const scale = isBossStage(view.stage) ? 2 : 1;
   const x = pose.monsterX;
   ctx.globalAlpha = pose.monsterAlpha;
   ctx.fillStyle = SHADOW;

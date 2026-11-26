@@ -463,20 +463,26 @@ export interface components {
             profileImageUrl: string | null;
             /** Format: int32 */
             rank: number;
+            /** Format: int32 */
+            score: number;
         };
         AdventureRecordRequest: {
             /** Format: int32 */
             defeated: number;
             runId: string;
+            /** Format: int32 */
+            score: number;
         };
         AdventureResult: {
             /** Format: int32 */
-            bestDefeated: number;
+            bestScore: number;
             /** Format: int32 */
             defeated: number;
             /** Format: int64 */
             rank: number;
             saved: boolean;
+            /** Format: int32 */
+            score: number;
         };
         AdventureRunResponse: {
             runId: string;

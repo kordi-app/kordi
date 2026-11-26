@@ -32,6 +32,10 @@ export interface StageFx {
   burstFor: number;
   /** the miss already announced with "MISS" */
   missSeen: number;
+  /** the boss hit (a chord short of its whole progression) already announced */
+  bossHitSeen: number;
+  /** the lost life already announced */
+  hurtSeen: number;
   /** the penalty as shown: eases toward the real one, so a miss is a dash, not a teleport */
   shownPenalty: number;
   /**
@@ -52,6 +56,8 @@ export const createStageFx = (): StageFx => ({
   pops: [],
   burstFor: -1,
   missSeen: -Infinity,
+  bossHitSeen: -Infinity,
+  hurtSeen: -Infinity,
   shownPenalty: 0,
   heroPhase: 0,
   monsterHopPhase: 0,

@@ -36,9 +36,21 @@ function HarnessRun({ phase, scene, stage, progress = 0, limitMs = 8000, loop = 
     stage,
     scene,
     chord: { id: 1, name: phase === "playing" ? "Am7" : "Cmaj7" },
+    boss: null,
     defeated: stage - 1,
+    score: (stage - 1) * 300,
+    combo: stage - 1,
+    lives: phase === "hurt" ? 2 : 3,
   }));
-  const clock = useRef<AdventureClock>({ phaseStartedAt: 0, limitMs, penaltyMs: 0, lastMissAt: -Infinity, lastAnswerUsed: 0.2 });
+  const clock = useRef<AdventureClock>({
+    phaseStartedAt: 0,
+    limitMs,
+    penaltyMs: 0,
+    lastMissAt: -Infinity,
+    lastAnswerUsed: 0.2,
+    lastGain: 300,
+    lastBossHitAt: -Infinity,
+  });
   useEffect(() => {
     clock.current.phaseStartedAt = performance.now() - progress * limitMs;
     if (!loop) return;

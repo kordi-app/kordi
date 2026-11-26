@@ -1,7 +1,7 @@
 import type { ApiSchema } from "@/shared/api";
 import type { AdventureScene } from "./rules";
 
-export type AdventurePhase = "ready" | "loading" | "intro" | "playing" | "victory" | "dying" | "over";
+export type AdventurePhase = "ready" | "loading" | "intro" | "playing" | "victory" | "hurt" | "dying" | "over";
 
 /** What the game screen draws. Changes only at phase boundaries (React state). */
 export interface AdventureView {
@@ -11,7 +11,13 @@ export interface AdventureView {
   scene: AdventureScene;
   /** the chord to play (its id, and its name for the validator and display) */
   chord: { id: number; name: string } | null;
+  /** a boss's whole progression, and how many of its chords are already played (null for a plain monster) */
+  boss: { chords: { id: number; name: string }[]; index: number } | null;
   defeated: number;
+  score: number;
+  /** monsters beaten in a row without a wrong chord or a lost life */
+  combo: number;
+  lives: number;
 }
 
 /**
@@ -26,6 +32,10 @@ export interface AdventureClock {
   lastMissAt: number;
   /** share of the time limit used when the last monster was beaten (0–1): PERFECT / GREAT / GOOD */
   lastAnswerUsed: number;
+  /** points the last monster was worth */
+  lastGain: number;
+  /** when a boss last took a chord short of the whole progression (for its flinch) */
+  lastBossHitAt: number;
 }
 
 export type AdventureRankingEntry = ApiSchema<"AdventureRankingResponse">;

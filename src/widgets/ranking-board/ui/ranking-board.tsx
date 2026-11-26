@@ -145,7 +145,7 @@ function RankingList({
   );
 }
 
-/** Chord Adventure: most monsters beaten in one run. */
+/** Chord Adventure: the best score in one run. */
 function AdventureList() {
   const t = useTranslations("ranking");
   const { data: rankings } = useSuspenseQuery(adventureQueries.rankings());
@@ -170,7 +170,10 @@ function AdventureList() {
             <AvatarFallback className="text-t1 font-semibold">{entry.nickname.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
           <span className={cn("flex-1 text-t4 text-fg-neutral", entry.rank <= 3 && "font-semibold")}>{entry.nickname}</span>
-          <span className="text-right text-t4 font-semibold tabular-nums text-fg-neutral">{t("monsters", { count: entry.defeated })}</span>
+          <span className="flex flex-col items-end">
+            <span className="text-t4 font-semibold tabular-nums text-fg-neutral">{t("points", { score: entry.score })}</span>
+            <span className="text-t1 tabular-nums text-fg-neutral-subtle">{t("monsters", { count: entry.defeated })}</span>
+          </span>
         </div>
       ))}
     </div>
