@@ -222,6 +222,15 @@ function boulder(
 /** A flat carving lying on a floor (made facing +z, about the origin) */
 const laid = (g: THREE.BufferGeometry, x: number, y: number, z: number, turn = 0) => g.rotateX(-Math.PI / 2).rotateY(turn).translate(x, y, z);
 
+/**
+ * How far a carving stands off the face it's cut into. Any closer and, from a
+ * few paces off, the depth buffer can't tell the two apart and they flicker
+ * through each other (the dais's stars did); this much is far too little to see.
+ */
+const INLAY_LIFT = 0.02;
+/** How far a dais step's paler lip sits below its tread, so the tread's own top is the one seen */
+const NOSING_DROP = 0.008;
+
 /** A flat star with this many points, facing +z */
 function starShape(points: number, outer: number, inner: number) {
   const shape = new THREE.Shape();
@@ -299,14 +308,14 @@ function layFloor(put: Put) {
         for (let s = 0; s < 3; s++) {
           const turn = (hash(i * 5 + s, 65) - 0.5) * 1.4;
           const length = 0.4 + hash(i * 5 + s, 66) * 0.2;
-          put(cell.z, paint(laid(new THREE.PlaneGeometry(0.035, length), x + (Math.sin(turn) * length) / 2, 0.004, z + (Math.cos(turn) * length) / 2, turn), CARVED));
+          put(cell.z, paint(laid(new THREE.PlaneGeometry(0.035, length), x + (Math.sin(turn) * length) / 2, INLAY_LIFT, z + (Math.cos(turn) * length) / 2, turn), CARVED));
           x += Math.sin(turn) * length;
           z += Math.cos(turn) * length;
         }
       }
       // and along the worn way, every few paces, a small star is let into the stone
       else if (cell.x === 0 && r % 3 === 0 && !STAR_RESTS.some((rest) => rest.z === cell.z)) {
-        put(cell.z, paint(laid(starShape(4, 0.3, 0.1), cell.x, 0.006, cell.z, Math.PI / 4), INLAY));
+        put(cell.z, paint(laid(starShape(4, 0.3, 0.1), cell.x, INLAY_LIFT, cell.z, Math.PI / 4), INLAY));
       }
     }
     if (!bridge) {
@@ -537,8 +546,9 @@ function carveAltar(put: Put) {
   DAIS_STEPS.forEach((step, s) => {
     const rise = step.top - below;
     put(ALTAR.z, at(paint(new THREE.BoxGeometry(step.half * 2, rise, step.half * 2).translate(0, below + rise / 2, 0), DAIS)));
-    // the tread's nosing: a paler lip, worn by feet
-    put(ALTAR.z, at(paint(new THREE.BoxGeometry(step.half * 2 + 0.05, 0.05, step.half * 2 + 0.05).translate(0, step.top - 0.025, 0), DAIS_EDGE)));
+    // the tread's nosing: a paler lip, worn by feet. It sits a hair below the tread: level with
+    // it, the two tops were the same plane in two colours and the whole tread flickered between them
+    put(ALTAR.z, at(paint(new THREE.BoxGeometry(step.half * 2 + 0.05, 0.05, step.half * 2 + 0.05).translate(0, step.top - 0.025 - NOSING_DROP, 0), DAIS_EDGE)));
     // the frieze, on the three risers that can be seen from the way in
     const mid = below + (rise - 0.05) / 2;
     for (const turn of [0, Math.PI / 2, -Math.PI / 2]) {
@@ -547,13 +557,13 @@ function carveAltar(put: Put) {
         const x = (k - (count - 1) / 2) * 0.5;
         const star = (k + s) % 4 === 0;
         const mark = star ? starShape(4, 0.1, 0.035) : new THREE.PlaneGeometry(0.1, 0.1).rotateZ(Math.PI / 4);
-        put(ALTAR.z, at(paint(mark.translate(x, mid, step.half + 0.004).rotateY(turn), star ? INLAY : CARVED)));
+        put(ALTAR.z, at(paint(mark.translate(x, mid, step.half + INLAY_LIFT).rotateY(turn), star ? INLAY : CARVED)));
       }
     }
     below = step.top;
   });
   // let into the top: a ring, and an eight-pointed star round the pedestal's foot (it lights in the crown's starlight)
-  for (const mark of daisStar()) put(ALTAR.z, at(paint(laid(mark, 0, DAIS_TOP + 0.004, 0), INLAY)));
+  for (const mark of daisStar()) put(ALTAR.z, at(paint(laid(mark, 0, DAIS_TOP + INLAY_LIFT, 0), INLAY)));
   // the pedestal: a moulded foot, a fluted shaft, a collar, and the shallow bowl the necklace floats over
   const p = ALTAR.pedestal;
   const h = ALTAR.pedestalTop - DAIS_TOP;
@@ -962,7 +972,8 @@ function Altar({ light, owned }: Pick<CaveSceneProps, "light" | "owned">) {
   const glow = useRef<THREE.PointLight>(null);
   const shaftMaterial = useBuilt(() => lightMaterial("#ffe2a0"));
   const starMaterial = useBuilt(() => lightMaterial("#ffd27a"));
-  const starShapeOf = useBuilt(() => mergeParts(daisStar().map((g) => laid(g, 0, DAIS_TOP + 0.008, 0))));
+  // its glow lies over the carved star, a lift above it, for the same reason
+  const starShapeOf = useBuilt(() => mergeParts(daisStar().map((g) => laid(g, 0, DAIS_TOP + INLAY_LIFT * 2, 0))));
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
     const level = light.current ?? 0;
