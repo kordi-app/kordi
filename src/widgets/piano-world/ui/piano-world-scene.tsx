@@ -246,10 +246,26 @@ export default function PianoWorldScene({
         cancelEmote();
         silence();
         resetInteractions();
+        // every place you come to names itself across the screen (the cave and the music box
+        // show their own line from their arrival, below, which replaces this one)
+        const arrive = copy.regionArrive[next.id];
+        if (arrive) showBanner(copy.regions[next.id], arrive, "place");
         arrivals[next.feature]?.(next);
         if (isOn()) switchInstrument(next.instrument);
       }),
-    [travel, leaveDream, leaveMusicBox, cancelEmote, silence, resetInteractions, arrivals, isOn, switchInstrument],
+    [
+      travel,
+      leaveDream,
+      leaveMusicBox,
+      cancelEmote,
+      silence,
+      resetInteractions,
+      copy,
+      showBanner,
+      arrivals,
+      isOn,
+      switchInstrument,
+    ],
   );
   useEffect(() => {
     portalRef.current = handlePortal;

@@ -206,6 +206,16 @@
         "cave": "Cave of Sleeping Stars",
         "musicbox": "Inside the Music Box"
       },
+      "regionArrive": {
+        "hall": "Where every road begins",
+        "neon": "Step on a black key and bounce",
+        "cathedral": "The organ rings on · find the notes in the rose window",
+        "lounge": "Step anywhere and the band finds the harmony",
+        "clouds": "Keys float among the clouds",
+        "night": "Keys sleep under the starlight",
+        "ruins": "An old temple kept by thunder and a dragon",
+        "whale": "You're inside the moon-whale's dream"
+      },
       "melodies": {
         "twinkle": "Twinkle Twinkle Little Star",
         "odeToJoy": "Ode to Joy",

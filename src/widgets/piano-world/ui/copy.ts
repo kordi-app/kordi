@@ -14,6 +14,8 @@ export interface PianoWorldCopy {
   nameNouns: string[];
   // places
   regions: Record<RegionId, string>;
+  /** the line under a place's name as you arrive (the cave and the music box write their own) */
+  regionArrive: Partial<Record<RegionId, string>>;
   // emotes & interactables
   emotes: Record<EmoteId, string>;
   interact: Record<InteractableId, string>;
