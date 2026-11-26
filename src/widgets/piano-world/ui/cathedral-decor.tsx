@@ -122,7 +122,10 @@ const ROSETTE_FRAGMENT = /* glsl */ `
     float q = floor(mod(turn + 0.5, 4.0));
     float lit = q < 0.5 ? uLit.x : q < 1.5 ? uLit.y : q < 2.5 ? uLit.z : uLit.w;
     float r = length(p) * 2.0;
-    float ring = uBloom * exp(-pow((r - uSince * 0.7) * 5.0, 2.0));
+    // squared by hand: GLSL leaves pow() undefined for a negative base, which is
+    // everywhere inside the ring once it has passed
+    float off = (r - uSince * 0.7) * 5.0;
+    float ring = uBloom * exp(-off * off);
     float level = clamp(0.24 + 0.6 * lit + 0.25 * uBloom + 0.5 * ring, 0.0, 1.0);
     vec3 colour = mix(glass.rgb, vec3(1.0, 0.98, 0.9), 0.15 * lit + 0.45 * ring);
     gl_FragColor = vec4(colour, glass.a * level);
@@ -549,6 +552,8 @@ function drawRose(): THREE.CanvasTexture {
 
 /** How fast a pane eases on or off */
 const PANE_EASE = 5;
+/** Seconds since the bloom, as far as the shader needs to count (its ring is long gone by then) */
+const ROSE_SINCE_CAP = 99;
 
 function Rosette() {
   const map = useMemo(() => drawRose(), []);
@@ -561,7 +566,7 @@ function Rosette() {
           uMap: { value: map },
           uLit: { value: new THREE.Vector4() },
           uBloom: { value: 0 },
-          uSince: { value: 99 },
+          uSince: { value: ROSE_SINCE_CAP },
         },
         transparent: true,
         depthWrite: false,
@@ -592,7 +597,8 @@ function Rosette() {
       lit.setComponent(q, lit.getComponent(q) + (goal - lit.getComponent(q)) * ease);
     }
     shader.uniforms.uBloom.value = bloom;
-    shader.uniforms.uSince.value = since;
+    // before the first bloom `since` is Infinity, which a float uniform shouldn't carry
+    shader.uniforms.uSince.value = Math.min(since, ROSE_SINCE_CAP);
   });
 
   return (
