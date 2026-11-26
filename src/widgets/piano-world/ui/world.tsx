@@ -9,6 +9,7 @@ import type { CourseDef } from "../engine/course";
 import type { Terrain } from "../engine/terrain";
 import { interactablesIn, type InteractableId } from "../engine/interactables";
 import { decorColliders } from "../engine/decor";
+import { ROSETTE, cathedralRuntime, dwellAmen } from "../engine/cathedral";
 import { skyAt } from "../engine/day-night";
 import { islandHits } from "../engine/island";
 import { createAmbience, resetAmbience, stepAmbience, type AmbienceEvents } from "../audio/island-ambience";
@@ -68,6 +69,9 @@ const PET_ECHO_CHANCE = 0.3;
 
 /** It counts as night for the midnight bell from this far into dusk (day-night.ts: 0 day … 1 night) */
 const MIDNIGHT = 0.6;
+
+/** The cathedral's rose opens to a C major chord of bells, high and bright */
+const ROSE_CHORD = [72, 76, 79, 84];
 
 
 interface WorldProps {
@@ -314,6 +318,15 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
         }
       }
     }
+    // --- the cathedral's rose: a note counts once you've stood on it a beat
+    if (region.id === "cathedral") {
+      const amen = dwellAmen(cathedralRuntime, midi, now);
+      if (amen?.kind === "pane") events.onVoice("bell", amen.midi + 12, 0.35);
+      if (amen?.kind === "bloom") {
+        for (const note of ROSE_CHORD) events.onVoice("bell", note, 0.45);
+        fx.current?.lantern(ROSETTE.x, 0, ROSETTE.z);
+      }
+    }
     sendPosition(s.pos.x, s.pos.y, s.pos.z, s.heading, midi, emote);
     if (debugSeam) {
       debugSeam.region = region.id;
@@ -470,7 +483,7 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
         skyFound={skyFound}
         dreamFound={dreamFound}
       />
-      <RegionDecor region={region.id} party={interaction.party} />
+      <RegionDecor region={region.id} party={interaction.party} pressed={pressed} />
       {items.map((item) => {
         switch (item.id) {
           case "cat":

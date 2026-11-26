@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { REGIONS, type RegionId } from "../engine/regions";
 import { BOUNDS, CASE_H, WHITE_H, WHITE_L, keysIn } from "../engine/layout";
 import { decorFor, type DecorItem } from "../engine/decor";
+import { CathedralDecor } from "./cathedral-decor";
 
 /**
  * Set dressing: each region's own pieces (from engine/decor.ts, which also
@@ -14,9 +15,12 @@ import { decorFor, type DecorItem } from "../engine/decor";
 export function RegionDecor({
   region,
   party = false,
+  pressed,
 }: {
   region: RegionId;
   party?: boolean;
+  /** keys held down by everyone in the channel (the cathedral's windows answer them) */
+  pressed: RefObject<Set<number>>;
 }) {
   if (region === "clouds" || region === "night" || region === "ruins") return null;
   return (
@@ -26,6 +30,7 @@ export function RegionDecor({
       ))}
       {region === "neon" ? <NeonDecor party={party} /> : null}
       {region === "lounge" ? <Fireflies /> : null}
+      {region === "cathedral" ? <CathedralDecor pressed={pressed} /> : null}
     </group>
   );
 }
