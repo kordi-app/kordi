@@ -79,11 +79,14 @@ export const startLadder = (ladder: readonly number[]): LadderState => ({
 /** The ladder after frames ran slow ("down") or had room to spare ("up") */
 export function adapt(state: LadderState, direction: "up" | "down", ladder: readonly number[]): LadderState {
   if (direction === "up" && state.settled) return state;
+  const step = direction === "down" ? stepDown(state.step) : stepUp(state.step, ladder);
+  // already at that end: nothing changes, not even the state. The monitor keeps reporting
+  // room to spare at the top, and a fresh state each time would redraw the whole page
+  if (step === state.step) return state;
   const turns = state.turns + (state.last !== null && state.last !== direction ? 1 : 0);
   const settled = state.settled || turns >= MAX_TURNS;
   // the turn that settles it doesn't climb: it stays on the lower step
   if (direction === "up" && settled) return { ...state, turns, settled, last: direction };
-  const step = direction === "down" ? stepDown(state.step) : stepUp(state.step, ladder);
   return { step, last: direction, turns, settled };
 }
 

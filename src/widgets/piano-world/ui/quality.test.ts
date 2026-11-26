@@ -56,6 +56,22 @@ describe("adapting to the frames", () => {
     expect(run(["up", "up"], state).step).toBe(2);
   });
 
+  it("hands back the same state when it can go no further", () => {
+    const top = startLadder(HIGH);
+    expect(adapt(top, "up", HIGH)).toBe(top);
+    const bottom = run(["down", "down", "down"]);
+    expect(adapt(bottom, "down", HIGH)).toBe(bottom);
+    const settled = run(["down", "up", "down", "up"]);
+    expect(adapt(settled, "up", HIGH)).toBe(settled);
+  });
+
+  it("does not count a turn that went nowhere", () => {
+    // up at the top, then down: one move, not a turn
+    const state = run(["up", "down"]);
+    expect(state.turns).toBe(0);
+    expect(state.step).toBe(HIGH.length - 2);
+  });
+
   it("still steps down once settled, if frames keep running slow", () => {
     const settled = run(["down", "up", "down", "up"]);
     expect(run(["down"], settled).step).toBe(1);
