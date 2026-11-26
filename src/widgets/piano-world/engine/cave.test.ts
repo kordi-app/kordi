@@ -229,9 +229,7 @@ describe("matches the server", () => {
   });
 
   it("star rests, their reach and where a fall puts you are what the server expects", () => {
-    // the server may know rests this cave no longer has (it lets you come back to any it saw
-    // you light, or to the arrival); every rest here must be one of the server's
-    for (const rest of STAR_RESTS) expect(SERVER_CAVE.rests).toContainEqual(rest);
+    expect(STAR_RESTS).toEqual(SERVER_CAVE.rests);
     expect(REST_REACH).toBe(SERVER_CAVE.restReach);
     expect(CAVE_ARRIVAL).toEqual(SERVER_CAVE.arrival);
     STAR_RESTS.forEach((rest) => {
