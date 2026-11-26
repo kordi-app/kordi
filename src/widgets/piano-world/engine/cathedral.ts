@@ -60,8 +60,6 @@ export const POOL_OF_MIDI: ReadonlyMap<number, number> = new Map(KEYS.map((key) 
 export interface AmenState {
   /** panes lit so far, 0–3 */
   progress: number;
-  /** clock time the progress last changed (for easing a pane in or out) */
-  changedAt: number;
   /** clock time the rose last opened */
   bloomAt: number;
   /** the key underfoot, when it was reached, and whether it has been counted yet */
@@ -72,7 +70,6 @@ export interface AmenState {
 
 export const createAmen = (): AmenState => ({
   progress: 0,
-  changedAt: -Infinity,
   bloomAt: -Infinity,
   under: null,
   since: 0,
@@ -104,10 +101,8 @@ export function playAmen(state: AmenState, midi: number, now: number): AmenEvent
   if (state.progress === AMEN.length) {
     state.progress = 0;
     state.bloomAt = now;
-    state.changedAt = now;
     return { kind: "bloom" };
   }
-  if (state.progress !== before) state.changedAt = now;
   return state.progress > before ? { kind: "pane", midi } : { kind: "miss" };
 }
 
