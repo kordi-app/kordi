@@ -57,17 +57,98 @@ const CLIFF_PARTS = [
   { x0: CLIFF.caveX1, x1: CLIFF.x1 },
 ];
 
-/** A hairline crack down the cliff's face from y1 to y0, wandering a little; `foot` widens its lowest stretch */
-function crack(x: number, y0: number, y1: number, seed: number, foot = 0) {
+/** A hairline crack down the cliff's face from y1 to y0, wandering a little */
+function crack(x: number, y0: number, y1: number, seed: number) {
   const parts: THREE.BufferGeometry[] = [];
   const stretches = Math.max(2, Math.round((y1 - y0) / 0.7));
   const tall = (y1 - y0) / stretches;
   for (let k = 0; k < stretches; k++) {
     const lean = (hash(seed + k, 82) - 0.5) * 0.5;
-    const wide = k === 0 ? 0.06 + foot : 0.035 + hash(seed + k, 83) * 0.035;
+    const wide = k === 0 ? 0.06 : 0.035 + hash(seed + k, 83) * 0.035;
     parts.push(paint(new THREE.BoxGeometry(wide, tall + 0.06, 0.04).rotateZ(lean).translate(x, y0 + (k + 0.5) * tall, CLIFF.front + 0.01), CRACK));
     // the next stretch starts where this one's top leaned to
     x -= Math.sin(lean) * tall;
+  }
+  return parts;
+}
+
+/** The cave's way in (cave.ts ILLUSORY_WALL): the dark of the mouth, its deeper dark, and the rock round it */
+const MOUTH = { width: ILLUSORY_WALL.width + 0.5, height: 3.2 };
+const MOUTH_DARK = "#2a2530";
+const MOUTH_DEEP = "#0d0b12";
+const MOUTH_ROCK = ["#857b6f", "#968c80", "#7a7166"];
+
+/** Where the mouth's sides stop rising and its round top begins, as a share of its height */
+const MOUTH_SPRING = 0.45;
+
+/** A round-topped arch, `w` wide and `h` high at its crown, standing on y = 0 */
+function archShape(w: number, h: number) {
+  const shape = new THREE.Shape();
+  const half = w / 2;
+  const spring = h * MOUTH_SPRING;
+  shape.moveTo(-half, 0);
+  shape.lineTo(-half, spring);
+  // over the top, from the left side round to the right
+  shape.absellipse(0, spring, half, h - spring, Math.PI, 0, true);
+  shape.lineTo(half, 0);
+  shape.closePath();
+  return new THREE.ShapeGeometry(shape, 16);
+}
+
+/**
+ * The mouth of the cave in the cliff: a dark arch going into the rock, darker
+ * further in, ringed by rough stones (a low pile either side, then round over
+ * the top) and rubble fallen at its foot. Walking into the dark is walking in.
+ */
+function caveMouth(x: number) {
+  const front = CLIFF.front;
+  const parts: THREE.BufferGeometry[] = [
+    paint(archShape(MOUTH.width, MOUTH.height).translate(x, 0, front + 0.03), MOUTH_DARK),
+    paint(archShape(MOUTH.width * 0.7, MOUTH.height * 0.8).translate(x, 0, front + 0.05), MOUTH_DEEP),
+  ];
+  const stone = (seed: number, size: number, px: number, py: number, pz: number, squash = 1) =>
+    paint(
+      new THREE.DodecahedronGeometry(size, 0)
+        .scale(1, squash, 0.8)
+        .rotateY(hash(seed, 92) * 3)
+        .rotateZ((hash(seed, 93) - 0.5) * 0.6)
+        .translate(px, py, pz),
+      MOUTH_ROCK[seed % MOUTH_ROCK.length],
+    );
+  // either side, a low pile up to where the arch turns: the lowest stone the biggest
+  const spring = MOUTH.height * MOUTH_SPRING;
+  for (const side of [-1, 1]) {
+    for (let k = 0; k < 2; k++) {
+      const seed = (side > 0 ? 40 : 20) + k;
+      const size = 0.6 - k * 0.12 + hash(seed, 94) * 0.08;
+      const out = MOUTH.width / 2 + 0.22 + hash(seed, 95) * 0.12;
+      parts.push(stone(seed, size, x + side * out, 0.35 + k * spring * 0.62, front + 0.28, 0.85));
+    }
+  }
+  // then round over the top, following the arch
+  const RING = 7;
+  for (let k = 0; k <= RING; k++) {
+    const a = Math.PI - (k / RING) * Math.PI;
+    const seed = 80 + k;
+    const size = 0.42 + hash(seed, 94) * 0.16;
+    parts.push(
+      stone(
+        seed,
+        size,
+        x + Math.cos(a) * (MOUTH.width / 2 + 0.28),
+        spring + Math.sin(a) * (MOUTH.height - spring + 0.28),
+        front + 0.26,
+        0.8,
+      ),
+    );
+  }
+  // rubble fallen at the foot, kept to the sides so the way in stays clear
+  for (let k = 0; k < 5; k++) {
+    const side = k % 2 === 0 ? -1 : 1;
+    const seed = 60 + k;
+    const size = 0.13 + hash(seed, 96) * 0.14;
+    const px = x + side * (MOUTH.width / 2 - 0.1 + hash(seed, 97) * 0.9);
+    parts.push(stone(seed, size, px, size * 0.5, front + 0.55 + hash(seed, 98) * 0.9, 0.6));
   }
   return parts;
 }
@@ -90,12 +171,17 @@ function cliffDressingGeometry() {
         const run = Math.min(part.x1 - 0.3 - x, 2.5 + hash(n, 61) * 5);
         const h = 0.3 + hash(n, 62) * 0.35;
         const out = 0.14 + hash(n, 63) * 0.18;
-        parts.push(
-          paint(
-            new THREE.BoxGeometry(run, h, 0.4 + out).translate(x + run / 2, y + (hash(n, 64) - 0.5) * 0.5, CLIFF.front - 0.2 + out / 2 + 0.1),
-            STRATA[(layer + n) % STRATA.length],
-          ),
-        );
+        // a ledge low enough to cross the cave's mouth breaks off where the rock opens
+        const reach = MOUTH.width / 2 + 0.7;
+        const overMouth = y < MOUTH.height + 0.6 && x < ILLUSORY_WALL.x + reach && x + run > ILLUSORY_WALL.x - reach;
+        if (!overMouth) {
+          parts.push(
+            paint(
+              new THREE.BoxGeometry(run, h, 0.4 + out).translate(x + run / 2, y + (hash(n, 64) - 0.5) * 0.5, CLIFF.front - 0.2 + out / 2 + 0.1),
+              STRATA[(layer + n) % STRATA.length],
+            ),
+          );
+        }
         x += run + 0.15 + hash(n, 65) * 0.8;
       }
     }
@@ -120,10 +206,8 @@ function cliffDressingGeometry() {
       );
     }
   }
-  // one crack does come down to the ground, and stands a finger wider at its foot: the stretch
-  // of cliff that isn't there (cave.ts ILLUSORY_WALL). No more than that — it is a secret, and
-  // from a few paces off it is one crack among the others
-  parts.push(...crack(ILLUSORY_WALL.x, 0, 3.3, 7, 0.07));
+  // where the cliff opens: the cave's way in
+  parts.push(...caveMouth(ILLUSORY_WALL.x));
   // the lip the falls pour over, spanning the cave mouth
   // (its front stops just behind the falling sheet, so the two never z-fight)
   parts.push(paint(new THREE.BoxGeometry(CAVE.x1 - CAVE.x0 + 1.4, 0.55, CLIFF.front - CLIFF.back + 0.3).translate((CAVE.x0 + CAVE.x1) / 2, CLIFF.top - 0.15, (CLIFF.front + CLIFF.back) / 2 - 0.05), "#8e8578"));
@@ -139,6 +223,7 @@ const ROCKS: { x: number; y: number; z: number; s: number; flat: number; turn: n
     for (let x = part.x0 + 1; x < part.x1 - 0.5; x += 1.8 + hash(n, 71) * 2.6) {
       n++;
       if (x > POOL.x - POOL.r - 1.2 && x < POOL.x + POOL.r + 1.2) continue; // keep the pool's banks clear
+      if (Math.abs(x - ILLUSORY_WALL.x) < MOUTH.width / 2 + 0.4) continue; // and the cave's mouth
       const s = 0.35 + hash(n, 72) * 0.5;
       out.push({ x, y: s * 0.3, z: CLIFF.front + s * 0.1, s, flat: 0.6 + hash(n, 73) * 0.3, turn: hash(n, 74) * 6 });
     }

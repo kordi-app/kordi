@@ -1207,6 +1207,8 @@ function CaveMouth({ dot }: { dot: THREE.Texture }) {
 // --- the way in ----------------------------------------------------------------
 
 const SHIMMER_COUNT = 36;
+/** From this close the stars in the cave mouth's dark glint even without the crown */
+const MOUTH_GLINT_REACH = 14;
 
 /**
  * The illusory wall, seen from the island: nothing here (the cliff has a crack
@@ -1241,10 +1243,13 @@ export function IllusoryWall({ player, crowned }: { player: THREE.Vector3; crown
   useFrame(({ clock }) => {
     const d = Math.hypot(player.x - ILLUSORY_WALL.x, player.z - ILLUSORY_WALL.z);
     const near = crowned ? THREE.MathUtils.smoothstep(ILLUSORY_REVEAL - d, 0, ILLUSORY_REVEAL - 2) : 0;
+    // without the crown the stars asleep in the mouth's dark still glint, faintly, when you're close
+    const idle = THREE.MathUtils.smoothstep(MOUTH_GLINT_REACH - d, 0, 4) * 0.22;
     const p = points.current;
     if (!p) return;
-    (p.material as THREE.PointsMaterial).opacity = near * (0.55 + 0.35 * Math.sin(clock.getElapsedTime() * 2.1));
-    p.visible = near > 0.01;
+    const level = Math.max(near, idle);
+    (p.material as THREE.PointsMaterial).opacity = level * (0.55 + 0.35 * Math.sin(clock.getElapsedTime() * 2.1));
+    p.visible = level > 0.01;
   });
   return (
     <points ref={points} geometry={geometry} material={material} position={[ILLUSORY_WALL.x, 0, CLIFF.front + 0.05]} visible={false} />
