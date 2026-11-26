@@ -18,6 +18,8 @@ export interface KordiDebugSeam {
   night?: boolean;
   /** a script may set: put Kordi here on the next frame, then it's cleared (`__kordi.teleport = { x, y, z }`) */
   teleport?: { x: number; y: number; z: number } | null;
+  /** where the adaptive quality stands: its step on the tier's ladder, and the pixel ratio drawn */
+  quality?: { step: number; dpr: number };
 }
 
 declare global {

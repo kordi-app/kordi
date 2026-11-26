@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
+import { PerformanceMonitor } from "@react-three/drei";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEFAULT_APPEARANCE, characterQueries, type Appearance, type RewardId } from "@/entities/character";
 import { cn } from "@/shared/lib/utils";
@@ -19,6 +20,7 @@ import { useWorldControls } from "./hooks/use-world-controls";
 import type { CaveReplyMessage, CourseRecordMessage } from "../net/protocol";
 import { useWorldPresence } from "../net/use-world-presence";
 import { useWarpStones } from "./hooks/use-warp-stones";
+import { useAdaptiveQuality } from "./hooks/use-adaptive-quality";
 import { useSkyEvents } from "./hooks/use-sky-events";
 import { useDreamEvents } from "./hooks/use-dream-events";
 import { useCaveEvents } from "./hooks/use-cave-events";
@@ -58,6 +60,7 @@ export default function PianoWorldScene({
 }) {
   // the world renders on the client only (ssr: false), so storage is there on first render
   const [name, setName] = useState(() => (isGuest ? rememberGuestName(playerName) : playerName));
+  const adaptive = useAdaptiveQuality();
   const [celebrate, setCelebrate] = useState(0);
   const bumpCelebrate = useCallback(() => setCelebrate((n) => n + 1), []);
 
@@ -393,10 +396,21 @@ export default function PianoWorldScene({
     >
       <Canvas
         shadows={quality.shadows ? "percentage" : false}
-        dpr={quality.dpr}
+        dpr={adaptive.dpr}
         frameloop={visible ? "always" : "never"}
         camera={{ position: [0, 12, 18], fov: 45, near: 0.1, far: 150 }}
       >
+        {/* frames running slow step the quality ladder down; room to spare steps it back up
+            (use-adaptive-quality.ts settles it when it keeps turning). The bounds are a share of
+            the screen's refresh rate: drei's default asks for more than 60 fps on a 60 Hz screen
+            to step back up, which vsync never gives. Its own flip-flop limit is off: it counts
+            every step, so three steps down in a row would end the monitoring */}
+        <PerformanceMonitor
+          bounds={(refresh) => [refresh * 0.75, refresh * 0.95]}
+          onDecline={adaptive.decline}
+          onIncline={adaptive.incline}
+          flipflops={Infinity}
+        />
         <color attach="background" args={[region.theme.background]} />
         <fog attach="fog" args={[region.theme.background, ...region.theme.fog]} />
         <World
