@@ -90,5 +90,13 @@ export function adapt(state: LadderState, direction: "up" | "down", ladder: read
   return { step, last: direction, turns, settled };
 }
 
-/** The canvas pixel ratio a step asks for on a screen of this density (never more than it has) */
-export const pixelRatio = (dpr: number, screen: number) => Math.min(screen, dpr);
+/**
+ * A tier's ladder on a screen of this density: never more pixels than the
+ * screen has, so the steps above it fold into one at the screen's own ratio.
+ * (Left in, they'd be steps that change nothing, and a slow device would
+ * spend a decline on each before anything got cheaper.)
+ */
+export function ladderFor(ladder: readonly number[], screen: number): readonly number[] {
+  const below = ladder.filter((dpr) => dpr < screen);
+  return below.length === ladder.length ? ladder : [...below, screen];
+}

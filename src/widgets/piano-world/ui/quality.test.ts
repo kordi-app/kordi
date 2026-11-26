@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LADDERS, MAX_TURNS, adapt, pixelRatio, startLadder, stepDown, stepUp, type LadderState } from "./quality";
+import { LADDERS, MAX_TURNS, adapt, ladderFor, startLadder, stepDown, stepUp, type LadderState } from "./quality";
 
 const HIGH = LADDERS.high;
 const run = (moves: ("up" | "down")[], from: LadderState = startLadder(HIGH)) =>
@@ -28,9 +28,18 @@ describe("the quality ladders", () => {
   });
 
   it("never draw more pixels than the screen has", () => {
-    expect(pixelRatio(1.75, 1)).toBe(1);
-    expect(pixelRatio(1.75, 2)).toBe(1.75);
-    expect(pixelRatio(0.85, 3)).toBe(0.85);
+    expect(ladderFor(HIGH, 2)).toEqual([1, 1.25, 1.5, 1.75]);
+    expect(ladderFor(HIGH, 1)).toEqual([1]);
+    expect(ladderFor(LADDERS.low, 3)).toEqual([0.85, 1, 1.25]);
+    expect(ladderFor(LADDERS.minimal, 1)).toEqual([0.5]);
+  });
+
+  it("fold the steps above the screen into one, so every step down is cheaper", () => {
+    expect(ladderFor(HIGH, 1.25)).toEqual([1, 1.25]);
+    expect(ladderFor(HIGH, 1.6)).toEqual([1, 1.25, 1.5, 1.6]);
+    expect(ladderFor(LADDERS.low, 1)).toEqual([0.85, 1]);
+    // a screen with fewer pixels than the bottom step still draws at its own ratio
+    expect(ladderFor(LADDERS.low, 0.75)).toEqual([0.75]);
   });
 });
 
