@@ -65,7 +65,7 @@ export default function PianoWorldScene({
   const bumpCelebrate = useCallback(() => setCelebrate((n) => n + 1), []);
 
   const { region, regionRef, arrival, fading, travel, warp } = useRegionTravel();
-  const { awake, wake } = useWarpStones();
+  const { awake, wake } = useWarpStones(!isGuest);
   const { banner, show: showBanner } = usePlaceBanner();
   /** the warp stone in reach, if any (the island only) */
   const [warpNearby, setWarpNearbyState] = useState<WarpStoneId | null>(null);

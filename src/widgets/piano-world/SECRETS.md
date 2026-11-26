@@ -106,7 +106,7 @@
 | `world.dream-found`, `world.moon-whale` | 꿈의 바다 발견, 달고래 |
 | `world.cave-found`, `world.necklace` | 동굴 발견, 황금 목걸이 |
 | `world.musicbox-found` | 오르골 속 발견 |
-| `world.warp-stones` | 깨운 워프석 |
+| `world.warp-stones` | 깨운 워프석. 회원은 계정(서버 `/api/world/warp-stones`)에 남고, 이 키에는 아직 서버에 못 보낸 것만 남아요. 손님일 때 깨운 것도 로그인하면 계정으로 옮겨져요 |
 | `world.guest-name` | 손님 이름 |
 
 ## 테스트하며 둘러보기 (개발 서버에서만)
