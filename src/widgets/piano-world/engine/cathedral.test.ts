@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DWELL, LIGHT_POOLS, POOL_OF_MIDI, ROSETTE, createAmen, dwellAmen, playAmen, poolFor } from "./cathedral";
+import { decorFor } from "./decor";
 import { KEYS } from "./layout";
 
 const C4 = 60;
@@ -82,6 +83,12 @@ describe("the windows' light", () => {
       const pool = LIGHT_POOLS[POOL_OF_MIDI.get(key.midi)!];
       expect(Math.abs(pool.x - key.x)).toBeLessThanOrEqual(3);
     }
+  });
+
+  it("lies between every pair of columns, one pool to a window", () => {
+    const columns = decorFor("cathedral").map((item) => item.x);
+    expect(LIGHT_POOLS).toHaveLength(columns.length - 1);
+    LIGHT_POOLS.forEach((pool, i) => expect(pool.x).toBeCloseTo((columns[i] + columns[i + 1]) / 2));
   });
 
   it("clamps keys past either end to the end pools", () => {
