@@ -8,7 +8,7 @@
 |---|---|---|
 | `engine/` | 지도, 물리, 지역, 코스, 하늘섬, 꿈의 바다, 동굴, 꿈꾸는 석상, 오르골 속, 공의 **순수 계산** | three.js·React를 쓰지 않아요. 테스트(`*.test.ts`)가 여기 있어요 |
 | `engine/world-contract.json` | 서버가 지키게 하는 규칙(지역, 판정 위치, 머무는 시간, 이동 한도, 프로토콜 버전) | **서버 저장소에 똑같은 파일**이 있어요. 서버 숫자는 여기서만 읽고 코드에 복사하지 않아요. 바꿀 땐 두 저장소를 같이 바꾸고, 다르면 CI가 실패해요 |
-| `engine/regions.ts` | 지역 정의: 테마, 포탈, 지형(`terrain`), 키보드 대신 바닥(`floor`), 링크 도착점(`entry`) | 지역의 생김새는 데이터로만 정해요. 포탈은 세 가지예요: 보이는 문, 보이지 않지만 밟으면 가는 `invisible`, 그려지지도 밟히지도 않고 돌아올 자리만 정하는 `arriveOnly`(`isDrawn`/`isWalkThrough`로 물어요) |
+| `engine/regions.ts` | 지역 정의: 테마, 포탈, 지형(`terrain`), 키보드 대신 바닥(`floor`), 링크 도착점(`entry`) | 지역의 생김새는 데이터로만 정해요. 포탈은 세 가지예요: 보이는 문, 문으로 그려지지 않지만 밟으면 가는 `invisible`, 그려지지도 밟히지도 않고 돌아올 자리만 정하는 `arriveOnly`(`isDrawn`/`isWalkThrough`로 물어요) |
 | `ui/world.tsx` | 3D 장면과 **한 프레임의 순서** | 지역마다의 규칙은 몰라요. 지역의 프레임 목록을 돌며 부르기만 해요 |
 | `ui/frame/region-frames.ts` | 지역 기능 → 프레임 목록 표(`FEATURE_FRAMES`) | 지역 규칙은 `RegionFrame`(`enter`/`before`/`after`)으로 |
 | `ui/frame/*-frame.ts` | 지역·기능별 한 프레임 처리 (코스, 하늘에서 낙하, 섬의 비밀, 꿈의 바다, 동굴, 오르골 속, 공) | `FrameContext`를 받아 플레이어를 움직이고 이벤트를 보내요 |

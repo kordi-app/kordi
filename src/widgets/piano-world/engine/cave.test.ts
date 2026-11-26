@@ -26,7 +26,7 @@ import {
 } from "./cave";
 import { CLIFF } from "./island";
 import { BODY_RADIUS, groundAt } from "./physics";
-import { PORTAL_RADIUS, REGIONS, arrivalPoint } from "./regions";
+import { PORTAL_RADIUS, REGIONS, arrivalPoint, isDrawn, isWalkThrough } from "./regions";
 import { WORLD_CONTRACT } from "./world-contract";
 
 /** What the server checks (world-contract.json, shared with the server) */
@@ -59,6 +59,16 @@ describe("the cave's map", () => {
     expect(groundAt(cave, CAVE_ARRIVAL.x, CAVE_ARRIVAL.z, 0).height).toBe(0);
     expect(arrivalPoint("cave", "hall")).toEqual(CAVE_ARRIVAL);
     expect(Math.hypot(CAVE_ARRIVAL.x - CAVE_EXIT.x, CAVE_ARRIVAL.z - CAVE_EXIT.z)).toBeGreaterThan(PORTAL_RADIUS + 1);
+  });
+
+  it("lets you out where its mouth is: walked into, with no gate drawn over it", () => {
+    const out = cave.portals.find((p) => p.to === "hall");
+    expect(out).toMatchObject(CAVE_EXIT);
+    expect(out && isWalkThrough(out)).toBe(true);
+    expect(out && isDrawn(out)).toBe(false);
+    // the mouth is in the south wall: rock right behind the way out
+    expect(groundAt(cave, CAVE_EXIT.x, CAVE_EXIT.z, 0).height).toBe(0);
+    expect(caveCell(Math.round((CAVE_EXIT.z - cellZ(0)) / CAVE_CELL) + 1, (CAVE_COLS - 1) / 2)).toBe("#");
   });
 
   it("has nothing under the chasm but a long fall", () => {

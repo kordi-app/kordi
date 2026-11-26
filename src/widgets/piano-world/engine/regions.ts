@@ -60,9 +60,10 @@ export interface PortalDef {
   /** Where you appear coming back through it (default: beside it) */
   arrive?: { x: number; z: number };
   /**
-   * Walked through like any portal, but never drawn: the cave's illusory wall
-   * (cave.ts; only the cosmic crown's light gives it away) and the cat's spot
-   * in the meadow (cat-walk.ts; only the cat shows you where).
+   * Walked through like any portal, but never drawn as a gate: the cave's
+   * illusory wall (cave.ts; only the cosmic crown's light gives it away), the
+   * cat's spot in the meadow (cat-walk.ts; only the cat shows you where), and
+   * the way back out of the cave, which is a mouth in its rock (cave.tsx).
    */
   invisible?: boolean;
   /**
@@ -427,7 +428,8 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     // closer and lower than outside: rock all round, and the dark
     camera: [0, 9, 10.5],
     bounds: CAVE_BOUNDS,
-    portals: [{ to: "hall", ...CAVE_EXIT, color: "#c9b8ff", hidden: true, arrive: CAVE_ARRIVAL }],
+    // no gate here: the way out is the cave's mouth, which the cave draws itself (cave.tsx)
+    portals: [{ to: "hall", ...CAVE_EXIT, color: "#c9b8ff", invisible: true, arrive: CAVE_ARRIVAL }],
     theme: {
       background: "#040308",
       fog: [3, 15],

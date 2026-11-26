@@ -94,7 +94,7 @@ export const CAVE_BOUNDS = {
   zMax: cellZ(CAVE_ROWS - 1) + CAVE_CELL / 2,
 };
 
-/** The way out (back to the cliff) and where you arrive, a few steps in front of it */
+/** The way out (back to the cliff: the cave's mouth, in its south wall) and where you arrive, a few steps in front of it */
 export const CAVE_EXIT = at(find("E")[0]);
 export const CAVE_ARRIVAL = { x: CAVE_EXIT.x, z: CAVE_EXIT.z - 4 };
 

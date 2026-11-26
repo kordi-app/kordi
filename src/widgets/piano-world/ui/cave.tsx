@@ -9,6 +9,7 @@ import {
   ALTAR,
   CAVE_CELL,
   CAVE_COLS,
+  CAVE_EXIT,
   CAVE_FEATURES,
   CAVE_ROWS,
   DAIS_STEPS,
@@ -44,6 +45,8 @@ import { quality } from "./quality";
  * variety is in the shapes and in vertex colours. Everything that glows
  * softly — halos round woken stars, the star rests' pools of light, the haze
  * far down in the abyss — is one instanced mesh of soft sprites.
+ *
+ * The way out is a mouth in the south wall, with daylight coming in at it.
  */
 
 const STONE = "#24202c";
@@ -63,6 +66,8 @@ const CROWN_LIGHT = "#e4dcff";
 const REST_AWAKE = new THREE.Color("#ffd27a");
 const REST_ASLEEP = new THREE.Color("#4a3f66");
 const ALTAR_GOLD = new THREE.Color("#ffd27a");
+/** what comes in at the cave's mouth: the one light here that isn't a star's */
+const DAYLIGHT = new THREE.Color("#fff0d4");
 /** the abyss, shallow to deep: violet haze over a blue glow from further down than you can see */
 const HAZE = [new THREE.Color("#4a3a9a"), new THREE.Color("#3a3fa8"), new THREE.Color("#2f55b0")];
 
@@ -101,6 +106,7 @@ export function CaveScene({ player, light, owned, remotes }: CaveSceneProps) {
       <Starlight player={player} light={light} owned={owned} remotes={remotes} dot={dot} />
       <StarRests />
       <Altar light={light} owned={owned} />
+      <CaveMouth dot={dot} />
       <Dust player={player} light={light} />
       <CrownLights player={player} light={light} remotes={remotes} />
     </>
@@ -151,6 +157,13 @@ const ABYSS = {
   width: CAVE_COLS * CAVE_CELL,
 };
 const onBridge = (r: number) => r >= ABYSS_ROWS[0] && r <= ABYSS_ROWS[ABYSS_ROWS.length - 1];
+
+/**
+ * The way out: the rock behind CAVE_EXIT stands open, a short passage running
+ * on south from it towards the day. `half` is how wide the way is, `length`
+ * how far the passage goes before it is out of sight below the camera.
+ */
+const MOUTH = { r: rowOf(CAVE_EXIT.z) + 1, c: colOf(CAVE_EXIT.x), x: CAVE_EXIT.x, z: CAVE_EXIT.z + CAVE_CELL, half: 0.95, length: 6 };
 
 /** The joint between flagstones, and how thick the bridge's deck is */
 const JOINT = 0.05;
@@ -346,6 +359,8 @@ function layKerb(put: Put, cell: { x: number; z: number }, r: number, c: number,
 /** Rough boulders heaped along every rock cell that faces the cave; beside the abyss they go down into it */
 function heapWalls(put: Put) {
   WALL_FACES.forEach((cell, i) => {
+    // the mouth, and the rock either side that frames it, are set by hand (openMouth)
+    if (cell.r === MOUTH.r && Math.abs(cell.c - MOUTH.c) <= 1) return;
     const deep = besideAbyss(cell.r, cell.c);
     // rock between the camera (to the south) and the cave stays low, so it never hides Kordi:
     // the cave's south walls, and the thin wall the chasm is entered through, which stands
@@ -394,6 +409,41 @@ function heapWalls(put: Put) {
       }
     });
   });
+}
+
+/**
+ * The cave's mouth, seen from inside with the camera out beyond it: a gap in
+ * the south wall between two standing rocks, each with a smaller one leaning
+ * in from its shoulder (an arch that never quite closes: a lintel would cross
+ * Kordi on the way out), and the passage's floor and walls going on south.
+ * Like the rest of the south wall it stays low enough not to hide Kordi.
+ */
+function openMouth(put: Put) {
+  const { x, z } = MOUTH;
+  for (const side of [-1, 1]) {
+    const seed = 7000 + side * 40;
+    const jamb = x + side * (MOUTH.half + 0.95);
+    put(z, boulder(seed, "rock", [0.92, 0.86, 1.0], [jamb, 0.62, z], shade(seed, 0.12), { lit: [0, 2] }));
+    put(z, boulder(seed + 1, "rock", [0.5, 0.36, 0.55], [jamb - side * 0.6, 1.3, z + 0.05], shade(seed + 1, 0.22), { lit: [0, 2] }));
+    // where the wall takes up again beyond the jamb
+    put(z, boulder(seed + 2, "rock", [1.15, 0.5, 1.1], [jamb + side * 0.95, 0.3, z + 0.25], shade(seed + 2)));
+    // the passage's walls, lower the further out
+    for (let k = 0; k < 3; k++) {
+      const tall = 0.62 - k * 0.1 + hash(seed + k, 101) * 0.12;
+      put(z, boulder(seed + 3 + k, "rock", [0.85, tall, 1.05], [jamb + side * hash(seed + k, 102) * 0.25, tall * 0.5, z + 1.75 + k * 1.7], shade(seed + 3 + k)));
+    }
+    if (RICH) {
+      // stones fallen in the gap, at the jamb's foot
+      for (let k = 0; k < 2; k++) {
+        const size = 0.13 + hash(seed + k, 103) * 0.1;
+        put(z, boulder(seed + 8 + k, "stone", [size * 1.3, size, size * 1.1], [x + side * (MOUTH.half - 0.08 - k * 0.12), size * 0.45, z - 0.65 + k * 1.1], shade(seed + 8 + k, 0.3), { rough: 0.3, lit: [0, 1] }));
+      }
+    }
+  }
+  // the passage's floor: the hall's flagstones, going on
+  for (let k = 0; k * CAVE_CELL < MOUTH.length; k++) {
+    put(z, paint(new THREE.BoxGeometry(MOUTH.half * 2 + 1.6, 0.6, CAVE_CELL - JOINT).translate(x, -0.3 - hash(k, 104) * 0.02, z + k * CAVE_CELL), shade(7100 + k, 0.16)));
+  }
 }
 
 /** Out in the abyss, away from the bridge: spires standing up out of the dark, their tops far below you */
@@ -546,6 +596,7 @@ function caveRock() {
   const put: Put = (z, ...parts) => stretches[z < STRETCH_ENDS[0] ? 0 : z < STRETCH_ENDS[1] ? 1 : 2].push(...parts);
   layFloor(put);
   heapWalls(put);
+  openMouth(put);
   if (RICH) raiseSpires(put);
   CAVE_FEATURES.forEach((f, i) => put(f.z, ...(f.kind === "pillar" ? brokenPillar(f.x, f.z, i) : stalagmite(f.x, f.z, i))));
   carveAltar(put);
@@ -1069,6 +1120,88 @@ export function lightCave(
     scene.fog.far = theme.fog[1] + 24 * level;
   }
   if (hemi) hemi.intensity = theme.ambient + 0.4 * level;
+}
+
+// --- the way out ---------------------------------------------------------------
+
+/** How far into the hall the daylight reaches before it is gone, and how many strips the sheet has across */
+const DAYLIGHT_REACH = 5.5;
+const DAYLIGHT_ACROSS = 10;
+
+/**
+ * Daylight at the mouth, as one sheet of light lying on the floor (its colour
+ * is its brightness): as wide as the way along the passage, then spreading
+ * over the hall's flagstones and dying away a few paces in. Brightest along
+ * its middle, nothing at its edges.
+ */
+function daylightGeometry() {
+  const positions: number[] = [];
+  const colors: number[] = [];
+  const index: number[] = [];
+  let rows = 0;
+  for (let dz = MOUTH.length - 1; dz >= -DAYLIGHT_REACH; dz -= 0.5, rows++) {
+    const into = Math.max(0, -dz / DAYLIGHT_REACH);
+    const wide = MOUTH.half + 2.3 * into ** 0.8;
+    const level = dz > 0 ? 0.36 + 0.14 * (dz / MOUTH.length) : 0.36 * (1 - into) ** 2.2;
+    for (let i = 0; i <= DAYLIGHT_ACROSS; i++) {
+      const u = (i / DAYLIGHT_ACROSS) * 2 - 1;
+      positions.push(MOUTH.x + u * wide, 0.035, MOUTH.z + dz);
+      const lit = level * (1 - u * u) ** 2;
+      colors.push(lit, lit, lit);
+    }
+  }
+  for (let r = 0; r < rows - 1; r++) {
+    for (let i = 0; i < DAYLIGHT_ACROSS; i++) {
+      const a = r * (DAYLIGHT_ACROSS + 1) + i;
+      const b = a + DAYLIGHT_ACROSS + 1;
+      index.push(a, a + 1, b, a + 1, b + 1, b);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  g.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  g.setIndex(index);
+  return g;
+}
+
+/**
+ * What glows at the way out (its rock is part of the cave's stone): daylight
+ * on the floor, and a soft glare in the gap itself. Nothing
+ * here is a light: the stone it falls on only looks lit, and the fog leaves it
+ * alone, so the way out can be found from across the hall even in the dark.
+ */
+function CaveMouth({ dot }: { dot: THREE.Texture }) {
+  const light = useBuilt(daylightGeometry);
+  const material = useBuilt(
+    () =>
+      new THREE.MeshBasicMaterial({
+        vertexColors: true,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+        toneMapped: false,
+        fog: false,
+      }),
+  );
+  const glare = useBuilt(
+    () => new THREE.MeshBasicMaterial({ map: dot, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, fog: false }),
+  );
+  useFrame(({ clock }) => {
+    // cloud going over, somewhere outside
+    const t = clock.getElapsedTime();
+    const level = 0.9 + Math.sin(t * 0.6) * 0.07 + Math.sin(t * 1.7) * 0.03;
+    material.color.copy(DAYLIGHT).multiplyScalar(level);
+    glare.color.copy(DAYLIGHT).multiplyScalar(level * 0.07);
+  });
+  return (
+    <>
+      <mesh geometry={light} material={material} renderOrder={1} />
+      <mesh material={glare} position={[MOUTH.x, 0.9, MOUTH.z + 0.6]} rotation={[FACE_CAMERA, 0, 0]} scale={[6, 4.2, 1]} renderOrder={1}>
+        <planeGeometry args={[1, 1]} />
+      </mesh>
+    </>
+  );
 }
 
 // --- the way in ----------------------------------------------------------------
