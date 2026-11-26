@@ -295,9 +295,9 @@ export function useWorldAudio(regionRef: RefObject<RegionDef>, onStep: (midi: nu
   const isOn = useCallback(() => playable(audioRef.current), []);
 
   /** A struck/plucked island sound (bridge, drums, pipes, harp, bell) — rings out on its own. */
-  const voice = useCallback((id: VoiceId, midi: number, velocity: number) => {
+  const voice = useCallback((id: VoiceId, midi: number, velocity: number, delay = 0) => {
     debugSeam?.voices.push({ id, midi, t: performance.now() });
-    if (playable(audioRef.current)) playVoice(id, midi, velocity);
+    if (playable(audioRef.current)) playVoice(id, midi, velocity, delay);
   }, []);
 
   /** Warp stone sounds (waking, leaving, arriving). */

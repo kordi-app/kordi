@@ -70,8 +70,13 @@ const PET_ECHO_CHANCE = 0.3;
 /** It counts as night for the midnight bell from this far into dusk (day-night.ts: 0 day … 1 night) */
 const MIDNIGHT = 0.6;
 
-/** The cathedral's rose opens to a C major chord of bells, high and bright */
-const ROSE_CHORD = [72, 76, 79, 84];
+/**
+ * The cathedral's rose opens to C major, rolled upward note by note like a harp
+ * rather than struck at once, over two soft low bells
+ */
+const ROSE_ARPEGGIO = [72, 76, 79, 84, 88, 91, 96];
+const ROSE_ROLL = 0.11;
+const ROSE_BELLS = [48, 60];
 
 
 interface WorldProps {
@@ -321,9 +326,14 @@ export function World({ region, arrival, input, takeJump, presence, display, eve
     // --- the cathedral's rose: a note counts once you've stood on it a beat
     if (region.id === "cathedral") {
       const amen = dwellAmen(cathedralRuntime, midi, now);
-      if (amen?.kind === "pane") events.onVoice("bell", amen.midi + 12, 0.35);
+      if (amen?.kind === "pane") {
+        // a pane lights with a clear chime two octaves up, a quiet bell under it
+        events.onVoice("crystal", amen.midi + 24, 0.4);
+        events.onVoice("bell", amen.midi + 12, 0.18, 0.03);
+      }
       if (amen?.kind === "bloom") {
-        for (const note of ROSE_CHORD) events.onVoice("bell", note, 0.45);
+        ROSE_ARPEGGIO.forEach((note, i) => events.onVoice("crystal", note, 0.45 - i * 0.03, i * ROSE_ROLL));
+        ROSE_BELLS.forEach((note, i) => events.onVoice("bell", note, 0.3, 0.05 + i * 0.4));
         fx.current?.lantern(ROSETTE.x, 0, ROSETTE.z);
       }
     }

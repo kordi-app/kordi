@@ -242,7 +242,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
   },
   cathedral: {
     id: "cathedral",
-    instrument: "organ",
+    instrument: "cathedral-organ",
     feature: "echo",
     camera: DEFAULT_CAMERA,
     portals: homePortal("#2f2b27"),

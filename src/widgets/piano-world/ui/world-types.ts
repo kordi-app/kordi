@@ -35,7 +35,7 @@ export interface WorldEvents {
   /** a note ball hit or rolled onto a key */
   onBallNote: (midi: number, velocity: number) => void;
   /** the island's terrain made a sound (bridge bar, drum, pipe, harp string, bell…) */
-  onVoice: (voice: VoiceId, midi: number, velocity: number) => void;
+  onVoice: (voice: VoiceId, midi: number, velocity: number, delay?: number) => void;
   /** the warp stone now in reach (island only) */
   onWarpNearby: (id: WarpStoneId | null) => void;
   /** whether you're on the keyboard plaza (the melody game only shows there) */

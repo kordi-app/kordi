@@ -9,7 +9,9 @@ export type InstrumentId =
   | "electric-piano"
   | "synth-pad"
   | "organ"
-  | "bright-synth";
+  | "bright-synth"
+  /** the world's cathedral only: not offered in the instrument picker */
+  | "cathedral-organ";
 
 export interface InstrumentInfo {
   id: InstrumentId;
@@ -36,6 +38,8 @@ type InstrumentFactory = () => Instrument | Promise<Instrument>;
  * ~10–15 dB louder and clipped.
  */
 const ORGAN_DB = -15;
+/** the cathedral's organ: two detuned ranks and more partials than the plain organ (estimated, not measured) */
+const CATHEDRAL_ORGAN_DB = -18;
 /** the sampled piano at the level the synths were matched to (offline, C-major chord at velocity 0.7) */
 const PIANO_DB = -5;
 
@@ -129,6 +133,31 @@ const INSTRUMENT_STRATEGIES: Record<InstrumentId, InstrumentFactory> = {
       return dispose();
     };
     return withVolume(s, ORGAN_DB);
+  },
+
+  // A pipe organ in a stone nave. Each note is a principal chorus (8', 4', 2⅔', 2' and a
+  // little mixture: the partials) on two ranks a few cents apart, whose slow beating is
+  // what makes pipes sound alive. The pipe takes a moment to speak, and the tail is long;
+  // a gentle lowpass keeps the top from whistling, and the nave's reverb, ~6 s with a
+  // short gap before the first reflections, does the rest.
+  "cathedral-organ": () => {
+    const s = new Tone.PolySynth(Tone.Synth);
+    s.set({
+      oscillator: { type: "fatcustom", partials: [1, 0.62, 0.34, 0.3, 0.12, 0.1, 0.05, 0.06], count: 2, spread: 7 },
+      envelope: { attack: 0.06, decay: 0.25, sustain: 0.85, release: 1.6 },
+    });
+    s.maxPolyphony = 40; // two-hand chords with a long release need room
+    const soften = new Tone.Filter({ type: "lowpass", frequency: 3400, rolloff: -12 });
+    const nave = new Tone.Reverb({ decay: 6, preDelay: 0.045, wet: 0.42 });
+    s.chain(soften, nave, Tone.getDestination());
+    const dispose = s.dispose.bind(s);
+    s.dispose = () => {
+      soften.dispose();
+      nave.dispose();
+      return dispose();
+    };
+    // two ranks and a fuller registration than the plain organ: ~3 dB under it
+    return withVolume(s, CATHEDRAL_ORGAN_DB);
   },
 
   // a sawtooth through a lowpass that opens on the attack and closes again: bright, not harsh
