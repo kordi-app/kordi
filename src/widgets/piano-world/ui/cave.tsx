@@ -71,6 +71,8 @@ const WAKE_REACH = 8.5;
 const WAKE_KEEP = 0.32;
 /** Other people's crowns light the cave too: this many of the nearest */
 const REMOTE_CROWN_LIGHTS = 3;
+/** The crown's light on the way ahead: this far in front of Kordi, this high, this bright and far-reaching at full light */
+const CROWN_AHEAD = { reach: 3.2, height: 2.6, intensity: 30, distance: 12 };
 
 const RICH = quality.tier !== "minimal";
 const byTier = (high: number, low: number, minimal: number) => (quality.tier === "high" ? high : quality.tier === "low" ? low : minimal);
@@ -345,8 +347,11 @@ function layKerb(put: Put, cell: { x: number; z: number }, r: number, c: number,
 function heapWalls(put: Put) {
   WALL_FACES.forEach((cell, i) => {
     const deep = besideAbyss(cell.r, cell.c);
-    // rock between the camera (to the south) and the cave stays low, so it never hides Kordi
-    const cameraSide = caveCell(cell.r - 1, cell.c) !== "#" && caveCell(cell.r + 1, cell.c) === "#";
+    // rock between the camera (to the south) and the cave stays low, so it never hides Kordi:
+    // the cave's south walls, and the thin wall the chasm is entered through, which stands
+    // between the camera and Kordi once you're out over the abyss
+    const cameraSide =
+      (caveCell(cell.r - 1, cell.c) !== "#" && caveCell(cell.r + 1, cell.c) === "#") || caveCell(cell.r - 1, cell.c) === " ";
     for (let k = 0; k < 2; k++) {
       const tall = cameraSide ? 0.12 + hash(i, k + 3) * 0.1 : 0.45 + hash(i, k + 3) * 0.35;
       const sy = (WALL_TOP * tall) / 2 + (deep ? 3 : 0);
@@ -998,6 +1003,7 @@ function Dust({ player, light }: Pick<CaveSceneProps, "player" | "light">) {
  */
 function CrownLights({ player, light, remotes }: Pick<CaveSceneProps, "player" | "light" | "remotes">) {
   const mine = useRef<THREE.PointLight>(null);
+  const ahead = useRef<THREE.PointLight>(null);
   const others = useRef<(THREE.PointLight | null)[]>([]);
   const shines = useMemo<Shine[]>(() => [], []);
   useFrame(({ clock }) => {
@@ -1008,6 +1014,16 @@ function CrownLights({ player, light, remotes }: Pick<CaveSceneProps, "player" |
       mine.current.position.set(player.x, player.y + 2.2, player.z + 1.8);
       mine.current.intensity = (2.2 + 34 * level) * flicker;
       mine.current.distance = 4 + 13 * level;
+    }
+    if (ahead.current) {
+      // the crown also throws its light on the way ahead: the cave runs away from the camera
+      // (−z), and with only the light at Kordi's face the next flagstone (or the gap before it)
+      // was as dark as the abyss. Always on (at nothing without the crown): a light switched
+      // on or off changes the light count, and every material in the cave would recompile
+      ahead.current.position.set(player.x, player.y + CROWN_AHEAD.height, player.z - CROWN_AHEAD.reach);
+      ahead.current.intensity = CROWN_AHEAD.intensity * level * flicker;
+      // never 0: to three.js a distance of 0 means no limit at all
+      ahead.current.distance = Math.max(1, CROWN_AHEAD.distance * level);
     }
     crownedRemotes(remotes.current, player, shines);
     others.current.forEach((lamp, i) => {
@@ -1020,6 +1036,7 @@ function CrownLights({ player, light, remotes }: Pick<CaveSceneProps, "player" |
   return (
     <>
       <pointLight ref={mine} color={CROWN_LIGHT} decay={1.6} />
+      <pointLight ref={ahead} color={CROWN_LIGHT} decay={1.6} intensity={0} />
       {[...Array(REMOTE_CROWN_LIGHTS).keys()].map((i) => (
         <pointLight
           key={i}
