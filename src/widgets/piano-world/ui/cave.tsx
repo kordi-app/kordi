@@ -32,7 +32,7 @@ import { mergeParts, paint, useBuilt } from "./island/shared";
 import { quality } from "./quality";
 
 /**
- * The cave of sleeping stars (engine/cave.ts): rock, a chasm, two star rests and
+ * The cave of sleeping stars (engine/cave.ts): rock, a chasm, a star rest and
  * the altar. Everything here is drawn dark; what you see is what light reaches
  * it — the faint glow round Kordi, and the cosmic crown's starlight (yours, and
  * anyone else's in here wearing one). Stars sleep in the walls: they wake as a

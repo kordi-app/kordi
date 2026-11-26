@@ -29,9 +29,10 @@ export function enterCave(state: CaveFrame, light: { current: number }, now: num
 }
 
 /**
- * The cave, after you've moved: star rests wake, the abyss gives you back at
- * the last one, the altar hands over the necklace; and the place's light
- * follows the cosmic crown (`light` is shared with the cave's renderer).
+ * The cave, after you've moved: a star rest wakes, the abyss gives you back at
+ * it (or, before you've woken it, where you came in), the altar hands over the
+ * necklace; and the place's light follows the cosmic crown (`light` is shared
+ * with the cave's renderer).
  */
 export function stepCaveFrame(
   ctx: FrameContext,
@@ -48,7 +49,7 @@ export function stepCaveFrame(
   step.stayed = now - state.since;
   for (const event of stepCave(s.pos.x, s.pos.y, s.pos.z, step)) {
     if (event.kind === "fell") {
-      // the abyss gives you back at the last star rest you woke
+      // the abyss gives you back at the star rest you woke, or where you came in
       placePlayer(s, event.to.x, groundAt(region, event.to.x, event.to.z, 0).height, event.to.z);
       fx?.ripple(s.pos.x, s.pos.y, s.pos.z, REST_GLOW);
     } else if (event.kind === "rest") {

@@ -152,15 +152,50 @@ describe("stepping through the cave", () => {
     expect(stepCave(ALTAR.x, 0, ALTAR.z + 4.8, step())).toEqual([]);
   });
 
-  it("brings you back from the abyss to the last star rest you woke", () => {
-    expect(stepCave(0, ABYSS_CATCH - 1, -30, step({ grounded: false }))).toEqual([{ kind: "fell", to: CAVE_ARRIVAL }]);
-    const rest = STAR_RESTS[1];
-    expect(stepCave(rest.x, 0, rest.z, step({ crowned: false }))).toEqual([{ kind: "rest", index: 1 }]);
-    expect(caveRuntime.rests[1]).toBe(true);
+  it("has one star rest, past the chasm", () => {
+    expect(STAR_RESTS).toHaveLength(1);
+    expect(STAR_RESTS[0].z).toBeLessThan(cellZ(13));
+    expect(STAR_RESTS[0].z).toBeGreaterThan(ALTAR.z);
+  });
+
+  it("wakes nothing on the way from the entrance to the chasm", () => {
+    // straight up the middle of the hall of pillars, as far as the door to the bridge
+    for (let z = CAVE_ARRIVAL.z; z >= cellZ(21); z -= 0.25) {
+      expect(stepCave(0, 0, z, step({ crowned: false })), `z ${z}`).toEqual([]);
+    }
+    expect(caveRuntime.lastRest).toBe(-1);
+  });
+
+  it("a fall before the star rest brings you back to where you came in, on solid floor", () => {
+    // walked in and on to the bridge, then off it
+    stepCave(CAVE_ARRIVAL.x, 0, CAVE_ARRIVAL.z, step({ crowned: false }));
+    stepCave(cellX(12), 0, cellZ(17), step({ crowned: false }));
+    const events = stepCave(cellX(12), ABYSS_CATCH - 1, cellZ(16), step({ grounded: false }));
+    expect(events).toEqual([{ kind: "fell", to: CAVE_ARRIVAL }]);
+    const [fell] = events;
+    if (fell.kind !== "fell") throw new Error("expected a fall");
+    expect(groundAt(cave, fell.to.x, fell.to.z, 0).height).toBe(0);
+    // clear of the way out: coming back mustn't send you home
+    expect(Math.hypot(fell.to.x - CAVE_EXIT.x, fell.to.z - CAVE_EXIT.z)).toBeGreaterThan(PORTAL_RADIUS + 1);
+  });
+
+  it("a fall after waking the star rest brings you back to it, on solid floor", () => {
+    const rest = STAR_RESTS[0];
+    expect(stepCave(rest.x, 0, rest.z, step({ crowned: false }))).toEqual([{ kind: "rest", index: 0 }]);
+    expect(caveRuntime.rests[0]).toBe(true);
     expect(stepCave(rest.x, 0, rest.z, step({ crowned: false }))).toEqual([]); // already awake
-    expect(stepCave(0, ABYSS_CATCH - 1, -30, step({ grounded: false }))).toEqual([
-      { kind: "fell", to: { x: rest.x, z: rest.z + 1.2 } },
-    ]);
+    const back = { x: rest.x, z: rest.z + 1.2 };
+    expect(stepCave(0, ABYSS_CATCH - 1, -30, step({ grounded: false }))).toEqual([{ kind: "fell", to: back }]);
+    expect(groundAt(cave, back.x, back.z, 0).height).toBe(0);
+    // and it stays the place to come back to, wherever you fall from next
+    expect(stepCave(cellX(12), ABYSS_CATCH - 1, cellZ(16), step({ grounded: false }))).toEqual([{ kind: "fell", to: back }]);
+  });
+
+  it("a new visit starts with the star rest asleep again", () => {
+    stepCave(STAR_RESTS[0].x, 0, STAR_RESTS[0].z, step({ crowned: false }));
+    startCave();
+    expect(caveRuntime.rests).toEqual([false]);
+    expect(stepCave(0, ABYSS_CATCH - 1, -30, step({ grounded: false }))).toEqual([{ kind: "fell", to: CAVE_ARRIVAL }]);
   });
 });
 
@@ -184,14 +219,16 @@ describe("matches the server", () => {
   });
 
   it("star rests, their reach and where a fall puts you are what the server expects", () => {
-    expect(STAR_RESTS).toEqual(SERVER_CAVE.rests);
+    // the server may know rests this cave no longer has (it lets you come back to any it saw
+    // you light, or to the arrival); every rest here must be one of the server's
+    for (const rest of STAR_RESTS) expect(SERVER_CAVE.rests).toContainEqual(rest);
     expect(REST_REACH).toBe(SERVER_CAVE.restReach);
     expect(CAVE_ARRIVAL).toEqual(SERVER_CAVE.arrival);
-    STAR_RESTS.forEach((rest, i) => {
+    STAR_RESTS.forEach((rest) => {
       startCave();
       stepCave(rest.x, 0, rest.z, step({ crowned: false }));
       expect(stepCave(0, ABYSS_CATCH - 1, 0, step({ grounded: false }))).toEqual([
-        { kind: "fell", to: { x: SERVER_CAVE.rests[i].x, z: SERVER_CAVE.rests[i].z + SERVER_CAVE.respawnOffsetZ } },
+        { kind: "fell", to: { x: rest.x, z: rest.z + SERVER_CAVE.respawnOffsetZ } },
       ]);
     });
   });

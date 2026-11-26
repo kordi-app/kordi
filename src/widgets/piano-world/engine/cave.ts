@@ -8,9 +8,9 @@ import { WORLD_CONTRACT } from "./world-contract";
  * a cave so dark you can barely see your own feet. Wear the cosmic crown (the
  * night course's reward) and its starlight fills the place: the stars asleep in
  * the walls wake as you pass. Inside: a hall of fallen pillars, a chasm crossed
- * on a broken bridge, two star rests (touch one and a fall brings you back
- * there), and at the end a stepped dais where a gold necklace floats — only in
- * the crown's light can you see it, or take it.
+ * on a broken bridge, a star rest on its far side (touch it and a fall brings
+ * you back there, not to the way in), and at the end a stepped dais where a
+ * gold necklace floats — only in the crown's light can you see it, or take it.
  *
  * Pure data + state; cave.tsx draws it.
  */
@@ -23,11 +23,11 @@ export const CAVE_CELL = 2;
  * x = (c − 10) × CELL):
  *
  * - `#` rock    - `.` floor   - ` ` the abyss (no floor: fall and you're
- *   brought back to the last star rest)
+ *   brought back to the star rest if you've woken it, or to where you came in)
  * - `P` a fallen pillar to hop (standing on it is fine)
  * - `S` a stalagmite (too tall to climb)
  * - `1`–`3` a mound of rubble, 0.3 a step (walkable)
- * - `R` a star rest   - `A` the altar   - `E` the way out
+ * - `R` the star rest   - `A` the altar   - `E` the way out
  */
 const MAP = [
   "#####################", // 0
@@ -59,7 +59,7 @@ const MAP = [
   "###.P...S...S...P.###",
   "####.............####",
   "######.........######",
-  "########..R..########", // 29: the first star rest
+  "########.....########",
   "#########...#########", // 30
   "#########...#########",
   "########.....########",
@@ -124,7 +124,13 @@ export const ALTAR_REACH = 1.6;
 /** The necklace floats here, over the pedestal */
 export const NECKLACE_SPOT = { x: ALTAR.x, y: ALTAR.pedestalTop + 0.55, z: ALTAR.z };
 
-/** Star rests: touch one to wake it; a fall into the abyss brings you back to the last one woken */
+/**
+ * Star rests: touch one to wake it; a fall into the abyss brings you back to
+ * the last one woken. There is one, past the chasm: before it, a fall costs
+ * only the walk back from the way in. (The server's contract still lists a
+ * second by the entrance, from when there was one: it lights it as you walk
+ * over the spot, and nothing ever comes back there.)
+ */
 export const STAR_RESTS: readonly { x: number; z: number }[] = find("R").map(at);
 export const REST_REACH = 1.6;
 
@@ -214,7 +220,7 @@ export const CAVE_TERRAIN = buildTerrain(CAVE_SOLIDS);
 export const caveRuntime = {
   /** star rests woken this visit (index into STAR_RESTS) */
   rests: STAR_RESTS.map(() => false),
-  /** the rest you'd come back to after a fall (-1: the entrance) */
+  /** the rest you'd come back to after a fall (-1: none yet, so where you came in) */
   lastRest: -1,
   /** the necklace was taken this visit */
   taken: false,
@@ -267,7 +273,7 @@ export function stepCave(x: number, y: number, z: number, step: CaveStep): reado
   }
   if (y < ABYSS_CATCH) {
     const rest = caveRuntime.lastRest >= 0 ? STAR_RESTS[caveRuntime.lastRest] : null;
-    // just in front of the rest (on it you'd stand in its glow), or back at the entrance
+    // just in front of the rest (on it you'd stand in its glow); with none woken, back where you came in
     (events ??= []).push({ kind: "fell", to: rest ? { x: rest.x, z: rest.z + 1.2 } : { ...CAVE_ARRIVAL } });
   }
   if (
