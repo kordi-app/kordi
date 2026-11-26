@@ -136,7 +136,7 @@ export function WishPanel({
         rows={4}
         placeholder={copy.wishPlaceholder}
         // 16px on touch: iOS zooms the page into any field set smaller than that
-        className="mt-4 block w-full resize-none rounded-control border border-input bg-background px-3 py-2.5 text-sm leading-relaxed text-foreground outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-fg-placeholder hover:border-control-border-hover focus-visible:border-control-border-hover focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none pointer-coarse:text-base"
+        className="mt-4 block w-full select-text resize-none rounded-control border border-input bg-background px-3 py-2.5 text-sm leading-relaxed text-foreground outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-fg-placeholder hover:border-control-border-hover focus-visible:border-control-border-hover focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none pointer-coarse:text-base"
       />
       <p className="mt-2 break-keep text-xs leading-relaxed text-muted-foreground">{copy.wishNote}</p>
       <Button

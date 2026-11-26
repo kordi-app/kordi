@@ -368,7 +368,7 @@ export default function PianoWorldScene({
   return (
     <div
       ref={containerRef}
-      className="relative h-full w-full"
+      className="relative h-full w-full touch-none select-none overscroll-none [-webkit-touch-callout:none]"
       // a touch pointerdown is not a user activation on iOS: unlock on the release/click too
       onPointerDown={startAudio}
       onPointerUp={startAudio}
