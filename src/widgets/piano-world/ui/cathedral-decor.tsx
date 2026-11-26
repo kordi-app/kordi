@@ -11,7 +11,6 @@ import {
   ROSETTE,
   cathedralRuntime,
   poolGlow,
-  resetAmen,
 } from "../engine/cathedral";
 import { decorFor } from "../engine/decor";
 
@@ -24,8 +23,7 @@ import { decorFor } from "../engine/decor";
  * instanced — six draw calls for the lot.
  */
 export function CathedralDecor({ pressed }: { pressed: RefObject<Set<number>> }) {
-  // a fresh phrase each visit
-  useEffect(() => resetAmen(), []);
+  // (a fresh phrase each visit is the cathedral's frame's doing: ui/frame/cathedral-frame.ts)
   return (
     <group>
       <LightPools pressed={pressed} />

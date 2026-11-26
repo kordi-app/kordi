@@ -2,6 +2,7 @@ import type * as THREE from "three";
 import type { Landing } from "../../engine/player";
 import type { RegionDef, RegionFeature } from "../../engine/regions";
 import type { FrameContext } from "./context";
+import { enterCathedral, stepCathedralFrame } from "./cathedral-frame";
 import { createCaveFrame, enterCave, stepCaveFrame } from "./cave-frame";
 import { createCourseFrame, stepCourseAfter, stepCourseBefore } from "./course-frame";
 import { enterDream, stepDreamFrame } from "./dream-frame";
@@ -64,6 +65,8 @@ const FEATURE_FRAMES: Partial<Record<RegionFeature, (region: RegionDef, shared: 
     const state = createCourseFrame();
     return [{ before: (ctx) => stepCourseBefore(ctx, course, state), after: (ctx) => stepCourseAfter(ctx, course) }];
   },
+  // the cathedral's rose and its phrase
+  echo: () => [{ enter: enterCathedral, after: stepCathedralFrame }],
   dream: () => [{ enter: enterDream, after: stepDreamFrame }],
   cave: (_, { caveLight }) => {
     const state = createCaveFrame();
