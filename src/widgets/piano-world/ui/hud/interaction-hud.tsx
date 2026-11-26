@@ -23,7 +23,7 @@ export function EmoteBar({
     <div
       className={cn(
         HUD_SURFACE,
-        "absolute right-4 top-1/2 flex -translate-y-1/2 flex-col gap-0.5 rounded-container p-1 md:right-6 pointer-coarse:landscape:right-28 pointer-coarse:landscape:top-4 pointer-coarse:landscape:translate-y-0 pointer-coarse:landscape:flex-row",
+        "absolute right-4 top-1/2 flex -translate-y-1/2 flex-col gap-0.5 rounded-container p-1 hud-compact:p-0.5 md:right-6 pointer-coarse:landscape:right-28 pointer-coarse:landscape:top-4 pointer-coarse:landscape:translate-y-0 pointer-coarse:landscape:flex-row",
       )}
     >
       {EMOTES.map((id, i) => (
@@ -37,7 +37,7 @@ export function EmoteBar({
           className={cn(
             HUD_FOCUS,
             // 12px corners inside the rail's 16px ones, 4px in: the curves stay concentric
-            "flex size-10 select-none items-center justify-center rounded-card text-lg leading-none transition-[background-color,box-shadow,scale] duration-150 hover:bg-muted active:scale-[0.94] motion-reduce:transition-none motion-reduce:active:scale-100",
+            "flex size-10 select-none items-center justify-center rounded-card text-lg hud-compact:size-8 hud-compact:text-base leading-none transition-[background-color,box-shadow,scale] duration-150 hover:bg-muted active:scale-[0.94] motion-reduce:transition-none motion-reduce:active:scale-100",
             // the one you're doing is pressed in, like a held key
             emote === id && "bg-muted shadow-[inset_0_1px_2px_var(--palette-gray-alpha-500)] ring-1 ring-inset ring-foreground/25",
           )}
@@ -55,7 +55,7 @@ export function SpeechBubble({ text }: { text: string | null }) {
   return (
     <div
       role="status"
-      className="pointer-events-none absolute bottom-[5.25rem] pointer-coarse:bottom-[16.5rem] left-1/2 w-max max-w-[min(26rem,calc(100%-2rem))] -translate-x-1/2"
+      className="pointer-events-none absolute bottom-[5.25rem] pointer-coarse:bottom-[16.5rem] pointer-coarse:landscape:bottom-[5.25rem] left-1/2 w-max max-w-[min(26rem,calc(100%-2rem))] -translate-x-1/2"
     >
       {/* keyed by the line, so each new one arrives rather than swapping in place */}
       <div
@@ -91,7 +91,7 @@ function ActionPrompt({ onPress, children }: { onPress: () => void; children: Re
         HUD_CHIP,
         HUD_PRESSABLE,
         HUD_ENTER,
-        "absolute bottom-6 pointer-coarse:bottom-[12.75rem] left-1/2 flex h-10 -translate-x-1/2 items-center gap-2 whitespace-nowrap pl-2.5 pr-4 text-sm font-semibold text-foreground pointer-coarse:h-11 pointer-coarse:pl-4",
+        "absolute bottom-6 pointer-coarse:bottom-[12.75rem] pointer-coarse:landscape:bottom-6 left-1/2 flex h-10 -translate-x-1/2 items-center gap-2 whitespace-nowrap pl-2.5 pr-4 text-sm font-semibold text-foreground pointer-coarse:h-11 pointer-coarse:pl-4",
       )}
     >
       <kbd className="flex h-6 min-w-6 items-center justify-center rounded-md border border-control-border bg-background px-1.5 font-sans text-xs font-semibold text-muted-foreground shadow-[0_1px_0_var(--palette-gray-alpha-400)] pointer-coarse:hidden">

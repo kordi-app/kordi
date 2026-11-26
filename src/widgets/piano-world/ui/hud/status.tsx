@@ -49,7 +49,7 @@ export function NoteDisplay({ store }: { store: ValueStore<string | null> }) {
         aria-live="polite"
         className={cn(
           HUD_CARD,
-          "min-w-16 px-4 py-2 text-center text-3xl font-semibold -tracking-[0.02em] tabular-nums text-foreground",
+          "min-w-16 px-4 py-2 text-center text-3xl font-semibold hud-compact:min-w-12 hud-compact:px-3 hud-compact:py-1.5 hud-compact:text-2xl -tracking-[0.02em] tabular-nums text-foreground",
           // leaves the way it came: a small settle, not a pop
           "origin-top-right transition-[opacity,scale] duration-200 motion-reduce:transition-none",
           note === null && "scale-95 opacity-0 motion-reduce:scale-100",
@@ -87,7 +87,7 @@ function PresencePanel({ info, copy }: { info: PresenceInfo; copy: PianoWorldCop
         </span>
       </div>
       {listed.length > 0 ? (
-        <p className="mt-1 truncate text-muted-foreground">
+        <p className="mt-1 truncate text-muted-foreground hud-compact:hidden">
           {listed.map((p) => p.name).join(", ")}
           {hidden > 0 ? ` +${hidden}` : ""}
         </p>
@@ -109,11 +109,12 @@ export function StatusStack({
   const audioLabel = audio === "on" ? copy.soundOn : audio === "loading" ? copy.soundLoading : copy.soundOff;
   const AudioIcon = audio === "on" ? Volume2 : VolumeX;
   return (
-    <div className="pointer-events-none absolute bottom-4 left-4 flex max-w-[calc(100%-2rem)] flex-col items-start gap-1.5 md:bottom-6 md:left-6 pointer-coarse:bottom-32">
+    <div className="pointer-events-none absolute bottom-4 left-4 flex max-w-[calc(100%-2rem)] flex-col items-start gap-1.5 md:bottom-6 md:left-6 pointer-coarse:bottom-32 pointer-coarse:landscape:bottom-4">
       <PresencePanel info={info} copy={copy} />
-      <div className={STATUS_CHIP}>
+      <div className={cn(STATUS_CHIP, "hud-compact:px-2")}>
         <AudioIcon aria-hidden className={cn("size-3.5 shrink-0", audio === "on" && "text-success")} />
-        {audioLabel}
+        {/* a phone keeps just the icon; the words stay for screen readers */}
+        <span className="hud-compact:sr-only">{audioLabel}</span>
       </div>
     </div>
   );
@@ -146,7 +147,7 @@ export function NameChip({
           "after:absolute after:-inset-x-1 after:-inset-y-2",
         )}
       >
-        <span className="text-muted-foreground">{copy.nameLabel}</span>{" "}
+        <span className="text-muted-foreground hud-compact:hidden">{copy.nameLabel}</span>{" "}
         <span className="font-medium">{name}</span>
         {isGuest ? (
           <span className="ml-0.5 text-muted-foreground transition-transform duration-300 group-hover:rotate-90 motion-reduce:transition-none">

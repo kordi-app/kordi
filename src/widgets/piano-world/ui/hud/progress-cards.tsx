@@ -53,7 +53,7 @@ function ProgressCard({
     <div
       className={cn(
         HUD_CARD,
-        "pointer-events-none absolute left-4 top-[7.5rem] w-[min(20rem,calc(100%-2rem))] px-4 pb-3 pt-3.5 md:left-6 md:top-32 lg:left-1/2 lg:top-6 lg:-translate-x-1/2",
+        "pointer-events-none absolute left-4 top-[7.5rem] w-[min(20rem,calc(100%-2rem))] px-4 pb-3 pt-3.5 hud-compact:w-[min(15rem,calc(100%-2rem))] hud-compact:px-3 hud-compact:pb-2.5 hud-compact:pt-2.5 md:left-6 md:top-32 lg:left-1/2 lg:top-6 lg:-translate-x-1/2",
       )}
     >
       <div className="flex items-baseline justify-between gap-3">
@@ -79,7 +79,7 @@ function ProgressCard({
           style={{ width: `${percent}%` }}
         />
       </div>
-      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{hint}</p>
+      <p className="mt-2 text-xs leading-relaxed text-muted-foreground hud-compact:line-clamp-2">{hint}</p>
       {footer}
     </div>
   );
@@ -129,30 +129,33 @@ function CourseRanking({ run, isGuest, copy }: { run: CourseRun; isGuest: boolea
         : withRank(copy.courseRankMember, server.rank)
     : null;
   return (
-    <div className="mt-2.5 border-t border-border pt-2.5">
-      {result ? <p className="mb-2 text-xs font-semibold text-foreground">{result}</p> : null}
-      <p className="text-t1 font-semibold tracking-[0.05em] text-muted-foreground">{copy.courseRankingTitle}</p>
-      {top && top.length > 0 ? (
-        <ol className="mt-1.5 space-y-1">
-          {top.slice(0, 3).map((entry) => (
-            <li key={entry.rank} className="flex items-baseline gap-2 text-xs text-foreground">
-              {/* the system's ranking colour, for whoever holds the record */}
-              <span
-                className={cn(
-                  "w-3 text-center font-semibold tabular-nums",
-                  entry.rank === 1 ? "text-warning" : "text-muted-foreground",
-                )}
-              >
-                {entry.rank}
-              </span>
-              <span className="min-w-0 flex-1 truncate">{entry.nickname}</span>
-              <span className="tabular-nums text-muted-foreground">{formatTime(entry.timeMs)}</span>
-            </li>
-          ))}
-        </ol>
-      ) : (
-        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{copy.courseRankingEmpty}</p>
-      )}
+    <div className={cn("mt-2.5 border-t border-border pt-2.5", !result && "hud-compact:hidden")}>
+      {result ? <p className="mb-2 text-xs hud-compact:mb-0 font-semibold text-foreground">{result}</p> : null}
+      {/* a phone has no room for the board: just where your run landed */}
+      <div className="hud-compact:hidden">
+        <p className="text-t1 font-semibold tracking-[0.05em] text-muted-foreground">{copy.courseRankingTitle}</p>
+        {top && top.length > 0 ? (
+          <ol className="mt-1.5 space-y-1">
+            {top.slice(0, 3).map((entry) => (
+              <li key={entry.rank} className="flex items-baseline gap-2 text-xs text-foreground">
+                {/* the system's ranking colour, for whoever holds the record */}
+                <span
+                  className={cn(
+                    "w-3 text-center font-semibold tabular-nums",
+                    entry.rank === 1 ? "text-warning" : "text-muted-foreground",
+                  )}
+                >
+                  {entry.rank}
+                </span>
+                <span className="min-w-0 flex-1 truncate">{entry.nickname}</span>
+                <span className="tabular-nums text-muted-foreground">{formatTime(entry.timeMs)}</span>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{copy.courseRankingEmpty}</p>
+        )}
+      </div>
     </div>
   );
 }

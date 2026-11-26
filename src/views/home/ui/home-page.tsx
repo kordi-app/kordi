@@ -22,7 +22,7 @@ export async function HomePage() {
   const player = await resolvePlayer(nameAdjectives, nameNouns);
 
   return (
-    <main className="h-[calc(100svh-3.5rem)] w-full overflow-hidden overscroll-none md:h-svh md:min-h-[420px]">
+    <main className="h-[calc(100svh-3.5rem)] w-full overflow-hidden overscroll-none md:h-svh">
       <PianoWorld
         playerName={player.name}
         isGuest={player.isGuest}
