@@ -3,6 +3,8 @@ import {
   ABYSS_CATCH,
   ABYSS_FLOOR,
   ALTAR,
+  ALTAR_MIN_Y,
+  ALTAR_REACH,
   CAVE_ARRIVAL,
   CAVE_CELL,
   CAVE_COLS,
@@ -162,10 +164,19 @@ describe("stepping through the cave", () => {
     expect(stepCave(ALTAR.x, 0, ALTAR.z + 4.8, step())).toEqual([]);
   });
 
-  it("has one star rest, past the chasm", () => {
-    expect(STAR_RESTS).toHaveLength(1);
-    expect(STAR_RESTS[0].z).toBeLessThan(cellZ(13));
-    expect(STAR_RESTS[0].z).toBeGreaterThan(ALTAR.z);
+  it("gives it from the step below the top too, close to the pedestal", () => {
+    // the third step (top 0.9) runs from 1.5 to 2.5 out: 1.9 out is right beside the top
+    const third = DAIS_STEPS[DAIS_STEPS.length - 2];
+    expect(stepCave(ALTAR.x, third.top, ALTAR.z + 1.9, step())).toEqual([{ kind: "necklace" }]);
+  });
+
+  it("not from the step below that", () => {
+    const second = DAIS_STEPS[DAIS_STEPS.length - 3];
+    expect(stepCave(ALTAR.x, second.top, ALTAR.z + 2.1, step())).toEqual([]);
+  });
+
+  it("has no star rests", () => {
+    expect(STAR_RESTS).toEqual([]);
   });
 
   it("wakes nothing on the way from the entrance to the chasm", () => {
@@ -176,7 +187,7 @@ describe("stepping through the cave", () => {
     expect(caveRuntime.lastRest).toBe(-1);
   });
 
-  it("a fall before the star rest brings you back to where you came in, on solid floor", () => {
+  it("a fall brings you back to where you came in, on solid floor", () => {
     // walked in and on to the bridge, then off it
     stepCave(CAVE_ARRIVAL.x, 0, CAVE_ARRIVAL.z, step({ crowned: false }));
     stepCave(cellX(12), 0, cellZ(17), step({ crowned: false }));
@@ -189,22 +200,9 @@ describe("stepping through the cave", () => {
     expect(Math.hypot(fell.to.x - CAVE_EXIT.x, fell.to.z - CAVE_EXIT.z)).toBeGreaterThan(PORTAL_RADIUS + 1);
   });
 
-  it("a fall after waking the star rest brings you back to it, on solid floor", () => {
-    const rest = STAR_RESTS[0];
-    expect(stepCave(rest.x, 0, rest.z, step({ crowned: false }))).toEqual([{ kind: "rest", index: 0 }]);
-    expect(caveRuntime.rests[0]).toBe(true);
-    expect(stepCave(rest.x, 0, rest.z, step({ crowned: false }))).toEqual([]); // already awake
-    const back = { x: rest.x, z: rest.z + 1.2 };
-    expect(stepCave(0, ABYSS_CATCH - 1, -30, step({ grounded: false }))).toEqual([{ kind: "fell", to: back }]);
-    expect(groundAt(cave, back.x, back.z, 0).height).toBe(0);
-    // and it stays the place to come back to, wherever you fall from next
-    expect(stepCave(cellX(12), ABYSS_CATCH - 1, cellZ(16), step({ grounded: false }))).toEqual([{ kind: "fell", to: back }]);
-  });
-
-  it("a new visit starts with the star rest asleep again", () => {
-    stepCave(STAR_RESTS[0].x, 0, STAR_RESTS[0].z, step({ crowned: false }));
-    startCave();
-    expect(caveRuntime.rests).toEqual([false]);
+  it("a fall far past the chasm brings you back to the way in too", () => {
+    // walked across the bridge and on through the narrow way, then fell
+    stepCave(0, 0, cellZ(12), step({ crowned: false }));
     expect(stepCave(0, ABYSS_CATCH - 1, -30, step({ grounded: false }))).toEqual([{ kind: "fell", to: CAVE_ARRIVAL }]);
   });
 });
@@ -215,17 +213,23 @@ describe("matches the server", () => {
     expect(ALTAR.z).toBe(SERVER_CAVE.altar.z);
     // wherever you can take it, the server believes you
     expect(DAIS_STEPS[DAIS_STEPS.length - 1].half * Math.SQRT2).toBeLessThanOrEqual(SERVER_CAVE.altar.reach);
-    expect(DAIS_TOP - 0.15).toBeGreaterThanOrEqual(SERVER_CAVE.altar.minY);
+    // the server's height is the one the necklace is handed over at, and it's on the dais
+    expect(ALTAR_MIN_Y).toBe(SERVER_CAVE.altar.minY);
+    expect(ALTAR_MIN_Y).toBeGreaterThan(DAIS_STEPS[DAIS_STEPS.length - 3].top);
+    expect(ALTAR_MIN_Y).toBeLessThanOrEqual(DAIS_STEPS[DAIS_STEPS.length - 2].top);
+    // and the whole reach is inside the server's
+    expect(ALTAR_REACH + ALTAR.pedestal).toBeLessThanOrEqual(SERVER_CAVE.altar.reach);
     expect(CAVE_SERVER_MIN_STAY_SECONDS * 1000).toBe(SERVER_CAVE.minStayMs);
   });
 
-  it("the checkpoint is the star rest past the chasm", () => {
+  it("the checkpoint is the narrow way past the chasm, on solid floor", () => {
     const { checkpoint } = SERVER_CAVE;
-    const rest = STAR_RESTS.find((r) => Math.hypot(r.x - checkpoint.x, r.z - checkpoint.z) < 0.01);
-    expect(rest).toBeDefined();
     // past the chasm: between the bridge and the altar
     expect(checkpoint.z).toBeLessThan(cellZ(13));
     expect(checkpoint.z).toBeGreaterThan(ALTAR.z);
+    expect(groundAt(cave, checkpoint.x, checkpoint.z, 0).height).toBe(0);
+    // the way is three cells wide there: anyone walking through it passes within reach
+    expect(checkpoint.reach).toBeGreaterThanOrEqual(CAVE_CELL * 1.25);
   });
 
   it("star rests, their reach and where a fall puts you are what the server expects", () => {

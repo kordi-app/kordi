@@ -42,7 +42,7 @@ const MAP = [
   "######.........######",
   "########.....########", // 10
   "#########...#########",
-  "#########.R.#########", // 12: the star rest past the chasm
+  "#########...#########", // 12: the narrow way past the chasm (the server checks you came through it)
   "####      .      ####",
   "####      ...    ####",
   "####        .    ####", // 15
@@ -121,17 +121,21 @@ export const DAIS_STEPS = [
   { half: 1.5, top: 1.2 },
 ];
 export const DAIS_TOP = DAIS_STEPS[DAIS_STEPS.length - 1].top;
-/** Close enough to the pedestal (on the dais top) to take the necklace */
+/** Close enough to the pedestal to take the necklace */
 export const ALTAR_REACH = 1.6;
+/**
+ * And high enough: on the top step or the one below it. Close to the pedestal
+ * on that step you're already reaching for it, and having to climb one more
+ * made the necklace seem not to come (the server checks the same height).
+ */
+export const ALTAR_MIN_Y: number = WORLD_CONTRACT.cave.altar.minY;
 /** The necklace floats here, over the pedestal */
 export const NECKLACE_SPOT = { x: ALTAR.x, y: ALTAR.pedestalTop + 0.55, z: ALTAR.z };
 
 /**
  * Star rests: touch one to wake it; a fall into the abyss brings you back to
- * the last one woken. There is one, past the chasm: before it, a fall costs
- * only the walk back from the way in. (The server's contract still lists a
- * second by the entrance, from when there was one: it lights it as you walk
- * over the spot, and nothing ever comes back there.)
+ * the last one woken, or with none woken to the way in. The cave has none at
+ * the moment (an `R` in the map makes one): every fall is back to the way in.
  */
 export const STAR_RESTS: readonly { x: number; z: number }[] = find("R").map(at);
 export const REST_REACH = 1.6;
@@ -255,7 +259,7 @@ export const NECKLACE_READY_SECONDS = CAVE_SERVER_MIN_STAY_SECONDS + 1.5;
 /**
  * One frame in the cave: wake a star rest you've reached, bring you back from
  * the abyss, and hand you the necklace — only in the crown's light, standing
- * on the dais top beside the pedestal, once you've been here long enough for
+ * up on the dais beside the pedestal, once you've been here long enough for
  * the server to believe it, and only once.
  */
 /** What a quiet frame returns (shared: most frames nothing happens) */
@@ -284,7 +288,7 @@ export function stepCave(x: number, y: number, z: number, step: CaveStep): reado
     stayed >= NECKLACE_READY_SECONDS &&
     !caveRuntime.taken &&
     grounded &&
-    y >= DAIS_TOP - 0.15 &&
+    y >= ALTAR_MIN_Y &&
     Math.hypot(x - ALTAR.x, z - ALTAR.z) <= ALTAR_REACH + ALTAR.pedestal
   ) {
     caveRuntime.taken = true;
