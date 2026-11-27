@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { HTTPError } from "ky";
@@ -29,7 +29,7 @@ export function ProfileForm({ currentNickname }: ProfileFormProps) {
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     reset,
     formState: { errors },
   } = useForm<NicknameFormValues>({
@@ -37,7 +37,7 @@ export function ProfileForm({ currentNickname }: ProfileFormProps) {
     defaultValues: { nickname: savedNickname },
   });
 
-  const nickname = watch("nickname");
+  const nickname = useWatch({ control, name: "nickname" });
   const duplicateStatus = useNicknameCheck(nickname, savedNickname);
   const { mutate, isPending } = useMutation({
     mutationFn: updateProfile,
