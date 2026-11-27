@@ -121,7 +121,8 @@ function RankingList({
 
             <span
               className={cn(
-                "flex-1 text-sm",
+                // a long name gives way (…) so the score always stays on the row
+                "min-w-0 flex-1 truncate text-sm",
                 isTopThree ? "font-semibold text-foreground" : "text-foreground opacity-80",
               )}
             >
@@ -169,7 +170,7 @@ function AdventureList() {
             <AvatarImage src={entry.profileImageUrl ?? undefined} alt={entry.nickname} />
             <AvatarFallback className="text-t1 font-semibold">{entry.nickname.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
-          <span className={cn("flex-1 text-t4 text-fg-neutral", entry.rank <= 3 && "font-semibold")}>{entry.nickname}</span>
+          <span className={cn("min-w-0 flex-1 truncate text-t4 text-fg-neutral", entry.rank <= 3 && "font-semibold")}>{entry.nickname}</span>
           <span className="flex flex-col items-end">
             <span className="text-t4 font-semibold tabular-nums text-fg-neutral">{t("points", { score: entry.score })}</span>
             <span className="text-t1 tabular-nums text-fg-neutral-subtle">{t("monsters", { count: entry.defeated })}</span>

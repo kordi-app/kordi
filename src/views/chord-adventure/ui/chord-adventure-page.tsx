@@ -41,9 +41,10 @@ export function ChordAdventurePage() {
         <div className="relative w-full">
           <AdventureStage view={view} clock={clock} />
 
-          {/* over the screen where it fits; on phones the screen is too short for it, so it sits below */}
+          {/* over the screen where it fits: from lg. Narrower (phones, and tablets with the sidebar open) the
+              screen is shorter than the card, so it sits below */}
           {showMenu ? (
-            <div className="mt-3 flex justify-center sm:absolute sm:rounded-card sm:inset-0 sm:mt-0 sm:items-center sm:bg-palette-gray-1000/35 sm:p-4">
+            <div className="mt-3 flex justify-center lg:absolute lg:rounded-card lg:inset-0 lg:mt-0 lg:items-center lg:bg-palette-gray-1000/35 lg:p-4">
               <div role="status" aria-live="polite" className="w-full max-w-sm rounded-container bg-bg-layer-floating p-5 shadow-raised">
                 {view.phase === "ready" ? (
                   <>

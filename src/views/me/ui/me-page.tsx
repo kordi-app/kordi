@@ -26,7 +26,8 @@ export function MePage({ user, scores }: MePageProps) {
           {t("title")}
         </SectionHeader>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-[280px_1fr]">
+        {/* two columns only from lg: at md the sidebar is open and takes the room the second one needs */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
           {/* Left Column */}
           <div className="flex flex-col gap-6">
             <MonoCard className="flex flex-col items-center px-6 py-8">

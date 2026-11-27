@@ -29,7 +29,7 @@ export function FriendItem({ friendshipId, name }: { friendshipId: number; name:
           variant={confirming ? "destructive" : "ghost"}
           disabled={isPending}
           onClick={() => (confirming ? mutate(friendshipId) : setConfirming(true))}
-          className={confirming ? undefined : "text-muted-foreground md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"}
+          className={confirming ? undefined : "text-muted-foreground md:pointer-fine:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"}
         >
           {confirming ? t("confirmDelete") : t("remove")}
         </Button>
