@@ -33,8 +33,8 @@ import { mergeParts, paint, useBuilt } from "./island/shared";
 import { quality } from "./quality";
 
 /**
- * The cave of sleeping stars (engine/cave.ts): rock, a chasm, a star rest and
- * the altar. Everything here is drawn dark; what you see is what light reaches
+ * The cave of sleeping stars (engine/cave.ts): rock, a chasm, the altar, and
+ * a star rest wherever the map has one (none at the moment). Everything here is drawn dark; what you see is what light reaches
  * it — the faint glow round Kordi, and the cosmic crown's starlight (yours, and
  * anyone else's in here wearing one). Stars sleep in the walls: they wake as a
  * crown passes and stay softly lit behind it, so the way you came glows.
@@ -1225,9 +1225,9 @@ const SHIMMER_COUNT = 36;
 const MOUTH_GLINT_REACH = 14;
 
 /**
- * The illusory wall, seen from the island: nothing here (the cliff has a crack
- * at the spot, among its others: harp-falls.tsx) — unless you wear the cosmic
- * crown and come close, when stars shimmer over that stretch of rock.
+ * The illusory wall, seen from the island. The mouth itself is part of the
+ * cliff (harp-falls.tsx); what's here is the stars in its dark: a faint glint
+ * when you're close, and a shimmer over the rock if you wear the cosmic crown.
  */
 export function IllusoryWall({ player, crowned }: { player: THREE.Vector3; crowned: boolean }) {
   const points = useRef<THREE.Points>(null);

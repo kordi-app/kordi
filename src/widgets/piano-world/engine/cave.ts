@@ -4,13 +4,13 @@ import { WORLD_CONTRACT } from "./world-contract";
 
 /**
  * The cave of sleeping stars: behind an illusory stretch of the island's cliff
- * (next to nothing there to see — walk into the right spot of rock and you're through),
+ * (a dark mouth in the rock — walk into it and you're through),
  * a cave so dark you can barely see your own feet. Wear the cosmic crown (the
  * night course's reward) and its starlight fills the place: the stars asleep in
  * the walls wake as you pass. Inside: a hall of fallen pillars, a chasm crossed
- * on a broken bridge, a star rest on its far side (touch it and a fall brings
- * you back there, not to the way in), and at the end a stepped dais where a
- * gold necklace floats — only in the crown's light can you see it, or take it.
+ * on a broken bridge (fall and you're back at the way in: there's no star rest
+ * at the moment, see STAR_RESTS), and at the end a stepped dais where a gold
+ * necklace floats — only in the crown's light can you see it, or take it.
  *
  * Pure data + state; cave.tsx draws it.
  */
@@ -100,10 +100,10 @@ export const CAVE_ARRIVAL = { x: CAVE_EXIT.x, z: CAVE_EXIT.z - 4 };
 
 /**
  * The illusory wall on the island: a stretch of the cliff west of the harp
- * waterfall you can walk into. All that marks it is a crack in the rock like
- * the cliff's others, but for coming down to the ground (harp-falls.tsx) —
- * unless you wear the cosmic crown, whose light makes the rock shimmer when
- * you're close.
+ * waterfall you can walk into. It's drawn as a cave's mouth, a dark arch
+ * ringed with rough stones (harp-falls.tsx); stars glint faintly in its dark
+ * when you're close, and shimmer over it if you wear the cosmic crown
+ * (cave.tsx IllusoryWall).
  */
 export const ILLUSORY_WALL = { x: -75, z: CLIFF.front + 0.55, width: 2.4 };
 /** Coming back out, you stand in front of it */
