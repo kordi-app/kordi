@@ -24,15 +24,20 @@ const readStoredStones = () => warpStonesIn(readStored<unknown>(STORAGE_KEY, [])
  */
 export function useWarpStones(signedIn: boolean) {
   const queryClient = useQueryClient();
-  const { data: account } = useQuery({ ...warpStoneQueries.mine(), enabled: signedIn });
+  const { data: account, isSuccess } = useQuery({ ...warpStoneQueries.mine(), enabled: signedIn });
   const [local, setLocal] = useState<readonly WarpStoneId[]>(readStoredStones);
 
   const awake = useMemo(() => awakeStones(local, account?.awake), [local, account]);
   // read synchronously when a stone is reached, between renders
   const awakeRef = useRef(awake);
+  // a member's stones aren't known until the account has answered: until then a stone that
+  // looks asleep may be one they woke long ago (the browser only holds the unconfirmed ones)
+  const known = !signedIn || isSuccess;
+  const knownRef = useRef(known);
   useEffect(() => {
     awakeRef.current = awake;
-  }, [awake]);
+    knownRef.current = known;
+  }, [awake, known]);
 
   /** Hand stones to the account; once it has them, the browser no longer needs to hold them */
   const send = useCallback(
@@ -54,7 +59,11 @@ export function useWarpStones(signedIn: boolean) {
     if (pending.length > 0) void send(pending);
   }, [signedIn, send]);
 
-  /** Wake a stone; returns true if it was asleep until now. */
+  /**
+   * Wake a stone; returns true if it was asleep until now. While a member's
+   * stones aren't known yet it is still woken and sent on (the account takes a
+   * stone it already has), but never reported as new: no cheering twice.
+   */
   const wake = useCallback(
     (id: WarpStoneId) => {
       if (awakeRef.current.has(id)) return false;
@@ -62,7 +71,7 @@ export function useWarpStones(signedIn: boolean) {
       setLocal((current) => [...current, id]);
       writeStored(STORAGE_KEY, [...new Set([...readStoredStones(), id])]);
       if (signedIn) void send([id]);
-      return true;
+      return knownRef.current;
     },
     [signedIn, send],
   );
