@@ -8,6 +8,8 @@ import { awakeStones, stillToSend, toSend, warpStonesIn } from "../../engine/war
 import { warpStoneQueries, wakeWarpStones } from "../../api/warp-stones";
 
 const STORAGE_KEY = "world.warp-stones";
+/** A member's stones as the account last gave them: what's awake when the account can't be asked */
+const ACCOUNT_KEY = "world.warp-stones.account";
 
 /** The stones this browser holds: a guest's, or a member's the server hasn't confirmed yet */
 const readStoredStones = () => warpStonesIn(readStored<unknown>(STORAGE_KEY, []));
@@ -21,23 +23,41 @@ const readStoredStones = () => warpStonesIn(readStored<unknown>(STORAGE_KEY, [])
  * only holds what the server hasn't confirmed yet. A wake goes there first
  * and is sent on, and whatever is left over (a guest's stones on signing in,
  * a wake whose request failed) is sent the next time the world opens.
+ *
+ * The browser also remembers what the account last answered, and goes by that
+ * until it answers again (or if it can't: offline, the session run out), so a
+ * member's stones don't fall asleep with the network. A guest's visit forgets
+ * it: it belonged to whoever was signed in before.
  */
 export function useWarpStones(signedIn: boolean) {
   const queryClient = useQueryClient();
-  const { data: account, isSuccess } = useQuery({ ...warpStoneQueries.mine(), enabled: signedIn });
+  const { data: account } = useQuery({ ...warpStoneQueries.mine(), enabled: signedIn });
+  // read once: the effects below rewrite it, and nothing else does while the world is open
+  const [remembered] = useState(() => {
+    const stored = signedIn ? readStored<unknown>(ACCOUNT_KEY, null) : null;
+    return Array.isArray(stored) ? warpStonesIn(stored) : null;
+  });
+  /** the account's stones: its answer, or until it answers what it said last time (null: never heard) */
+  const accountStones = account?.awake ?? remembered;
   const [local, setLocal] = useState<readonly WarpStoneId[]>(readStoredStones);
 
-  const awake = useMemo(() => awakeStones(local, account?.awake), [local, account]);
+  const awake = useMemo(() => awakeStones(local, accountStones ?? undefined), [local, accountStones]);
   // read synchronously when a stone is reached, between renders
   const awakeRef = useRef(awake);
-  // a member's stones aren't known until the account has answered: until then a stone that
-  // looks asleep may be one they woke long ago (the browser only holds the unconfirmed ones)
-  const known = !signedIn || isSuccess;
+  // a member's stones aren't known until the account has answered, now or on an earlier visit:
+  // until then a stone that looks asleep may be one they woke long ago
+  const known = !signedIn || accountStones !== null;
   const knownRef = useRef(known);
   useEffect(() => {
     awakeRef.current = awake;
     knownRef.current = known;
   }, [awake, known]);
+
+  // keep the account's answer for next time; a guest's visit forgets the last member's
+  useEffect(() => {
+    if (!signedIn) writeStored(ACCOUNT_KEY, null);
+    else if (account) writeStored(ACCOUNT_KEY, warpStonesIn(account.awake));
+  }, [signedIn, account]);
 
   /** Hand stones to the account; once it has them, the browser no longer needs to hold them */
   const send = useCallback(

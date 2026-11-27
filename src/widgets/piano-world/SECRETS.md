@@ -107,6 +107,7 @@
 | `world.cave-found`, `world.necklace` | 동굴 발견, 황금 목걸이 |
 | `world.musicbox-found` | 오르골 속 발견 |
 | `world.warp-stones` | 깨운 워프석. 회원은 계정(서버 `/api/world/warp-stones`)에 남고, 이 키에는 아직 서버에 못 보낸 것만 남아요. 손님일 때 깨운 것도 로그인하면 계정으로 옮겨져요 |
+| `world.warp-stones.account` | 계정이 마지막으로 알려준 워프석 목록. 서버에 물어볼 수 없을 때(오프라인, 세션 만료) 이걸로 깨운 돌을 보여줘요. 손님으로 들어오면 지워져요 |
 | `world.guest-name` | 손님 이름 |
 
 ## 테스트하며 둘러보기 (개발 서버에서만)
