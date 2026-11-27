@@ -76,6 +76,8 @@ const WAKE_REACH = 8.5;
 const WAKE_KEEP = 0.32;
 /** Other people's crowns light the cave too: this many of the nearest */
 const REMOTE_CROWN_LIGHTS = 3;
+/** How bright one of those is while its crown is in here (with no crown to stand for, nothing) */
+const REMOTE_CROWN_INTENSITY = 26;
 /** The crown's light on the way ahead: this far in front of Kordi, this high, this bright and far-reaching at full light */
 const CROWN_AHEAD = { reach: 3.2, height: 2.6, intensity: 30, distance: 12 };
 
@@ -1091,7 +1093,9 @@ function CrownLights({ player, light, remotes }: Pick<CaveSceneProps, "player" |
     others.current.forEach((lamp, i) => {
       if (!lamp) return;
       const s = shines[i];
-      lamp.visible = s !== undefined;
+      // dimmed to nothing, not hidden, when there's no crown for it: a hidden light drops out of
+      // the light count (see `ahead` above), and the cave would recompile as people came and went
+      lamp.intensity = s ? REMOTE_CROWN_INTENSITY : 0;
       if (s) lamp.position.set(s.x, s.y + 2.4, s.z);
     });
   });
@@ -1106,10 +1110,9 @@ function CrownLights({ player, light, remotes }: Pick<CaveSceneProps, "player" |
             others.current[i] = el;
           }}
           color={CROWN_LIGHT}
-          intensity={26}
+          intensity={0}
           distance={14}
           decay={1.6}
-          visible={false}
         />
       ))}
     </>
